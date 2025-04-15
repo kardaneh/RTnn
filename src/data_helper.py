@@ -56,20 +56,7 @@ class RtmMpasDatasetWholeTimeLarge(Dataset):
         self.block_size = self.point_number // self.batch_divid_number
 
         # Surface variables
-        """
-        1  aldif Surface albedo (near-infrared spectral regions) for diffuse radiation
-        2  aldir Surface albedo (near-infrared spectral regions) for direct radiation
-        3  asdif Surface albedo (UV/visible spectral regions) for diffuse radiation
-        4  asdir Surface albedo (UV/visible spectral regions) for direct radiation
-        5  cosz Cosine solar zenith angle for current time step
-        6  landfrac Land mask (1 for land, 0 for water)
-        7  sicefrac Sea ice fraction
-        8  snow Snow water depth
-        9  solc Solar constant
-        10 tsfc Surface temperature
-        11 emiss Surface emissivity for 16 LW spectral bands
-        """
-        self.single_height_variable = [
+        self.slv = [
             "aldif",
             "aldir",
             "asdif",
@@ -84,35 +71,13 @@ class RtmMpasDatasetWholeTimeLarge(Dataset):
         ]
 
         # Points in batch
-        self.points_in_batch = self.block_size // self.point_folds - 1
+        self.gpbb = self.block_size // self.point_folds - 1
 
         # Initialize single-feature array
-        self.single_feature = np.zeros(
-            [self.points_in_batch, len(self.single_height_variable), 1]
-        )
+        self.sf = np.zeros([self.gpbb, len(self.slv), 1])
 
         # Multi-height variables
-        """
-        1  ccl4vmr CCL4 volume mixing ratio Layer
-        2  cfc11vmr CFC11 volume mixing ratio Layer
-        3  cfc12vmr CFC12 volume mixing ratio Layer
-        4  cfc22vmr CFC22 volume mixing ratio Layer
-        5  ch4vmr Methane volume mixing ratio Layer
-        6  cldfrac Cloud fraction Layer
-        7  CO2vmr CO2 volume mixing ratio Layer
-        8  N2Ovmr N2O volume mixing ratio Layer
-        9  O2vmr O2 volume mixing ratio Layer
-        10 o3vmr O3 volume mixing ratio Layer
-        11 play Layer pressure Layer hPa
-        12 tlay Layer temperature Layer
-        13 qc Cloud water mixing ratio Layer
-        14 qg Graupel mixing ratio Layer
-        15 qi Cloud ice mixing ratio Layer
-        16 qr Rain water mixing ratio Layer
-        17 qs Snow mixing ratio Layer
-        18 qv Water vapor mixing ratio Layer
-        """
-        self.multi_height_variable = [
+        self.mlv = [
             "ccl4vmr",
             "cfc11vmr",
             "cfc12vmr",
@@ -134,19 +99,13 @@ class RtmMpasDatasetWholeTimeLarge(Dataset):
         ]
 
         # Multi-height cumulative sum variables
-        self.multi_height_cumsum_variable = {"cldfrac": 0, "qc": 1}
+        self.mlcv = {"cldfrac": 0, "qc": 1}
 
-        # Multi-height cumulative sum variables
-        """
-        1 swuflx Layer SW upward fluxes
-        2 swdflx Layer SW downward fluxes
-        3 lwuflx Layer LW upward fluxes
-        4 lwdflx Layer LW downward fluxes
-        """
-        self.label_variable = ["swuflx", "swdflx", "lwuflx", "lwdflx"]
+        # Output variable
+        self.ov = ["swuflx", "swdflx", "lwuflx", "lwdflx"]
 
         # Auxiliary variables (pressure levels)
-        self.auxiliary_variable = ["plev"]
+        self.auxv = ["plev"]
 
     def __len__(self):
         """Returns the number of batches in the dataset."""
@@ -165,148 +124,112 @@ class RtmMpasDatasetWholeTimeLarge(Dataset):
 
         # Random throwing for feature selection
         if self.random_throw == True:
-            keep_size = 55 - np.random.choice(25)
-            keep_index = np.concatenate(
-                [
-                    np.asarray([0]),
-                    np.random.choice(np.arange(1, 56), size=keep_size, replace=False),
-                    np.asarray([56]),
-                ]
-            )
-            keep_index.sort()
-            keep_index_level = keep_index
-            keep_index_layer = keep_index_level[0:-1]
+            # np.random.choice(25) gives a random integer from 0 to 24, 
+            # rlen becomes a random number from 31 (i.e., 55-24) to 55 (i.e., 55-0)
+            rlen = self.vertical_layers - 2 - np.random.choice(25)
+            rinx = np.concatenate([np.asarray([0]), np.random.choice(np.arange(1, 56), size=rlen, replace=False), np.asarray([56])])
+            rinx.sort()
+            rinx_lev = rinx
+            rinx_ley = rinx_lev[0:-1]
 
         else:
-            keep_index_level = np.arange(0, 57)
-            keep_index_layer = np.arange(0, 56)
+            rinx_lev = np.arange(0, 57)
+
+        rinx_ley = rinx_lev[0:-1]
 
         # Initialize feature arrays
-        self.multi_feature = np.zeros(
-            [
-                self.points_in_batch,
-                len(self.multi_height_variable),
-                len(keep_index_level),
-            ]
-        )
-        self.multi_cumsum_feature = np.zeros(
-            [
-                self.points_in_batch,
-                2 * len(self.multi_height_cumsum_variable),
-                len(keep_index_level),
-            ]
-        )
-        self.label_feature = np.zeros(
-            [self.points_in_batch, len(self.label_variable), len(keep_index_level)]
-        )
-        self.auxiliary_feature = np.zeros(
-            [self.points_in_batch, len(self.auxiliary_variable), len(keep_index_level)]
-        )
+        self.npmlv = np.zeros([self.gpbb, len(self.mlv), len(rinx_lev)])
+        self.npmlcv = np.zeros([self.gpbb, 2 * len(self.mlcv), len(rinx_lev)])
+        self.npov = np.zeros([self.gpbb, len(self.ov), len(rinx_lev)])
+        self.npauxv = np.zeros([self.gpbb, len(self.auxv), len(rinx_lev)])
 
-        time_index = (
-            (index // self.batch_divid_number) * self.time_folds
-            + self.from_time
-            + np.random.randint(self.time_folds)
-        )
-        remain_index = index % self.batch_divid_number
+        tinx = self.from_time + np.random.randint(self.time_folds)
         total_folds = self.block_size // self.point_folds
-        global_index_list = np.arange(
-            (remain_index * self.block_size),
-            (remain_index * self.block_size + self.block_size),
-        )
+        ginx_lst = np.arange(index * self.block_size, index * self.block_size + self.block_size)
 
         # Random index shift for batching
-        inside_start_shift = np.random.randint(self.point_folds)
-        inside_index_list = np.arange(
-            inside_start_shift,
-            inside_start_shift + self.points_in_batch * self.point_folds,
-            self.point_folds,
-        )
-        index_list = np.arange(
-            (remain_index * self.block_size),
-            (remain_index * self.block_size + total_folds * self.point_folds),
-            self.point_folds,
-        )
+        srinx = np.random.randint(self.point_folds)
+        rinx_lst = np.arange(srinx, srinx + self.gpbb * self.point_folds, self.point_folds)
 
         # Single feature processing
-        for variable_index, variable_name in enumerate(self.single_height_variable):
+        for variable_index, variable_name in enumerate(self.slv):
             if variable_name == "emiss":
                 temp = (
-                    df.variables[variable_name][time_index, global_index_list, 0]
+                    df.variables[variable_name][tinx, ginx_lst, 0]
                     - self.norm_mapping[variable_name]["mean"]
                 ) / self.norm_mapping[variable_name]["scale"]
-                self.single_feature[:, variable_index, 0] = temp[inside_index_list]
+                self.sf[:, variable_index, 0] = temp[rinx_lst]
             else:
                 temp = (
-                    df.variables[variable_name][time_index, global_index_list]
+                    df.variables[variable_name][tinx, ginx_lst]
                     - self.norm_mapping[variable_name]["mean"]
                 ) / self.norm_mapping[variable_name]["scale"]
-                self.single_feature[:, variable_index, 0] = temp[inside_index_list]
+                self.sf[:, variable_index, 0] = temp[rinx_lst]
 
-        single_feature_tt = torch.tensor(self.single_feature, dtype=torch.float32)
+        sf_tt = torch.tensor(self.sf, dtype=torch.float32)
 
         # Multi-feature processing
-        for variable_index, variable_name in enumerate(self.multi_height_variable):
+        for variable_index, variable_name in enumerate(self.mlv):
             temp = (
-                df.variables[variable_name][time_index, global_index_list, :]
+                df.variables[variable_name][tinx, ginx_lst, :]
                 - self.norm_mapping[variable_name]["mean"]
             ) / self.norm_mapping[variable_name]["scale"]
-            temp_value = np.array(temp[inside_index_list, ::]).take(
-                keep_index_layer, axis=1
+            temp_value = np.array(temp[rinx_lst, ::]).take(
+                rinx_ley, axis=1
             )
-            self.multi_feature[:, variable_index, 1 : len(keep_index_layer) + 1] = (
+            self.npmlv[:, variable_index, 1 : len(rinx_ley) + 1] = (
                 temp_value
             )
-            self.multi_feature[:, variable_index, 0] = self.multi_feature[
+            self.npmlv[:, variable_index, 0] = self.npmlv[
                 :, variable_index, 1
             ]
 
-            if variable_name in self.multi_height_cumsum_variable:
-                variable_index = self.multi_height_cumsum_variable[variable_name]
+            if variable_name in self.mlcv:
+                variable_index = self.mlcv[variable_name]
                 temp_value_cumsum_forward = np.cumsum(temp_value, axis=1) / 20.0
                 temp_value_cumsum_backward = (
                     np.cumsum(temp_value[:, ::-1], axis=1) / 20.0
                 )
-                self.multi_cumsum_feature[
-                    :, variable_index, 1 : len(keep_index_level)
+                self.npmlcv[
+                    :, variable_index, 1 : len(rinx_lev)
                 ] = temp_value_cumsum_forward
-                self.multi_cumsum_feature[:, variable_index, 0] = (
-                    self.multi_cumsum_feature[:, variable_index, 1]
+                self.npmlcv[:, variable_index, 0] = (
+                    self.npmlcv[:, variable_index, 1]
                 )
-                self.multi_cumsum_feature[
+                self.npmlcv[
                     :,
-                    len(self.multi_height_cumsum_variable) + variable_index,
-                    1 : len(keep_index_level),
+                    len(self.mlcv) + variable_index,
+                    1 : len(rinx_lev),
                 ] = temp_value_cumsum_backward
-                self.multi_cumsum_feature[
-                    :, len(self.multi_height_cumsum_variable) + variable_index, 0
-                ] = self.multi_cumsum_feature[:, variable_index, 1]
+                self.npmlcv[
+                    :, len(self.mlcv) + variable_index, 0
+                ] = self.npmlcv[:, variable_index, 1]
 
-        multi_feature_tt = torch.tensor(self.multi_feature, dtype=torch.float32)
-        multi_cumsum_feature_tt = torch.tensor(
-            self.multi_cumsum_feature, dtype=torch.float32
+        mf_tt = torch.tensor(self.npmlv, dtype=torch.float32)
+        npmlcv_tt = torch.tensor(
+            self.npmlcv, dtype=torch.float32
         )
 
         # Label feature processing
-        for variable_index, variable_name in enumerate(self.label_variable):
+        for variable_index, variable_name in enumerate(self.ov):
             temp = (
-                df.variables[variable_name][time_index, global_index_list, :]
+                df.variables[variable_name][tinx, ginx_lst, :]
                 - self.norm_mapping[variable_name]["mean"]
             ) / self.norm_mapping[variable_name]["scale"]
-            self.label_feature[:, variable_index, :] = np.array(
-                temp[inside_index_list, ::]
-            ).take(keep_index_level, axis=1)
+            self.npov[:, variable_index, :] = np.array(
+                temp[rinx_lst, ::]
+            ).take(rinx_lev, axis=1)
 
-        label_feature_tt = torch.tensor(self.label_feature, dtype=torch.float32)
+        npov_tt = torch.tensor(self.npov, dtype=torch.float32)
 
         # Auxiliary feature processing
-        for variable_index, variable_name in enumerate(self.auxiliary_variable):
-            temp = df.variables[variable_name][time_index, global_index_list, :]
-            self.auxiliary_feature[:, variable_index, :] = np.array(
-                temp[inside_index_list, ::]
-            ).take(keep_index_level, axis=1)
+        for variable_index, variable_name in enumerate(self.auxv):
+            temp = df.variables[variable_name][time_index, ginx_lst, :]
+            self.npauxv[:, variable_index, :] = np.array(
+                temp[rinx_lst, ::]
+            ).take(rinx_lev, axis=1)
 
-        auxiliary_result_tf = torch.tensor(self.auxiliary_feature, dtype=torch.float32)
+        auxiliary_result_tf = torch.tensor(self.npauxv, dtype=torch.float32)
 
         # Compute pressure difference
         p_diff = auxiliary_result_tf - torch.roll(auxiliary_result_tf, -1, 2)
@@ -316,20 +239,20 @@ class RtmMpasDatasetWholeTimeLarge(Dataset):
         if self.only_layer:
             feature_tf = torch.cat(
                 [
-                    torch.tile(single_feature_tt, [1, len(keep_index_level)]),
-                    multi_feature_tt,
+                    torch.tile(sf_tt, [1, len(rinx_lev)]),
+                    mf_tt,
                 ],
                 dim=(1),
             )
         else:
             feature_tf = torch.cat(
                 [
-                    torch.tile(single_feature_tt, [1, len(keep_index_level)]),
-                    multi_feature_tt,
+                    torch.tile(sf_tt, [1, len(rinx_lev)]),
+                    mf_tt,
                     (p_diff - 17.2) / 9.8,
-                    multi_cumsum_feature_tt,
+                    npmlcv_tt,
                 ],
                 dim=(1),
             )
 
-        return (feature_tf, label_feature_tt, auxiliary_result_tf)
+        return (feature_tf, npov_tt, auxiliary_result_tf)

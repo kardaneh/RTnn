@@ -243,6 +243,7 @@ test_loader = DataLoader(
     pin_memory=False,
 )
 
+'''
 # ---------------------------------------------
 # Dataset Information
 # ---------------------------------------------
@@ -469,3 +470,4 @@ for epoch in range(args.num_epochs):
 
         mean_loss = sum(schedule_losses) / len(schedule_losses)
         scheduler.step(mean_loss)
+'''

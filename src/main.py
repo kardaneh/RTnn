@@ -4,7 +4,7 @@ import argparse
 
 os.environ["HDF5_DISABLE_VERSION_CHECK"] = "2"
 from file_helper import FileUtils
-from data_helper import RtmMpasDatasetWholeTimeLarge
+from data_helper import DataPreprocessor
 from model_prepare import load_model
 from model_helper import ModelUtils
 from evaluate_helper import (
@@ -142,29 +142,31 @@ else:
     args.only_layer_boolean = False
 
 # Create a FileHandler to log the output to a file
-# This will create a log file inside the 'logs' directory, under subdirectories based on the 'main_folder', 'sub_folder' and a custom 'prefix'
-filehandler = logging.FileHandler(
-    os.path.join("../logs", args.main_folder, args.sub_folder, args.prefix + "_log.txt")
-)
-filehandler.setLevel(logging.INFO)  # Set the level for file logging to INFO
+log_dir = os.path.join("../logs", args.main_folder, args.sub_folder)
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, f"{args.prefix}_log.txt")
 
-# Create a StreamHandler to log the output to the console (stdout)
-streamhandler = logging.StreamHandler()
-streamhandler.setLevel(logging.INFO)  # Set the level for console logging to INFO
+logger = logging.getLogger("")
+logger.setLevel(logging.INFO)
 
-# Create a logger object
-logger = logging.getLogger("")  # Create or get the root logger
-logger.setLevel(
-    logging.INFO
-)  # Set the global logging level to INFO (this applies to both handlers)
+if logger.hasHandlers():
+    logger.handlers.clear()
+
+# logs to file
+file_handler = logging.FileHandler(log_file, mode='w')
+file_handler.setLevel(logging.INFO)
+
+# logs to console
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+
+# Add both handlers to logger
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 # Disable matplotlib font manager warnings
 logging.getLogger("matplotlib.font_manager").disabled = True
 
-# Add the FileHandler and StreamHandler to the logger
-# The FileHandler writes logs to the file, and the StreamHandler prints them to the console
-logger.addHandler(filehandler)
-logger.addHandler(streamhandler)
 
 # Set the random seed for NumPy to ensure reproducibility
 random_state = 0
@@ -198,32 +200,34 @@ step = (
 
 
 # Create training dataset
-train_dataset = RtmMpasDatasetWholeTimeLarge(
-    nc_file=args.train_file,
-    root_dir="../",
-    from_time=0,
-    end_time=1,
-    batch_divid_number=int(960 / 6),
-    point_folds=1,
-    time_folds=1,
-    norm_mapping=norm_mapping_fullyear_new,
-    point_number=args.train_point_number,
-    only_layer=args.only_layer_boolean,
-)
+train_dataset = DataPreprocessor(
+        logger = logger,
+        nc_file=args.train_file,
+        root_dir="../",
+        from_time=0,
+        end_time=1,
+        batch_divid_number=int(960 / 6),
+        point_folds=3,
+        time_folds=1,
+        norm_mapping=norm_mapping_fullyear_new,
+        point_number=args.train_point_number,
+        only_layer=args.only_layer_boolean
+        )
 
 # Create testing dataset
-test_dataset = RtmMpasDatasetWholeTimeLarge(
-    nc_file=args.test_file,
-    root_dir="../",
-    from_time=0,
-    end_time=1,
-    batch_divid_number=int(960 / 6),
-    point_folds=1,
-    time_folds=1,
-    norm_mapping=norm_mapping_fullyear_new,
-    point_number=args.test_point_number,
-    only_layer=args.only_layer_boolean,
-)
+test_dataset = DataPreprocessor(
+        logger = logger,
+        nc_file=args.test_file,
+        root_dir="../",
+        from_time=0,
+        end_time=1,
+        batch_divid_number=int(960 / 6),
+        point_folds=3,
+        time_folds=1,
+        norm_mapping=norm_mapping_fullyear_new,
+        point_number=args.test_point_number,
+        only_layer=args.only_layer_boolean
+        )
 
 # Create DataLoader for training
 train_loader = DataLoader(
@@ -243,7 +247,6 @@ test_loader = DataLoader(
     pin_memory=False,
 )
 
-'''
 # ---------------------------------------------
 # Dataset Information
 # ---------------------------------------------
@@ -322,6 +325,8 @@ for epoch in range(args.num_epochs):
     previous_time = time.time()
 
     for batch_idx, (feature, targets, auxis) in enumerate(train_loader):
+        logger.info(f"Torch batch id .... {batch_idx} ....\n")
+'''
         if epoch == 0 and batch_idx == 0:
             logger.info(
                 f"feature shape:{feature.shape}, target shape:{targets.shape}, auxis shape:{auxis.shape}"

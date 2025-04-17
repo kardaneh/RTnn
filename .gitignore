@@ -174,4 +174,4 @@ runs/*
 !runs/.gitkeep
 
 # Ignore all __pycache__ folders recursively
-**/__pycache__/
+src/__pycache__/*

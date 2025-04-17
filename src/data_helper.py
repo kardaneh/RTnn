@@ -5,27 +5,12 @@ import numpy as np
 import xarray as xr
 
 
-class RtmMpasDatasetWholeTimeLarge(Dataset):
+class DataPreprocessor(Dataset):
     """
-    A dataset class for handling large-scale data processing in time-series format.
-
-    Arguments:
-        nc_file (str): NetCDF file path.
-        root_dir (str): Root directory for the dataset.
-        from_time (int): Starting time index.
-        end_time (int): Ending time index.
-        batch_divid_number (int): The number of divisions for batching.
-        point_folds (int): The size of the spatial blocks.
-        time_folds (int): The size of the time blocks.
-        norm_mapping (dict): Normalization parameters (mean and scale).
-        vertical_layers (int): Number of vertical layers (default 57).
-        point_number (int): Total number of points (default 10242).
-        random_throw (bool): Whether to apply random throwing (default False).
-        only_layer (bool): Whether to return only layer features (default False).
     """
-
     def __init__(
         self,
+        logger,
         nc_file,
         root_dir,
         from_time,
@@ -39,21 +24,49 @@ class RtmMpasDatasetWholeTimeLarge(Dataset):
         random_throw=False,
         only_layer=False,
     ):
+        self.logger = logger
         self.nc_file = nc_file
         self.root_dir = root_dir
         self.from_time = from_time
         self.end_time = end_time
-        self.batch_divid_number = batch_divid_number
-        self.point_folds = point_folds
-        self.time_folds = time_folds
-        self.point_number = point_number
-        self.random_throw = random_throw
+        self.sbatch = batch_divid_number
+        self.sfolds = point_folds
+        self.tfolds = time_folds
+        self.ngrid = point_number
+        self.vrandom = random_throw
         self.only_layer = only_layer
         self.norm_mapping = norm_mapping
-        self.vertical_layers = vertical_layers
-        print(f"Vertical layers: {self.vertical_layers}")
+        self.vlevels = vertical_layers
 
-        self.block_size = self.point_number // self.batch_divid_number
+        full_file_path = os.path.join(self.root_dir, self.nc_file)
+        self.df = xr.open_dataset(full_file_path, engine="netcdf4")
+
+        assert self.df.sizes['np'] == self.ngrid, f"Mismatch in spatial grid size: expected {self.ngrid}, got {self.df.sizes['np']}"
+        assert self.df.sizes['nz1'] == self.vlevels, f"Mismatch in vertical levels: expected {self.vlevels}, got {self.df.sizes['nz1']}"
+
+        self.stats = {
+                var: {
+                    'mean': self.df[var].mean().item(),
+                    'std': self.df[var].std().item()
+                    }
+                for var in self.df.data_vars
+                }
+
+        self.logger.info(f"NetCDF file: {self.nc_file}")
+        self.logger.info(f"Root directory: {self.root_dir}")
+        self.logger.info(f"Time range: {self.from_time} ... {self.end_time}")
+        self.logger.info(f"Spatial batches: {self.sbatch}")
+        self.logger.info(f"Spatial folds: {self.sfolds}")
+        self.logger.info(f"Temporal folds: {self.tfolds}")
+        self.logger.info(f"Number of grid points: {self.ngrid}")
+        self.logger.info(f"Random throw enabled: {self.vrandom}")
+        self.logger.info(f"Only process one layer: {self.only_layer}")
+        self.logger.info(f"Vertical levels: {self.vlevels}")
+
+
+        # Spatial block
+        self.sblock = self.ngrid // self.sbatch
+        self.logger.info(f"Spatial block size: {self.sblock}")
 
         # Surface variables
         self.slv = [
@@ -70,13 +83,14 @@ class RtmMpasDatasetWholeTimeLarge(Dataset):
             "emiss",
         ]
 
-        # Points in batch
-        self.gpbb = self.block_size // self.point_folds - 1
+        # Spatial chunk
+        self.schunk = self.sblock // self.sfolds
+        self.logger.info(f"Spatial chunk size: {self.schunk}")
 
-        # Initialize single-feature array
-        self.sf = np.zeros([self.gpbb, len(self.slv), 1])
+        # single-level array
+        self.npslv = np.zeros([self.schunk, len(self.slv), 1])
 
-        # Multi-height variables
+        # Multi-level variables
         self.mlv = [
             "ccl4vmr",
             "cfc11vmr",
@@ -98,161 +112,112 @@ class RtmMpasDatasetWholeTimeLarge(Dataset):
             "tlay",
         ]
 
-        # Multi-height cumulative sum variables
+        # Multi-level cumulative variables
         self.mlcv = {"cldfrac": 0, "qc": 1}
 
         # Output variable
         self.ov = ["swuflx", "swdflx", "lwuflx", "lwdflx"]
 
-        # Auxiliary variables (pressure levels)
+        # Auxiliary variables (pressure / absoption levels)
         self.auxv = ["plev"]
 
     def __len__(self):
-        """Returns the number of batches in the dataset."""
-        return (
-            (self.end_time - self.from_time)
-            // self.time_folds
-            * self.batch_divid_number
-        )
+        """Returns the number of """
+        return ((self.end_time - self.from_time)// self.tfolds * self.sbatch)
 
     def __getitem__(self, index):
-        """Fetches the data for a specific batch.
-        index: index in <some list of batch_size indices from 0 to __len__> passed by PyTorch
         """
-        full_file_path = os.path.join(self.root_dir, self.nc_file)
-        df = xr.open_dataset(full_file_path, engine="netcdf4")
+        """
+        self.logger.info(f"Torch batch: {index}\n")
 
-        # Random throwing for feature selection
-        if self.random_throw == True:
-            # np.random.choice(25) gives a random integer from 0 to 24, 
-            # rlen becomes a random number from 31 (i.e., 55-24) to 55 (i.e., 55-0)
-            rlen = self.vertical_layers - 2 - np.random.choice(25)
-            rinx = np.concatenate([np.asarray([0]), np.random.choice(np.arange(1, 56), size=rlen, replace=False), np.asarray([56])])
-            rinx.sort()
-            rinx_lev = rinx
-            rinx_ley = rinx_lev[0:-1]
-
+        # Random vertically ? 
+        if self.vrandom == True:
+            start, last, middle= 0, self.vlevels -1, self.vlevels - 2
+            rvlevslen = middle - np.random.choice(middle//2)
+            rvlevs = np.random.choice(np.arange(start+1, last), size=rvlevslen, replace=False)
+            rvlevs.sort()
+            vlevs = np.concatenate([np.asarray([start]), rvlevs, np.asarray([last])])
         else:
-            rinx_lev = np.arange(0, 57)
+            vlevs = np.arange(0, 57)
 
-        rinx_ley = rinx_lev[0:-1]
+        vleys = vlevs[0:-1]
 
-        # Initialize feature arrays
-        self.npmlv = np.zeros([self.gpbb, len(self.mlv), len(rinx_lev)])
-        self.npmlcv = np.zeros([self.gpbb, 2 * len(self.mlcv), len(rinx_lev)])
-        self.npov = np.zeros([self.gpbb, len(self.ov), len(rinx_lev)])
-        self.npauxv = np.zeros([self.gpbb, len(self.auxv), len(rinx_lev)])
+        # Initialize
+        self.npmlv  = np.zeros([self.schunk,     len(self.mlv ), len(vlevs)])
+        self.npmlcv = np.zeros([self.schunk, 2 * len(self.mlcv), len(vlevs)])
+        self.npov   = np.zeros([self.schunk,     len(self.ov  ), len(vlevs)])
+        self.npauxv = np.zeros([self.schunk,     len(self.auxv), len(vlevs)])
 
-        tinx = self.from_time + np.random.randint(self.time_folds)
-        total_folds = self.block_size // self.point_folds
-        ginx_lst = np.arange(index * self.block_size, index * self.block_size + self.block_size)
+        time_index = self.from_time + np.random.randint(self.tfolds)
+        gindices = np.arange(index * self.sblock, index * self.sblock + self.sblock)
+        assert len(gindices) == self.sblock, f"Mismatch in number of spatial blocks: expected {self.sblock}, got {len(gindices)}"
 
-        # Random index shift for batching
-        srinx = np.random.randint(self.point_folds)
-        rinx_lst = np.arange(srinx, srinx + self.gpbb * self.point_folds, self.point_folds)
+        # Random shift in spatial batch
+        sindex = np.random.randint(self.sfolds)
+        bindices = np.arange(sindex, sindex + self.schunk * self.sfolds, self.sfolds)
+        assert len(bindices) == self.schunk, f"Mismatch in number of batch chunks: expected {self.schunk}, got {len(bindices)}"
 
-        # Single feature processing
+        # Single level variables
         for variable_index, variable_name in enumerate(self.slv):
             if variable_name == "emiss":
                 temp = (
-                    df.variables[variable_name][tinx, ginx_lst, 0]
-                    - self.norm_mapping[variable_name]["mean"]
-                ) / self.norm_mapping[variable_name]["scale"]
-                self.sf[:, variable_index, 0] = temp[rinx_lst]
+                        self.df.variables[variable_name][time_index, gindices, 0]
+                        - self.stats[variable_name]["mean"]
+                        ) / self.stats[variable_name]["std"]
+                self.npslv[:, variable_index, 0] = temp[bindices]
             else:
                 temp = (
-                    df.variables[variable_name][tinx, ginx_lst]
-                    - self.norm_mapping[variable_name]["mean"]
-                ) / self.norm_mapping[variable_name]["scale"]
-                self.sf[:, variable_index, 0] = temp[rinx_lst]
+                        self.df.variables[variable_name][time_index, gindices]
+                        - self.stats[variable_name]["mean"]
+                        ) / self.stats[variable_name]["std"]
+                self.npslv[:, variable_index, 0] = temp[bindices]
+        tslv = torch.tensor(self.npslv, dtype=torch.float32)
 
-        sf_tt = torch.tensor(self.sf, dtype=torch.float32)
-
-        # Multi-feature processing
+        # Multi level variables
         for variable_index, variable_name in enumerate(self.mlv):
             temp = (
-                df.variables[variable_name][tinx, ginx_lst, :]
-                - self.norm_mapping[variable_name]["mean"]
-            ) / self.norm_mapping[variable_name]["scale"]
-            temp_value = np.array(temp[rinx_lst, ::]).take(
-                rinx_ley, axis=1
-            )
-            self.npmlv[:, variable_index, 1 : len(rinx_ley) + 1] = (
-                temp_value
-            )
-            self.npmlv[:, variable_index, 0] = self.npmlv[
-                :, variable_index, 1
-            ]
+                    self.df.variables[variable_name][time_index, gindices, :]
+                    - self.stats[variable_name]["mean"]
+                    ) / self.stats[variable_name]["std"]
+            temp_value = temp[bindices][:, vleys]
+            self.npmlv[:, variable_index, 1 : len(vlevs)] = temp_value
+            self.npmlv[:, variable_index, 0] = self.npmlv[:, variable_index, 1]
 
             if variable_name in self.mlcv:
                 variable_index = self.mlcv[variable_name]
                 temp_value_cumsum_forward = np.cumsum(temp_value, axis=1) / 20.0
-                temp_value_cumsum_backward = (
-                    np.cumsum(temp_value[:, ::-1], axis=1) / 20.0
-                )
-                self.npmlcv[
-                    :, variable_index, 1 : len(rinx_lev)
-                ] = temp_value_cumsum_forward
-                self.npmlcv[:, variable_index, 0] = (
-                    self.npmlcv[:, variable_index, 1]
-                )
-                self.npmlcv[
-                    :,
-                    len(self.mlcv) + variable_index,
-                    1 : len(rinx_lev),
-                ] = temp_value_cumsum_backward
-                self.npmlcv[
-                    :, len(self.mlcv) + variable_index, 0
-                ] = self.npmlcv[:, variable_index, 1]
+                temp_value_cumsum_backward = np.cumsum(temp_value[:, ::-1], axis=1) / 20.0
+                self.npmlcv[:, variable_index, 1 : len(vlevs)] = temp_value_cumsum_forward
+                self.npmlcv[:, variable_index, 0] = self.npmlcv[:, variable_index, 1]
+                self.npmlcv[:, len(self.mlcv) + variable_index, 1 : len(vlevs)] = temp_value_cumsum_backward
+                self.npmlcv[:, len(self.mlcv) + variable_index, 0] = self.npmlcv[:, variable_index, 1]
 
-        mf_tt = torch.tensor(self.npmlv, dtype=torch.float32)
-        npmlcv_tt = torch.tensor(
-            self.npmlcv, dtype=torch.float32
-        )
+        tmlv = torch.tensor(self.npmlv, dtype=torch.float32)
+        tmlcv = torch.tensor(self.npmlcv, dtype=torch.float32)
 
-        # Label feature processing
+        # Output variables
         for variable_index, variable_name in enumerate(self.ov):
             temp = (
-                df.variables[variable_name][tinx, ginx_lst, :]
-                - self.norm_mapping[variable_name]["mean"]
-            ) / self.norm_mapping[variable_name]["scale"]
-            self.npov[:, variable_index, :] = np.array(
-                temp[rinx_lst, ::]
-            ).take(rinx_lev, axis=1)
+                    self.df.variables[variable_name][time_index, gindices, :]
+                    - self.stats[variable_name]["mean"]
+                    ) / self.stats[variable_name]["std"]
+            self.npov[:, variable_index, :] = temp[bindices][:, vlevs]
+        tov = torch.tensor(self.npov, dtype=torch.float32)
 
-        npov_tt = torch.tensor(self.npov, dtype=torch.float32)
-
-        # Auxiliary feature processing
+        # Auxiliary variables
         for variable_index, variable_name in enumerate(self.auxv):
-            temp = df.variables[variable_name][time_index, ginx_lst, :]
-            self.npauxv[:, variable_index, :] = np.array(
-                temp[rinx_lst, ::]
-            ).take(rinx_lev, axis=1)
+            temp = self.df.variables[variable_name][time_index, gindices, :]
+            self.npauxv[:, variable_index, :] = temp[bindices][:, vlevs]
+        tauxv = torch.tensor(self.npauxv, dtype=torch.float32)
 
-        auxiliary_result_tf = torch.tensor(self.npauxv, dtype=torch.float32)
-
-        # Compute pressure difference
-        p_diff = auxiliary_result_tf - torch.roll(auxiliary_result_tf, -1, 2)
+        # Pressure difference
+        p_diff = tauxv - torch.roll(tauxv, -1, 2)
         p_diff = torch.cat([p_diff[:, :, 0:1], p_diff[:, :, 0:-1]], dim=2)
 
-        # Feature combination based on layer condition
+        # Feature combination
         if self.only_layer:
-            feature_tf = torch.cat(
-                [
-                    torch.tile(sf_tt, [1, len(rinx_lev)]),
-                    mf_tt,
-                ],
-                dim=(1),
-            )
+            feature = torch.cat([torch.tile(tslv, [1, len(vlevs)]), tmlv], dim=1)
         else:
-            feature_tf = torch.cat(
-                [
-                    torch.tile(sf_tt, [1, len(rinx_lev)]),
-                    mf_tt,
-                    (p_diff - 17.2) / 9.8,
-                    npmlcv_tt,
-                ],
-                dim=(1),
-            )
+            feature = torch.cat([torch.tile(tslv, [1, len(vlevs)]), tmlv, (p_diff - 17.2) / 9.8, tmlcv], dim=1)
 
-        return (feature_tf, npov_tt, auxiliary_result_tf)
+        return (feature, tov, tauxv)

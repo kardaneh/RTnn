@@ -18,7 +18,7 @@ python main.py \
 --batch_size 10 \
 --model_name "LSTM" \
 --num_workers 0 \
---num_epochs 600 \
+--num_epochs 1 \
 --save_mode "True" \
 --save_checkpoint_name "model" \
 --save_per_samples 10000 \

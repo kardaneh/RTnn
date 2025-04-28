@@ -1,29 +1,27 @@
-import logging
-import os
 import argparse
+import os
+import logging
+import datetime
+import time
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+import xarray as xr
 
-os.environ["HDF5_DISABLE_VERSION_CHECK"] = "2"
 from file_helper import FileUtils
 from data_helper import DataPreprocessor
 from model_prepare import load_model
 from model_helper import ModelUtils
 from evaluate_helper import (
-    unnormalized_mpas,
-    MSELoss_all,
-    get_heat_rate,
-    check_accuracy,
+    unnorm_mpas,
+    get_hr,
+    check_accuracy_evaluate,
+    MetricTracker,
 )
-from config import norm_mapping, norm_mapping_fullyear_new
-import numpy as np
-import time
-
-from tqdm import tqdm
-import torch
-import torch.nn as nn
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader
-import torch.optim as optim
-
+from plot_helper import plot_metric_histories
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the RTM model")
@@ -126,10 +124,15 @@ def parse_args():
 
 
 args = parse_args()
-FileUtils.makedir(os.path.join("../logs", args.main_folder, args.sub_folder))
-FileUtils.makedir(os.path.join("../results", args.main_folder, args.sub_folder))
-FileUtils.makedir(os.path.join("../runs", args.main_folder, args.sub_folder))
-FileUtils.makedir(os.path.join("../checkpoints", args.main_folder, args.sub_folder))
+full_file_path = os.path.join(args.root_dir, args.train_file)
+df = xr.open_dataset(full_file_path, engine="netcdf4")
+
+from torch.utils.tensorboard import SummaryWriter
+
+FileUtils.makedir(os.path.join("logs", args.main_folder, args.sub_folder))
+FileUtils.makedir(os.path.join("results", args.main_folder, args.sub_folder))
+FileUtils.makedir(os.path.join("runs", args.main_folder, args.sub_folder))
+FileUtils.makedir(os.path.join("checkpoints", args.main_folder, args.sub_folder))
 
 if args.random_throw == "True":
     args.random_throw_boolean = True
@@ -142,9 +145,11 @@ else:
     args.only_layer_boolean = False
 
 # Create a FileHandler to log the output to a file
-log_dir = os.path.join("../logs", args.main_folder, args.sub_folder)
+now = datetime.datetime.now()
+date_time_str = now.strftime("%Y%m%d_%H%M%S")
+log_dir = os.path.join("logs", args.main_folder, args.sub_folder)
 os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, f"{args.prefix}_log.txt")
+log_file = os.path.join(log_dir, f"{args.prefix}_{date_time_str}_log.txt")
 
 logger = logging.getLogger("")
 logger.setLevel(logging.INFO)
@@ -152,7 +157,6 @@ logger.setLevel(logging.INFO)
 if logger.hasHandlers():
     logger.handlers.clear()
 
-# logs to file
 file_handler = logging.FileHandler(log_file, mode='w')
 file_handler.setLevel(logging.INFO)
 
@@ -170,46 +174,42 @@ logging.getLogger("matplotlib.font_manager").disabled = True
 
 # Set the random seed for NumPy to ensure reproducibility
 random_state = 0
-np.random.seed(random_state)  # Set the seed for NumPy's random number generator
-torch.manual_seed(random_state)  # Set the seed for PyTorch's random number generator
+np.random.seed(random_state)
+torch.manual_seed(random_state)
 
-# Set precision for tensor printing in PyTorch
-torch.set_printoptions(
-    precision=5
-)  # This controls how many decimal places to print for PyTorch tensors
+torch.set_printoptions(precision=5)
 
 # Set device for model (GPU if available, else CPU)
-device = torch.device(
-    "cuda" if torch.cuda.is_available() else "cpu"
-)  # Automatically choose GPU (cuda) or CPU based on availability
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # Enable anomaly detection for debugging gradients
-torch.autograd.set_detect_anomaly(
-    True
-)  # This helps in detecting problematic operations like NaNs or infs in gradients
+torch.autograd.set_detect_anomaly(True)
 
 # Set up TensorBoard logging (useful for visualizing training progress)
-writer = SummaryWriter(
-    f"../runs/{args.main_folder}/{args.sub_folder}/"
-)  # Create a new TensorBoard summary writer for logging
+writer = SummaryWriter(f"runs/{args.main_folder}/{args.sub_folder}/")
 
 # Initialize the step counter for TensorBoard logging or training steps
-step = (
-    0  # Keeps track of the training steps (can be used to log metrics in TensorBoard)
-)
-
+step = (0)
+logger.info(f"NetCDF file: {full_file_path}")
+norm_mapping = {
+        var: {
+            'mean': df[var].mean().item(),
+            'std': df[var].std().item()
+            }
+        for var in df.data_vars
+        }
 
 # Create training dataset
 train_dataset = DataPreprocessor(
         logger = logger,
-        nc_file=args.train_file,
-        root_dir="../",
+        df = df,
         from_time=0,
         end_time=1,
-        batch_divid_number=int(960 / 6),
-        point_folds=3,
+        batch_divid_number=160,
+        point_folds=1,
         time_folds=1,
-        norm_mapping=norm_mapping_fullyear_new,
+        norm_mapping=norm_mapping,
         point_number=args.train_point_number,
         only_layer=args.only_layer_boolean
         )
@@ -217,14 +217,13 @@ train_dataset = DataPreprocessor(
 # Create testing dataset
 test_dataset = DataPreprocessor(
         logger = logger,
-        nc_file=args.test_file,
-        root_dir="../",
+        df=df,
         from_time=0,
         end_time=1,
-        batch_divid_number=int(960 / 6),
-        point_folds=3,
+        batch_divid_number=160,
+        point_folds=1,
         time_folds=1,
-        norm_mapping=norm_mapping_fullyear_new,
+        norm_mapping=norm_mapping,
         point_number=args.test_point_number,
         only_layer=args.only_layer_boolean
         )
@@ -255,15 +254,11 @@ logger.info(f"Train size: {len(train_dataset)}, Test size: {len(test_dataset)}")
 # ---------------------------------------------
 # Model Initialization
 # ---------------------------------------------
-model = load_model(
-    model_name=args.model_name, device=device, feature_channel=34, signal_length=57
-)
+model = load_model(model_name=args.model_name, device=device, feature_channel=34, signal_length=57)
 
-# Log model parameter statistics
 model_info = ModelUtils.get_parameter_number(model)
 logger.info(f"Model Info: {model_info}")
 
-# Move model to the appropriate device
 model = model.to(device)
 
 # ---------------------------------------------
@@ -272,17 +267,13 @@ model = model.to(device)
 criterion_mse = nn.MSELoss()
 criterion_mae = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, factor=0.5, patience=5, verbose=True
-)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=5, verbose=True)
 
 # ---------------------------------------------
 # Load Checkpoint (if specified)
 # ---------------------------------------------
 if args.load_model == "True":
-    checkpoint_path = os.path.join(
-        "../checkpoints", args.main_folder, args.sub_folder, args.load_checkpoint_name
-    )
+    checkpoint_path = os.path.join("checkpoints", args.main_folder, args.sub_folder, args.load_checkpoint_name)
     checkpoint = torch.load(checkpoint_path)
     ModelUtils.load_checkpoint(checkpoint, model, optimizer)
 
@@ -308,75 +299,72 @@ if torch.cuda.device_count() > 1:
 index_mapping = {0: "swuflx", 1: "swdflx", 2: "lwuflx", 3: "lwdflx"}
 logger.info("Start training...")
 
-previous_time = time.time()
+#norm_mapping = train_dataset.stats
+
+# Training metrics
+train_metrics = {
+    'rmse': MetricTracker(),
+    'mae': MetricTracker(),
+    'swhr_rmse': MetricTracker(),
+    'lwhr_rmse': MetricTracker(),
+    'swhr_mae': MetricTracker(),
+    'lwhr_mae': MetricTracker(),
+}
+
+train_metrics_history = {key: [] for key in train_metrics}
+valid_metrics_history = {key: [] for key in train_metrics}
 
 for epoch in range(args.num_epochs):
-    loop = tqdm(train_loader)
     model.train()
-    sum_train_mse = 0.0
-    sum_train_mae = 0.0
-    sum_train_swhr = 0.0
-    sum_train_lwhr = 0.0
-    sum_train_flux_mse = 0.0
 
-    num_samples = 0
+    for meter in train_metrics.values():
+        meter.reset()
+
     schedule_losses = []
-    logger.info(f"epoch:{epoch}, elapse time:{time.time() - previous_time}")
     previous_time = time.time()
 
-    for batch_idx, (feature, targets, auxis) in enumerate(train_loader):
-        logger.info(f"Torch batch id .... {batch_idx} ....\n")
-'''
+    loop = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}")
+    for batch_idx, (feature, targets, auxis) in loop:
         if epoch == 0 and batch_idx == 0:
-            logger.info(
-                f"feature shape:{feature.shape}, target shape:{targets.shape}, auxis shape:{auxis.shape}"
-            )
+            logger.info(f"feature shape:{feature.shape}, target shape:{targets.shape}, auxis shape:{auxis.shape}")
+
         feature_shape = feature.shape
         target_shape = targets.shape
         auxis_shape = auxis.shape
 
         inner_batch_size = feature_shape[0] * feature_shape[1]
-        feature = feature.reshape(
-            inner_batch_size, feature_shape[2], feature_shape[3]
-        ).to(device=device)
-        targets = targets.reshape(
-            inner_batch_size, target_shape[2], target_shape[3]
-        ).to(device=device)
-        auxis = auxis.reshape(inner_batch_size, auxis_shape[2], auxis_shape[3]).to(
-            device=device
-        )
-
+        feature = feature.reshape(inner_batch_size, feature_shape[2], feature_shape[3]).to(device=device)
+        targets = targets.reshape(inner_batch_size, target_shape[2], target_shape[3]).to(device=device)
+        auxis = auxis.reshape(inner_batch_size, auxis_shape[2], auxis_shape[3]).to(device=device)
+        
         predicts = model(feature)
 
-        predicts_unnorm, targets_unnorm = unnormalized_mpas(
-            predicts, targets, norm_mapping_fullyear_new, index_mapping
-        )
-        swhr_predict, swhr_target, lwhr_predict, lwhr_target = get_heat_rate(
-            predicts_unnorm, targets_unnorm, auxis
-        )
+        predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
+        swhr_predict, swhr_target, lwhr_predict, lwhr_target = get_hr(predicts_unnorm, targets_unnorm, auxis)
+        
+        metric_values = {
+                'rmse': criterion_mse(predicts, targets),
+                'mae': criterion_mae(predicts, targets),
+                'swhr_rmse': criterion_mse(swhr_predict, swhr_target),
+                'lwhr_rmse': criterion_mse(lwhr_predict, lwhr_target),
+                'swhr_mae': criterion_mae(swhr_predict, swhr_target),
+                'lwhr_mae': criterion_mae(lwhr_predict, lwhr_target)
+                }
 
-        _, sw_hr_rmse = MSELoss_all(swhr_predict, swhr_target)
-        _, lw_hr_rmse = MSELoss_all(lwhr_predict, lwhr_target)
+        beta = 0.001
+        total_loss = metric_values['rmse'] #+ beta * (metric_values['swhr_rmse'] + metric_values['lwhr_rmse'])
+        loop.set_postfix(loss=total_loss.item())
 
-        loss_mse = criterion_mse(predicts[:, 0:4, :], targets[:, 0:4, :])
-        loss_mae = criterion_mae(predicts, targets)
-        loss_mse_bottom = criterion_mse(predicts[:, :, 0], targets[:, :, 0])
-        total_loss = loss_mse + 0.001 * (sw_hr_rmse + lw_hr_rmse)
-        flux_mse = criterion_mse(predicts_unnorm[:, 0:2, :], targets_unnorm[:, 0:2, :])
-
-        num_samples = num_samples + feature_shape[0]
-        sum_train_mse = sum_train_mse + feature_shape[0] * loss_mse.item()
-        sum_train_mae = sum_train_mae + feature_shape[0] * loss_mae.item()
-        sum_train_swhr = sum_train_swhr + feature_shape[0] * sw_hr_rmse.item()
-        sum_train_lwhr = sum_train_lwhr + feature_shape[0] * lw_hr_rmse.item()
-        sum_train_flux_mse = sum_train_flux_mse + feature_shape[0] * flux_mse.item()
+        for key, value in metric_values.items():
+            train_metrics[key].update(value.item(), feature_shape[0])
 
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
 
-        writer.add_scalar("train_mse", loss_mse.item(), global_step=step)
-        writer.add_scalar("train_mae", loss_mae.item(), global_step=step)
+        writer.add_scalar("train_mse", metric_values['rmse'].item(), global_step=step)
+        writer.add_scalar("train_mae", metric_values['mae'].item(), global_step=step)
+
         step = step + args.batch_size
 
         if args.save_model == "True":
@@ -394,7 +382,7 @@ for epoch in range(args.num_epochs):
                     }
 
                 filename = os.path.join(
-                    "../checkpoints",
+                    "checkpoints",
                     args.main_folder,
                     args.sub_folder,
                     args.prefix
@@ -404,7 +392,7 @@ for epoch in range(args.num_epochs):
                 )
 
                 filename_full = os.path.join(
-                    "../checkpoints",
+                    "checkpoints",
                     args.main_folder,
                     args.sub_folder,
                     args.prefix
@@ -420,59 +408,35 @@ for epoch in range(args.num_epochs):
                     torch.save(model, filename_full)
 
                 save_counter = 0
-
+    logger.info(f"elapse time:{time.time() - previous_time}")
     if epoch % 1 == 0:
-        train_mse, train_mae, train_swhr, train_lwhr, train_flux_rmse = (
-            sum_train_mse / num_samples,
-            sum_train_mae / num_samples,
-            sum_train_swhr / num_samples,
-            sum_train_lwhr / num_samples,
-            np.sqrt(sum_train_flux_mse / num_samples),
-        )
 
-        target_norm_info = None
+        valid_metrics = check_accuracy_evaluate(
+                        test_loader,
+                        model,
+                        norm_mapping,
+                        index_mapping,
+                        device,
+                        args,
+                        if_plot=False,
+                        target_norm_info = None
+                        )
 
-        (
-            [sw_flux_rmse, lw_flux_rmse, sw_hr_rmse, lw_hr_rmse, sw_hr_mae, lw_hr_mae],
-            [
-                sw_flux_rmse,
-                sw_flux_mbe,
-                sw_flux_bottom_rmse,
-                sw_flux_bottom_mbe,
-                sw_flux_top_rmse,
-                sw_flux_top_mbe,
-            ],
-            [lw_flux_bottom_rmse],
-        ) = check_accuracy(
-            test_loader,
-            model,
-            norm_mapping,
-            index_mapping,
-            device,
-            args,
-            target_norm_info,
-        )
+        for key, meter in train_metrics.items():
+            train_value = meter.getsqrtmean() if 'rmse' in key else meter.getmean()
+            train_metrics_history[key].append(train_value)
 
-        schedule_losses.append(sw_hr_rmse + lw_hr_rmse)
+            assert key in valid_metrics, f"Missing key '{key}' in valid_metrics"
+            
+            valid_value = valid_metrics[key]
+            valid_metrics_history[key].append(valid_value)
 
-        logger.info(
-            f"epoch: {epoch}, train_mse: {train_mse: .3e}, train_mae: {train_mae: .3e},\
-            train_swhr: {train_swhr: .3e}, train_lwhr: {train_lwhr: .3e}, \
-            train_flux_rmse:{train_flux_rmse: .3e}"
-        )
+            logger.info(f"train_{key}: {train_value:.3e} | valid_{key}: {valid_value:.3e}")
 
-        logger.info(
-            f"sw_flux_rmse:{sw_flux_rmse: .3e}, lw_flux_rmse:{lw_flux_rmse: .3e}, \
-            sw_hr_rmse:{sw_hr_rmse: .3e}, lw_hr_rmse:{lw_hr_rmse: .3e}\
-            sw_hr_mae:{sw_hr_mae: .3e}, lw_hr_mae:{lw_hr_mae: .3e}"
-        )
-
-        logger.info(
-            f"sw_flux_rmse:{sw_flux_rmse: .3e}, sw_flux_mbe:{sw_flux_mbe: .3e}, \
-            sw_flux_bottom_rmse:{sw_flux_bottom_rmse: .3e}, sw_flux_bottom_mbe:{sw_flux_bottom_mbe: .3e}\
-            sw_flux_top_rmse:{sw_flux_top_rmse: .3e}, sw_flux_top_mbe:{sw_flux_top_mbe: .3e}"
-        )
-
+        logger.info("")
+        schedule_losses.append(valid_metrics['swhr_rmse'] + valid_metrics['lwhr_rmse'])
         mean_loss = sum(schedule_losses) / len(schedule_losses)
         scheduler.step(mean_loss)
-'''
+
+base_dir = os.path.join("results", args.main_folder, args.sub_folder)
+plot_metric_histories(train_metrics_history, valid_metrics_history, os.path.join(base_dir, f"metrics_panel.png"))

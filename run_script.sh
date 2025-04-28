@@ -1,15 +1,12 @@
 #!/bin/bash
 
-# Navigate to the 'src' directory
-cd src
-
-# Run the Python script with the arguments
-python main.py \
+python3 src/main.py \
+--root_dir "./" \
 --main_folder "FullYear" \
 --sub_folder "FullYear_V01" \
---train_file "./dataset/fullyear_trainset_240_10_useful.nc" \
+--train_file "dataset/fullyear_trainset_240_10_useful.nc" \
 --train_point_number 15943 \
---test_file "./dataset/fullyear_trainset_240_10_useful.nc" \
+--test_file "dataset/fullyear_trainset_240_10_useful.nc" \
 --test_point_number 15943 \
 --prefix "fullyear_V01" \
 --dataset_type "FullYear" \
@@ -18,7 +15,7 @@ python main.py \
 --batch_size 10 \
 --model_name "LSTM" \
 --num_workers 0 \
---num_epochs 1 \
+--num_epochs 200 \
 --save_mode "True" \
 --save_checkpoint_name "model" \
 --save_per_samples 10000 \

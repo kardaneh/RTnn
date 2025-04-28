@@ -2,8 +2,6 @@ import torch
 from torch.utils.data import Dataset
 import os
 import numpy as np
-import xarray as xr
-
 
 class DataPreprocessor(Dataset):
     """
@@ -11,8 +9,7 @@ class DataPreprocessor(Dataset):
     def __init__(
         self,
         logger,
-        nc_file,
-        root_dir,
+        df,
         from_time,
         end_time,
         batch_divid_number,
@@ -25,8 +22,7 @@ class DataPreprocessor(Dataset):
         only_layer=False,
     ):
         self.logger = logger
-        self.nc_file = nc_file
-        self.root_dir = root_dir
+        self.df = df
         self.from_time = from_time
         self.end_time = end_time
         self.sbatch = batch_divid_number
@@ -38,22 +34,9 @@ class DataPreprocessor(Dataset):
         self.norm_mapping = norm_mapping
         self.vlevels = vertical_layers
 
-        full_file_path = os.path.join(self.root_dir, self.nc_file)
-        self.df = xr.open_dataset(full_file_path, engine="netcdf4")
-
         assert self.df.sizes['np'] == self.ngrid, f"Mismatch in spatial grid size: expected {self.ngrid}, got {self.df.sizes['np']}"
         assert self.df.sizes['nz1'] == self.vlevels, f"Mismatch in vertical levels: expected {self.vlevels}, got {self.df.sizes['nz1']}"
 
-        self.stats = {
-                var: {
-                    'mean': self.df[var].mean().item(),
-                    'std': self.df[var].std().item()
-                    }
-                for var in self.df.data_vars
-                }
-
-        self.logger.info(f"NetCDF file: {self.nc_file}")
-        self.logger.info(f"Root directory: {self.root_dir}")
         self.logger.info(f"Time range: {self.from_time} ... {self.end_time}")
         self.logger.info(f"Spatial batches: {self.sbatch}")
         self.logger.info(f"Spatial folds: {self.sfolds}")
@@ -128,7 +111,7 @@ class DataPreprocessor(Dataset):
     def __getitem__(self, index):
         """
         """
-        self.logger.info(f"Torch batch: {index}\n")
+        #self.logger.info(f"Torch batch: {index}\n")
 
         # Random vertically ? 
         if self.vrandom == True:
@@ -162,14 +145,14 @@ class DataPreprocessor(Dataset):
             if variable_name == "emiss":
                 temp = (
                         self.df.variables[variable_name][time_index, gindices, 0]
-                        - self.stats[variable_name]["mean"]
-                        ) / self.stats[variable_name]["std"]
+                        - self.norm_mapping[variable_name]["mean"]
+                        ) / self.norm_mapping[variable_name]["std"]
                 self.npslv[:, variable_index, 0] = temp[bindices]
             else:
                 temp = (
                         self.df.variables[variable_name][time_index, gindices]
-                        - self.stats[variable_name]["mean"]
-                        ) / self.stats[variable_name]["std"]
+                        - self.norm_mapping[variable_name]["mean"]
+                        ) / self.norm_mapping[variable_name]["std"]
                 self.npslv[:, variable_index, 0] = temp[bindices]
         tslv = torch.tensor(self.npslv, dtype=torch.float32)
 
@@ -177,8 +160,8 @@ class DataPreprocessor(Dataset):
         for variable_index, variable_name in enumerate(self.mlv):
             temp = (
                     self.df.variables[variable_name][time_index, gindices, :]
-                    - self.stats[variable_name]["mean"]
-                    ) / self.stats[variable_name]["std"]
+                    - self.norm_mapping[variable_name]["mean"]
+                    ) / self.norm_mapping[variable_name]["std"]
             temp_value = temp[bindices][:, vleys]
             self.npmlv[:, variable_index, 1 : len(vlevs)] = temp_value
             self.npmlv[:, variable_index, 0] = self.npmlv[:, variable_index, 1]
@@ -199,8 +182,8 @@ class DataPreprocessor(Dataset):
         for variable_index, variable_name in enumerate(self.ov):
             temp = (
                     self.df.variables[variable_name][time_index, gindices, :]
-                    - self.stats[variable_name]["mean"]
-                    ) / self.stats[variable_name]["std"]
+                    - self.norm_mapping[variable_name]["mean"]
+                    ) / self.norm_mapping[variable_name]["std"]
             self.npov[:, variable_index, :] = temp[bindices][:, vlevs]
         tov = torch.tensor(self.npov, dtype=torch.float32)
 

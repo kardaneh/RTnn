@@ -173,5 +173,8 @@ results/*
 runs/*
 !runs/.gitkeep
 
+python-venv/*
+!python-venv/.gitkeep
+
 # Ignore all __pycache__ folders recursively
 src/__pycache__/*

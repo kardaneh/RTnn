@@ -4,6 +4,7 @@ import numpy as np
 import mpltex
 import math
 from matplotlib import rcParams as mpl
+from sklearn.metrics import r2_score
 
 params = {
     'font.family': 'DejaVu Sans',
@@ -85,6 +86,72 @@ def plot_HeatRate(swhr_predict, swhr_target, lwhr_predict, lwhr_target, filename
     plt.savefig(filename, bbox_inches='tight')
     plt.close(fig)
 
+def plot_flux_and_hr(predicts, targets, swhr_predict, swhr_target, lwhr_predict, lwhr_target, filename):
+    
+    index_map = {
+        (0, 0): 0,  # swuflx
+        (0, 1): 1,  # swdflx
+        (1, 0): 2,  # lwuflx
+        (1, 1): 3   # lwdflx
+    }
+
+    # Plot labels for each flux
+    name_dict = {
+        (0, 0): {"name": "swuflx", "plotname": r"$\mathrm{Shortwave\ Up}$"},
+        (0, 1): {"name": "swdflx", "plotname": r"$\mathrm{Shortwave\ Down}$"},
+        (1, 0): {"name": "lwuflx", "plotname": r"$\mathrm{Longwave\ Up}$"},
+        (1, 1): {"name": "lwdflx", "plotname": r"$\mathrm{Longwave\ Down}$"}
+    }
+
+    fig, axes = plt.subplots(3, 2, figsize=(10, 12))
+    plt.subplots_adjust(hspace=0.4, wspace=0.3)
+
+    for (r, c), props in name_dict.items():
+        flux_idx = index_map[(r, c)]
+        y_pred = predicts[:, flux_idx, :].reshape(-1).detach().cpu().numpy()
+        y_true = targets[:, flux_idx, :].reshape(-1).detach().cpu().numpy()
+        ax = axes[r, c]
+
+        hb = ax.hexbin(y_true, y_pred, gridsize=200, cmap='jet', bins='log')
+        ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', linewidth=1)
+
+        r2 = r2_score(y_true, y_pred)
+        ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
+        ax.set_title(props["plotname"])
+        ax.set_xlabel("Observed")
+        ax.set_ylabel("Predicted")
+
+    # SW heating rate (row 2, col 0)
+    ax = axes[2, 0]
+    y_pred = swhr_predict.reshape(-1).detach().cpu().numpy()
+    y_true = swhr_target.reshape(-1).detach().cpu().numpy()
+    hb = ax.hexbin(y_true, y_pred, gridsize=200, cmap='jet', bins='log')
+    ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', linewidth=1)
+    r2 = r2_score(y_true, y_pred)
+    ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
+    ax.set_title(r"$\mathrm{SW\ Heating\ Rate}$")
+    ax.set_xlabel("Observed")
+    ax.set_ylabel("Predicted")
+
+    # LW heating rate (row 2, col 1)
+    ax = axes[2, 1]
+    y_pred = lwhr_predict.reshape(-1).detach().cpu().numpy()
+    y_true = lwhr_target.reshape(-1).detach().cpu().numpy()
+    hb = ax.hexbin(y_true, y_pred, gridsize=200, cmap='jet', bins='log')
+    ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', linewidth=1)
+    r2 = r2_score(y_true, y_pred)
+    ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
+    ax.set_title(r"$\mathrm{LW\ Heating\ Rate}$")
+    ax.set_xlabel("Observed")
+    ax.set_ylabel("Predicted")
+
+    # Shared colorbar on the right
+    cbar_ax = fig.add_axes([0.92, 0.15, 0.015, 0.7])
+    fig.colorbar(hb, cax=cbar_ax, label='log10(density)')
+
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close(fig)
+
 def plot_metric_histories(train_history, valid_history, filename="training_validation_metrics.png"):
     """
     Plots training and validation histories for all tracked metrics.
@@ -119,5 +186,32 @@ def plot_metric_histories(train_history, valid_history, filename="training_valid
         ax.legend()
         ax.grid(True)
 
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close(fig)
+
+def plot_loss_histories(train_loss, valid_loss, filename="training_validation_loss.png"):
+    """
+    Plots training and validation loss in a single panel.
+
+    Parameters:
+    -----------
+    train_loss : list or array
+        History of training loss values.
+    valid_loss : list or array
+        History of validation loss values.
+    filename : str
+        Output image file name for the plot.
+    """
+    fig = plt.figure(figsize=(8, 5))
+    ax = fig.add_subplot(111)
+    linestyles = mpltex.linestyle_generator(markers=[])
+    ax.plot(train_loss, label="train", **next(linestyles))
+    ax.plot(valid_loss, label="valid", **next(linestyles))
+    ax.set_yscale("log")
+    ax.set_title("LOSS")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Loss Value")
+    ax.legend()
+    ax.grid(True)
     plt.savefig(filename, bbox_inches='tight')
     plt.close(fig)

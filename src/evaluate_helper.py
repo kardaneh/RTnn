@@ -3,8 +3,7 @@ import numpy as np
 import sys
 import os
 sys.path.append("..")
-from plot_helper import plot_RTM, plot_HeatRate
-
+from plot_helper import plot_RTM, plot_HeatRate, plot_flux_and_hr
 
 class MetricTracker(object):
     """
@@ -130,7 +129,7 @@ def calc_hr(up, down, p):
     
     return dnet[:, :, 1:] / dp[:, :, 1:] * fac
 
-def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, args, if_plot=False, target_norm_info=None):
+def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, args, beta=0.001, epoch=10):
     model.eval()
     
     valid_metrics = {
@@ -141,6 +140,8 @@ def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, 
             'swhr_mae': MetricTracker(),
             'lwhr_mae': MetricTracker()
             }
+
+    valid_loss = MetricTracker()
 
     with torch.no_grad():
         for batch_idx, (feature, targets, auxis) in enumerate(loader):
@@ -160,29 +161,34 @@ def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, 
 
             valid_len, valid_val = mse_all(predicts, targets)
             valid_metrics['rmse'].update(valid_val.item(), valid_len)
+            total_loss = (1.0 - beta) * valid_val
 
             valid_len, valid_val = mae_all(predicts, targets)
             valid_metrics['mae'].update(valid_val.item(), valid_len)
             
             valid_len, valid_val = mse_all(swhr_predict, swhr_target)
             valid_metrics['swhr_rmse'].update(valid_val.item(), valid_len)
+            total_loss += beta * valid_val
 
             valid_len, valid_val = mae_all(swhr_predict, swhr_target)
             valid_metrics['swhr_mae'].update(valid_val.item(), valid_len)
 
             valid_len, valid_val = mse_all(lwhr_predict, lwhr_target)
             valid_metrics['lwhr_rmse'].update(valid_val.item(), valid_len)
+            total_loss += beta * valid_val
 
             valid_len, valid_val = mae_all(lwhr_predict, lwhr_target)
             valid_metrics['lwhr_mae'].update(valid_val.item(), valid_len)
 
-            if if_plot and batch_idx < 50:
+            valid_loss.update(total_loss.item(), valid_len)
+
+            if epoch>300 and batch_idx < 50:
                 print("making plot", batch_idx)
-                base_dir = os.path.join("../results", args.main_folder, args.sub_folder)
+                base_dir = os.path.join("results", args.main_folder, args.sub_folder)
                 plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}.png"), sample_index=0)
                 plot_HeatRate(swhr_predict, swhr_target, lwhr_predict, lwhr_target, os.path.join(base_dir, f"HR{batch_idx}.png"), sample_index=0)
+                plot_flux_and_hr(predicts_unnorm, targets_unnorm, swhr_predict, swhr_target, lwhr_predict, lwhr_target, os.path.join(base_dir, f"flux_hr_hexbin_{batch_idx}.png"))
 
-    return {
-            k: (tracker.getsqrtmean() if 'rmse' in k else tracker.getmean())
-            for k, tracker in valid_metrics.items()
+    return valid_loss.getmean(), {
+            k: (tracker.getsqrtmean() if 'rmse' in k else tracker.getmean()) for k, tracker in valid_metrics.items()
             }

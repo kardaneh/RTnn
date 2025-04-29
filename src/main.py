@@ -21,7 +21,7 @@ from evaluate_helper import (
     check_accuracy_evaluate,
     MetricTracker,
 )
-from plot_helper import plot_metric_histories
+from plot_helper import plot_metric_histories, plot_loss_histories
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the RTM model")
@@ -308,17 +308,24 @@ train_metrics = {
     'swhr_rmse': MetricTracker(),
     'lwhr_rmse': MetricTracker(),
     'swhr_mae': MetricTracker(),
-    'lwhr_mae': MetricTracker(),
-}
+    'lwhr_mae': MetricTracker()
+    }
 
 train_metrics_history = {key: [] for key in train_metrics}
 valid_metrics_history = {key: [] for key in train_metrics}
+
+train_loss_history = [0] * args.num_epochs
+valid_loss_history = [0] * args.num_epochs
+
+train_loss = MetricTracker()
 
 for epoch in range(args.num_epochs):
     model.train()
 
     for meter in train_metrics.values():
         meter.reset()
+
+    train_loss.reset()
 
     schedule_losses = []
     previous_time = time.time()
@@ -352,11 +359,13 @@ for epoch in range(args.num_epochs):
                 }
 
         beta = 0.001
-        total_loss = metric_values['rmse'] #+ beta * (metric_values['swhr_rmse'] + metric_values['lwhr_rmse'])
+        total_loss = (1.0 - beta) * metric_values['rmse'] + beta * (metric_values['swhr_rmse'] + metric_values['lwhr_rmse'])
         loop.set_postfix(loss=total_loss.item())
 
         for key, value in metric_values.items():
             train_metrics[key].update(value.item(), feature_shape[0])
+
+        train_loss.update(total_loss.item(), feature_shape[0])
 
         optimizer.zero_grad()
         total_loss.backward()
@@ -409,19 +418,22 @@ for epoch in range(args.num_epochs):
 
                 save_counter = 0
     logger.info(f"elapse time:{time.time() - previous_time}")
+    train_loss_history[epoch] = train_loss.getmean()
     if epoch % 1 == 0:
 
-        valid_metrics = check_accuracy_evaluate(
-                        test_loader,
-                        model,
-                        norm_mapping,
-                        index_mapping,
-                        device,
-                        args,
-                        if_plot=False,
-                        target_norm_info = None
-                        )
+        valid_loss, valid_metrics = check_accuracy_evaluate(
+                test_loader,
+                model,
+                norm_mapping,
+                index_mapping,
+                device,
+                args,
+                beta=beta,
+                epoch=epoch
+                )
 
+        valid_loss_history[epoch] = valid_loss
+        logger.info(f"train_loss: {train_loss_history[epoch]:.3e} | valid_loss: {valid_loss_history[epoch]:.3e}")
         for key, meter in train_metrics.items():
             train_value = meter.getsqrtmean() if 'rmse' in key else meter.getmean()
             train_metrics_history[key].append(train_value)
@@ -440,3 +452,4 @@ for epoch in range(args.num_epochs):
 
 base_dir = os.path.join("results", args.main_folder, args.sub_folder)
 plot_metric_histories(train_metrics_history, valid_metrics_history, os.path.join(base_dir, f"metrics_panel.png"))
+plot_loss_histories(train_loss_history, valid_loss_history, os.path.join(base_dir, f"training_validation_loss.png"))

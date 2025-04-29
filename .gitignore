@@ -177,4 +177,4 @@ python-venv/*
 !python-venv/.gitkeep
 
 # Ignore all __pycache__ folders recursively
-src/__pycache__/*
+__pycache__/

@@ -190,6 +190,7 @@ torch.autograd.set_detect_anomaly(True)
 writer = SummaryWriter(f"runs/{args.main_folder}/{args.sub_folder}/")
 
 # Initialize the step counter for TensorBoard logging or training steps
+index_mapping = {0: "swuflx", 1: "swdflx", 2: "lwuflx", 3: "lwdflx"}
 step = (0)
 logger.info(f"NetCDF file: {full_file_path}")
 norm_mapping = {
@@ -296,10 +297,8 @@ if torch.cuda.device_count() > 1:
 # ---------------------------------------------
 # Output Index Mapping & Training Start
 # ---------------------------------------------
-index_mapping = {0: "swuflx", 1: "swdflx", 2: "lwuflx", 3: "lwdflx"}
 logger.info("Start training...")
 
-#norm_mapping = train_dataset.stats
 
 # Training metrics
 train_metrics = {
@@ -428,9 +427,8 @@ for epoch in range(args.num_epochs):
                 index_mapping,
                 device,
                 args,
-                beta=beta,
-                epoch=epoch
-                )
+                beta,
+                epoch)
 
         valid_loss_history[epoch] = valid_loss
         logger.info(f"train_loss: {train_loss_history[epoch]:.3e} | valid_loss: {valid_loss_history[epoch]:.3e}")

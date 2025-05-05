@@ -1,6 +1,5 @@
 #!/bin/bash
-unset LD_LIBRARY_PATH
-ipython -c "%run src/main.py\
+python src/main.py\
 	--root_dir "./" \
 	--main_folder "FullYear" \
 	--sub_folder "FullYear_V01" \
@@ -15,8 +14,8 @@ ipython -c "%run src/main.py\
 	--batch_size 10 \
 	--model_name "LSTM" \
 	--num_workers 0 \
-	--num_epochs 302 \
+	--num_epochs 600 \
 	--save_mode "True" \
 	--save_checkpoint_name "model" \
 	--save_per_samples 10000 \
-	--load_model "False""
+	--load_model "False"

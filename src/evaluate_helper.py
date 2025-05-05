@@ -129,7 +129,7 @@ def calc_hr(up, down, p):
     
     return dnet[:, :, 1:] / dp[:, :, 1:] * fac
 
-def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, args, beta=0.001, epoch=10):
+def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, args, beta, epoch):
     model.eval()
     
     valid_metrics = {
@@ -182,7 +182,7 @@ def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, 
 
             valid_loss.update(total_loss.item(), valid_len)
 
-            if epoch>300 and batch_idx < 50:
+            if epoch==args.num_epochs-1 and batch_idx < 50:
                 print("making plot", batch_idx)
                 base_dir = os.path.join("results", args.main_folder, args.sub_folder)
                 plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}.png"), sample_index=0)

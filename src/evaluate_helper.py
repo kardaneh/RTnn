@@ -129,6 +129,47 @@ def calc_hr(up, down, p):
     
     return dnet[:, :, 1:] / dp[:, :, 1:] * fac
 
+def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, device, args, beta, epoch):
+    model.eval()
+
+    valid_metrics = {
+            'rmse': MetricTracker(),
+            'mae': MetricTracker()
+            }
+
+    valid_loss = MetricTracker()
+
+    with torch.no_grad():
+        for batch_idx, (feature, targets) in enumerate(loader):
+
+            feature_shape = feature.shape
+            target_shape = targets.shape
+            inner_batch_size = feature_shape[0] * feature_shape[1]
+            feature = feature.reshape(inner_batch_size, feature_shape[2], feature_shape[3]).to(device=device)
+            targets = targets.reshape(inner_batch_size, target_shape[2], target_shape[3]).to(device=device)
+
+            predicts = model(feature)
+
+            predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
+
+            valid_len, valid_val = mse_all(predicts, targets)
+            valid_metrics['rmse'].update(valid_val.item(), valid_len)
+            total_loss = (1.0 - beta) * valid_val
+
+            valid_len, valid_val = mae_all(predicts, targets)
+            valid_metrics['mae'].update(valid_val.item(), valid_len)
+
+            valid_loss.update(total_loss.item(), valid_len)
+
+            if epoch==args.num_epochs-1 and batch_idx < 50:
+                print("making plot", batch_idx)
+                base_dir = os.path.join("results", args.main_folder, args.sub_folder)
+                plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}.png"), sample_index=0)
+
+    return valid_loss.getmean(), {
+            k: (tracker.getsqrtmean() if 'rmse' in k else tracker.getmean()) for k, tracker in valid_metrics.items()
+            }
+
 def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, args, beta, epoch):
     model.eval()
     

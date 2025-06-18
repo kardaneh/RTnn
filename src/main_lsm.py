@@ -18,15 +18,16 @@ from model_helper import ModelUtils
 from evaluate_helper import (
     unnorm_mpas,
     get_hr,
-    check_accuracy_evaluate, check_accuracy_evaluate_lsm,
-    MetricTracker,
-)
+    check_accuracy_evaluate_lsm,
+    MetricTracker, mse_all, mae_all
+    )
 from plot_helper import plot_metric_histories, plot_loss_histories
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the RTM model")
     parser.add_argument("--root_dir", type=str, default="", help="Root directory")
-    parser.add_argument("--data_files", type=str, default="", help="Path to training dataset")
+    parser.add_argument("--train_data_files", type=str, default="", help="Path to training dataset")
+    parser.add_argument("--test_data_files", type=str, default="", help="Path to training dataset")
     parser.add_argument("--main_folder", type=str, default="temp", help="Main folder name")
     parser.add_argument("--sub_folder", type=str, default="temp", help="Sub-folder name")
     parser.add_argument("--prefix", type=str, default="temp", help="Prefix for saving")
@@ -49,8 +50,9 @@ def parse_args():
 
 
 args = parse_args()
-sbatch_files = np.sort(glob.glob(args.data_files + "rtnetcdf_*"))[::]
-df = xr.open_dataset(sbatch_files[0], engine="netcdf4")
+train_sbatch_files = np.sort(glob.glob(args.train_data_files + "rtnetcdf_*_1998.nc"))[::]
+test_sbatch_files = np.sort(glob.glob(args.test_data_files + "rtnetcdf_*_1999.nc"))[::]
+train_df = xr.open_dataset(train_sbatch_files[0], engine="netcdf4")
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -74,7 +76,7 @@ now = datetime.datetime.now()
 date_time_str = now.strftime("%Y%m%d_%H%M%S")
 log_dir = os.path.join("logs", args.main_folder, args.sub_folder)
 os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, f"{args.prefix}_{date_time_str}_log.txt")
+log_file = os.path.join(log_dir, f"{args.prefix}_log.txt")
 
 logger = logging.getLogger("")
 logger.setLevel(logging.INFO)
@@ -117,34 +119,42 @@ writer = SummaryWriter(f"runs/{args.main_folder}/{args.sub_folder}/")
 # Initialize the step counter for TensorBoard logging or training steps
 index_mapping = {0: "collim_alb", 1: "collim_tran", 2: "isotrop_alb", 3: "isotrop_tran"}
 step = (0)
-logger.info(f"NetCDF files path: {args.data_files}")
+logger.info(f"NetCDF files path: {args.train_data_files}")
+logger.info(f"NetCDF files path: {args.test_data_files}")
+
+logger.info(f"Found {len(train_sbatch_files)} training files:")
+for f in train_sbatch_files:
+    logger.info(f"  {f}")
+
+logger.info(f"Found {len(test_sbatch_files)} test files:")
+for f in test_sbatch_files:
+    logger.info(f"  {f}")
+
 norm_mapping = {
         var: {
-            'mean': df[var].mean().item(),
-            'std': df[var].std().item()
+            'mean': train_df[var].mean().item(),
+            'std': train_df[var].std().item()
             }
-        for var in df.data_vars
+        for var in train_df.data_vars
         }
 
 # Create training dataset
-split_point = 144
-
 train_dataset = DataPreprocessor(
         logger = logger,
-        dfs = sbatch_files,
-        sbatch=len(sbatch_files),
+        dfs = train_sbatch_files,
+        sbatch=len(train_sbatch_files),
         stime=0, 
-        etime=split_point,
+        etime=train_df.sizes['time'],
         tbatch=24,
         norm_mapping=norm_mapping
         )
 
 test_dataset = DataPreprocessor(
         logger = logger,
-        dfs = sbatch_files,
-        sbatch=len(sbatch_files),
-        stime=split_point,
-        etime=df.sizes['time'],
+        dfs = test_sbatch_files,
+        sbatch=len(test_sbatch_files),
+        stime=0,
+        etime=train_df.sizes['time'],
         tbatch=24,
         norm_mapping=norm_mapping
         )
@@ -162,7 +172,7 @@ train_loader = DataLoader(
 test_loader = DataLoader(
     dataset=test_dataset,
     batch_size=args.batch_size,
-    shuffle=True,
+    shuffle=False,
     num_workers=args.num_workers,
     pin_memory=True,
 )
@@ -223,7 +233,11 @@ logger.info("Start training...")
 # Training metrics
 train_metrics = {
     'rmse': MetricTracker(),
-    'mae': MetricTracker()
+    'mae': MetricTracker(),
+    'abs12_rmse': MetricTracker(),
+    'abs34_rmse': MetricTracker(),
+    'abs12_mae': MetricTracker(),
+    'abs34_mae': MetricTracker()
     }
 
 train_metrics_history = {key: [] for key in train_metrics}
@@ -260,27 +274,49 @@ for epoch in range(args.num_epochs):
         predicts = model(feature)
 
         predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
-
-        metric_values = {
-                'rmse': criterion_mse(predicts, targets),
-                'mae': criterion_mae(predicts, targets)
-                }
+        abs12_predict, abs12_target, abs34_predict, abs34_target = get_hr(predicts_unnorm, targets_unnorm)
         
-        beta = 0.0
-        total_loss = (1.0 - beta) * metric_values['rmse']
+        '''metric_values = {
+                'rmse': criterion_mse(predicts, targets),
+                'mae': criterion_mae(predicts, targets),
+                'abs12_rmse': criterion_mse(abs12_predict, abs12_target),
+                'abs34_rmse': criterion_mse(abs34_predict, abs34_target),
+                'abs12_mae': criterion_mae(abs12_predict, abs12_target),
+                'abs34_mae': criterion_mae(abs34_predict, abs34_target)
+                }
+        '''
+        
+        metric_values = {
+                'rmse': mse_all(predicts, targets),
+                'mae': mae_all(predicts, targets),
+                'abs12_rmse': mse_all(abs12_predict, abs12_target),
+                'abs34_rmse': mse_all(abs34_predict, abs34_target),
+                'abs12_mae': mae_all(abs12_predict, abs12_target),
+                'abs34_mae': mae_all(abs34_predict, abs34_target)
+                }
+
+        rmse_val, rmse_count = metric_values['rmse'][1], metric_values['rmse'][0]
+        abs12_val, abs12_count = metric_values['abs12_rmse'][1], metric_values['abs12_rmse'][0]
+        abs34_val, abs34_count = metric_values['abs34_rmse'][1], metric_values['abs34_rmse'][0]
+
+        beta = 0.05
+        weighted_loss = (1.0 - beta) * rmse_val * rmse_count + beta * ( abs12_val * abs12_count + abs34_val * abs34_count )
+        total_count = (1.0 - beta) * rmse_count + beta * (abs12_count + abs34_count)
+        total_loss = weighted_loss / total_count
+
         loop.set_postfix(loss=total_loss.item())
+        
+        for key, (count, value) in metric_values.items():
+            train_metrics[key].update(value.item(), count)
 
-        for key, value in metric_values.items():
-            train_metrics[key].update(value.item(), feature_shape[0])
-
-        train_loss.update(total_loss.item(), feature_shape[0])
+        train_loss.update(total_loss.item(),  total_count)
 
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
 
-        writer.add_scalar("train_mse", metric_values['rmse'].item(), global_step=step)
-        writer.add_scalar("train_mae", metric_values['mae'].item(), global_step=step)
+        writer.add_scalar("train_mse", metric_values['rmse'][1].item(), global_step=step)
+        writer.add_scalar("train_mae", metric_values['mae'][1].item(), global_step=step)
 
         step = step + args.batch_size
 

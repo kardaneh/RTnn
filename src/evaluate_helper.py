@@ -83,59 +83,44 @@ def unnorm_mpas(pred, targ, norm, idxmap):
 
     return upred, utarg
 
-def get_hr(pred, targ, p):
+def get_hr(pred, targ, p=None):
     """
-    Compute shortwave and longwave heating rates for predictions and targets.
-
-    Parameters:
-        pred (torch.Tensor): Predicted fluxes (batch, 4, levels).
-        targ (torch.Tensor): Target fluxes (batch, 4, levels).
-        p (torch.Tensor): Pressure levels (batch, 1, levels).
-
-    Returns:
-        Tuple[Tensor, Tensor, Tensor, Tensor]: SW HR pred, SW HR targ, LW HR pred, LW HR targ
     """
-    sw_pred = calc_hr(pred[:, 0:1, :], pred[:, 1:2, :], p)
-    sw_targ = calc_hr(targ[:, 0:1, :], targ[:, 1:2, :], p)
-    sw_pred[:, :, -1] = 0.0
-    sw_targ[:, :, -1] = 0.0
+    abs12_pred = calc_hr(pred[:, 0:1, :], pred[:, 1:2, :], p)
+    abs12_targ = calc_hr(targ[:, 0:1, :], targ[:, 1:2, :], p)
+    abs34_pred = calc_hr(pred[:, 2:3, :], pred[:, 3:4, :], p)
+    abs34_targ = calc_hr(targ[:, 2:3, :], targ[:, 3:4, :], p)
 
-    lw_pred = calc_hr(pred[:, 2:3, :], pred[:, 3:4, :], p)
-    lw_targ = calc_hr(targ[:, 2:3, :], targ[:, 3:4, :], p)
+    return abs12_pred, abs12_targ, abs34_pred, abs34_targ
 
-    return sw_pred, sw_targ, lw_pred, lw_targ
-
-
-def calc_hr(up, down, p):
+def calc_hr(up, down, p=None):
     """
-    Compute heating rate from upward and downward fluxes.
-
-    Parameters:
-        up (Tensor): Upward flux (batch, 1, levels).
-        down (Tensor): Downward flux (batch, 1, levels).
-        p (Tensor): Pressure levels (batch, 1, levels).
-
-    Returns:
-        Tensor: Heating rate (batch, 1, levels - 1)
     """
-    g = 9.8066
-    r = 287.0
-    cp = 7.0 * r / 2.0
-    fac = g * 8.64e4 / (cp * 100)
-
     net = up - down
     dnet = net - torch.roll(net, 1, 2)
-    dp = p - torch.roll(p, 1, 2)
-    
-    return dnet[:, :, 1:] / dp[:, :, 1:] * fac
+
+    if p is not None:
+        g = 9.8066
+        r = 287.0
+        cp = 7.0 * r / 2.0
+        fac = g * 8.64e4 / (cp * 100)
+
+        dp = p - torch.roll(p, 1, 2)
+        return dnet[:, :, 1:] / dp[:, :, 1:] * fac
+    else:
+        return -dnet[:, :, 1:]
 
 def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, device, args, beta, epoch):
     model.eval()
 
     valid_metrics = {
-            'rmse': MetricTracker(),
-            'mae': MetricTracker()
-            }
+    'rmse': MetricTracker(),
+    'mae': MetricTracker(),
+    'abs12_rmse': MetricTracker(),
+    'abs34_rmse': MetricTracker(),
+    'abs12_mae': MetricTracker(),
+    'abs34_mae': MetricTracker()
+    }
 
     valid_loss = MetricTracker()
 
@@ -151,20 +136,39 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, devi
             predicts = model(feature)
 
             predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
+            abs12_predict, abs12_target, abs34_predict, abs34_target = get_hr(predicts_unnorm, targets_unnorm)
+            
+            metric_values = {
+                    'rmse': mse_all(predicts, targets),
+                    'mae': mae_all(predicts, targets),
+                    'abs12_rmse': mse_all(abs12_predict, abs12_target),
+                    'abs12_mae': mae_all(abs12_predict, abs12_target),
+                    'abs34_rmse': mse_all(abs34_predict, abs34_target),
+                    'abs34_mae': mae_all(abs34_predict, abs34_target)
+                    }
 
-            valid_len, valid_val = mse_all(predicts, targets)
-            valid_metrics['rmse'].update(valid_val.item(), valid_len)
-            total_loss = (1.0 - beta) * valid_val
+            for key, (count, value) in metric_values.items():
+                valid_metrics[key].update(value.item(), count)
 
-            valid_len, valid_val = mae_all(predicts, targets)
-            valid_metrics['mae'].update(valid_val.item(), valid_len)
+            rmse_val, rmse_count = metric_values['rmse'][1], metric_values['rmse'][0]
+            abs12_val, abs12_count = metric_values['abs12_rmse'][1], metric_values['abs12_rmse'][0]
+            abs34_val, abs34_count = metric_values['abs34_rmse'][1], metric_values['abs34_rmse'][0]
 
-            valid_loss.update(total_loss.item(), valid_len)
+            weighted_loss = (1.0 - beta) * rmse_val * rmse_count + beta * ( abs12_val * abs12_count + abs34_val * abs34_count )
+            total_count = (1.0 - beta) * rmse_count + beta * (abs12_count + abs34_count)
+            total_loss_avg = weighted_loss / total_count
+            valid_loss.update(total_loss_avg.item(), total_count)
+
 
             if epoch==args.num_epochs-1 and batch_idx < 50:
                 print("making plot", batch_idx)
                 base_dir = os.path.join("results", args.main_folder, args.sub_folder)
                 plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}.png"), sample_index=0)
+                plot_flux_and_hr(
+                        predicts_unnorm, targets_unnorm,
+                        abs12_predict=abs12_predict, abs12_target=abs12_target, abs34_predict=abs34_predict, abs34_target=abs34_target,
+                        filename=os.path.join(base_dir, f"flux_abs_hexbin_{batch_idx}.png")
+                        )
 
     return valid_loss.getmean(), {
             k: (tracker.getsqrtmean() if 'rmse' in k else tracker.getmean()) for k, tracker in valid_metrics.items()
@@ -198,7 +202,7 @@ def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, 
             predicts = model(feature)
 
             predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
-            swhr_predict, swhr_target, lwhr_predict, lwhr_target = get_hr(predicts_unnorm, targets_unnorm, auxis)
+            swhr_predict, swhr_target, lwhr_predict, lwhr_target = get_hr(predicts_unnorm, targets_unnorm, p=auxis)
 
             valid_len, valid_val = mse_all(predicts, targets)
             valid_metrics['rmse'].update(valid_val.item(), valid_len)
@@ -228,7 +232,7 @@ def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, 
                 base_dir = os.path.join("results", args.main_folder, args.sub_folder)
                 plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}.png"), sample_index=0)
                 plot_HeatRate(swhr_predict, swhr_target, lwhr_predict, lwhr_target, os.path.join(base_dir, f"HR{batch_idx}.png"), sample_index=0)
-                plot_flux_and_hr(predicts_unnorm, targets_unnorm, swhr_predict, swhr_target, lwhr_predict, lwhr_target, os.path.join(base_dir, f"flux_hr_hexbin_{batch_idx}.png"))
+                #plot_flux_and_hr(predicts_unnorm, targets_unnorm, swhr_predict, swhr_target, lwhr_predict, lwhr_target, os.path.join(base_dir, f"flux_hr_hexbin_{batch_idx}.png"))
 
     return valid_loss.getmean(), {
             k: (tracker.getsqrtmean() if 'rmse' in k else tracker.getmean()) for k, tracker in valid_metrics.items()

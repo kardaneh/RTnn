@@ -128,7 +128,7 @@ def test(model_type="lstm"):
     output_channel = 4
     hidden_size = 32
     num_layers = 3
-    batch_size = 100
+    batch_size = 16 * 7860
     sequence_length = 10
 
     if model_type == "lstm":

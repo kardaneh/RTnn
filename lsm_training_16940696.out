@@ -9,32 +9,21 @@ Loading cineca-ai/4.1.1
     libffi/3.4.4-6r7brdq libxcrypt/4.4.35-ss2rzin sqlite/3.43.2
     util-linux-uuid/2.38.1-jkdi7kv python/3.11.6--gcc--8.5.0 cmake/3.27.7
     openjdk/11.0.20.1_1
-Time = 20250617_174420
+Time = 20250623_135140
 Running training with:
-  Model Name      : LSTM
-  Sub Folder      : LSTM_bs12_nw16_ep30_lr0d001_date20250617_174420
-  Prefix          : LSTM_bs12_nw16_ep30_lr0d001_date20250617_174420
-  Batch Size      : 12
+  Model Name      : LSTM_64_2
+  Sub Folder      : lr_0d001_beta_0d001_lf_mse_date_20250623_135140
+  Prefix          : lr_0d001_beta_0d001_lf_mse_date_20250623_135140
+  Batch Size      : 16
+  Temporal Batch Size      : 9
   Num Workers     : 16
-  Num Epochs      : 30
+  Num Epochs      : 150
   Learning Rate   : 0.001
+  Loss Type       : mse
+  Weighting factor   : 0.001
   Training Data Files Path : /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/
   Testing Data Files Path : /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/
+  Train Year       : 1998
+  Test Year        : 1999
 
 Using device: cuda
-making plot 0
-making plot 1
-making plot 2
-making plot 3
-making plot 4
-making plot 5
-making plot 6
-making plot 7
-making plot 8
-making plot 9
-making plot 10
-making plot 11
-making plot 12
-making plot 13
-making plot 14
-making plot 15

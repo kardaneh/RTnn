@@ -10,7 +10,7 @@ def load_model(model_name, device, feature_channel, signal_length):
         "LSTM": {"class": RNN_LSTM, "hidden_size": 96, "num_layers": 5},
         "LSTM_32_5": {"class": RNN_LSTM, "hidden_size": 32, "num_layers": 5},
         "LSTM_32_3": {"class": RNN_LSTM, "hidden_size": 32, "num_layers": 3},
-        "LSTM_16_1": {"class": RNN_LSTM, "hidden_size": 16, "num_layers": 1},
+        "LSTM_64_2": {"class": RNN_LSTM, "hidden_size": 64, "num_layers": 2},
         "GRU": {"class": RNN_GRU, "hidden_size": 128, "num_layers": 5},
         "MyTransformer": {"class": MyTransformer,
             "embed_size": 32,

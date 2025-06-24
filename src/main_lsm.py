@@ -17,9 +17,9 @@ from model_prepare import load_model
 from model_helper import ModelUtils
 from evaluate_helper import (
     unnorm_mpas,
-    get_hr,
+    calc_abs,
     check_accuracy_evaluate_lsm,
-    MetricTracker, mse_all, mae_all
+    MetricTracker, mse_all, mae_all, nmae_all, nmse_all
     )
 from plot_helper import plot_metric_histories, plot_loss_histories
 
@@ -28,13 +28,22 @@ def parse_args():
     parser.add_argument("--root_dir", type=str, default="", help="Root directory")
     parser.add_argument("--train_data_files", type=str, default="", help="Path to training dataset")
     parser.add_argument("--test_data_files", type=str, default="", help="Path to training dataset")
+    parser.add_argument("--train_year", type=str, default="1998", help="Year for training data")
+    parser.add_argument("--test_year", type=str, default="2000", help="Year for testing data")
     parser.add_argument("--main_folder", type=str, default="temp", help="Main folder name")
     parser.add_argument("--sub_folder", type=str, default="temp", help="Sub-folder name")
     parser.add_argument("--prefix", type=str, default="temp", help="Prefix for saving")
     parser.add_argument("--dataset_type", type=str, default="Large", help="Type of dataset")
-    parser.add_argument("--loss_type", type=str, default="v01", help="Loss function type")
+    parser.add_argument(
+    '--loss_type',
+    type=str,
+    default='mse',
+    choices=['mse', 'mae', 'nmae', 'nmse'],
+    help='Loss type to use for flux weighting (mse, mae, nmae, or nmse)')
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
+    parser.add_argument("--beta", type=float, default=0.05, help="Weighting factor between RMSE and abs loss terms")
     parser.add_argument("--batch_size", type=int, default=200, help="Batch size")
+    parser.add_argument("--tbatch", type=int, default=24, help="Time batch length for the DataPreprocessor")
     parser.add_argument("--model_name", type=str, default="FC", help="Model name")
     parser.add_argument("--num_workers", type=int, default=4, help="Number of workers for data loading")
     parser.add_argument("--num_epochs", type=int, default=100, help="Number of epochs")
@@ -50,8 +59,8 @@ def parse_args():
 
 
 args = parse_args()
-train_sbatch_files = np.sort(glob.glob(args.train_data_files + "rtnetcdf_*_1998.nc"))[::]
-test_sbatch_files = np.sort(glob.glob(args.test_data_files + "rtnetcdf_*_1999.nc"))[::]
+train_sbatch_files = np.sort(glob.glob(args.train_data_files + f"rtnetcdf_*_{args.train_year}.nc"))[::]
+test_sbatch_files = np.sort(glob.glob(args.test_data_files + f"rtnetcdf_*_{args.test_year}.nc"))[::]
 train_df = xr.open_dataset(train_sbatch_files[0], engine="netcdf4")
 
 from torch.utils.tensorboard import SummaryWriter
@@ -121,11 +130,9 @@ index_mapping = {0: "collim_alb", 1: "collim_tran", 2: "isotrop_alb", 3: "isotro
 step = (0)
 logger.info(f"NetCDF files path: {args.train_data_files}")
 logger.info(f"NetCDF files path: {args.test_data_files}")
-
 logger.info(f"Found {len(train_sbatch_files)} training files:")
 for f in train_sbatch_files:
     logger.info(f"  {f}")
-
 logger.info(f"Found {len(test_sbatch_files)} test files:")
 for f in test_sbatch_files:
     logger.info(f"  {f}")
@@ -145,7 +152,7 @@ train_dataset = DataPreprocessor(
         sbatch=len(train_sbatch_files),
         stime=0, 
         etime=train_df.sizes['time'],
-        tbatch=24,
+        tbatch=args.tbatch,
         norm_mapping=norm_mapping
         )
 
@@ -163,10 +170,9 @@ test_dataset = DataPreprocessor(
 train_loader = DataLoader(
     dataset=train_dataset,
     batch_size=args.batch_size,
-    shuffle=True,
+    shuffle=False,
     num_workers=args.num_workers,
-    pin_memory=True,
-)
+    pin_memory=True)
 
 # Create DataLoader for testing
 test_loader = DataLoader(
@@ -174,8 +180,7 @@ test_loader = DataLoader(
     batch_size=args.batch_size,
     shuffle=False,
     num_workers=args.num_workers,
-    pin_memory=True,
-)
+    pin_memory=True)
 
 # ---------------------------------------------
 # Dataset Information
@@ -229,15 +234,29 @@ if torch.cuda.device_count() > 1:
 # ---------------------------------------------
 logger.info("Start training...")
 
+metric_suffix = args.loss_type.lower()
+assert metric_suffix in ['mse', 'mae', 'nmae', 'nmse'], \
+    "Invalid loss_type (should be one of 'mse', 'mae', 'nmae', 'nmse')"
 
-# Training metrics
+if metric_suffix == "mse":
+    func = mse_all
+elif metric_suffix == "mae":
+    func = mae_all
+elif metric_suffix == "nmae":
+    func = nmae_all
+elif metric_suffix == "nmse":
+    func = nmse_all
+else:
+    raise ValueError(f"Unsupported loss type: {metric_suffix}")
+
+main_key = f"{metric_suffix}"
+abs12_key = f"abs12_{metric_suffix}"
+abs34_key = f"abs34_{metric_suffix}"
+
 train_metrics = {
-    'rmse': MetricTracker(),
-    'mae': MetricTracker(),
-    'abs12_rmse': MetricTracker(),
-    'abs34_rmse': MetricTracker(),
-    'abs12_mae': MetricTracker(),
-    'abs34_mae': MetricTracker()
+    main_key: MetricTracker(),
+    abs12_key: MetricTracker(),
+    abs34_key: MetricTracker()
     }
 
 train_metrics_history = {key: [] for key in train_metrics}
@@ -261,6 +280,7 @@ for epoch in range(args.num_epochs):
 
     loop = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}")
     for batch_idx, (feature, targets) in loop:
+        #logger.info(f"batch idx:{batch_idx}")
         if epoch == 0 and batch_idx == 0:
             logger.info(f"feature shape:{feature.shape}, target shape:{targets.shape}")
 
@@ -274,34 +294,21 @@ for epoch in range(args.num_epochs):
         predicts = model(feature)
 
         predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
-        abs12_predict, abs12_target, abs34_predict, abs34_target = get_hr(predicts_unnorm, targets_unnorm)
-        
-        '''metric_values = {
-                'rmse': criterion_mse(predicts, targets),
-                'mae': criterion_mae(predicts, targets),
-                'abs12_rmse': criterion_mse(abs12_predict, abs12_target),
-                'abs34_rmse': criterion_mse(abs34_predict, abs34_target),
-                'abs12_mae': criterion_mae(abs12_predict, abs12_target),
-                'abs34_mae': criterion_mae(abs34_predict, abs34_target)
-                }
-        '''
+        abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
+        #abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts, targets)
         
         metric_values = {
-                'rmse': mse_all(predicts, targets),
-                'mae': mae_all(predicts, targets),
-                'abs12_rmse': mse_all(abs12_predict, abs12_target),
-                'abs34_rmse': mse_all(abs34_predict, abs34_target),
-                'abs12_mae': mae_all(abs12_predict, abs12_target),
-                'abs34_mae': mae_all(abs34_predict, abs34_target)
+                main_key: func(predicts_unnorm, targets_unnorm),
+                abs12_key: func(abs12_predict, abs12_target),
+                abs34_key: func(abs34_predict, abs34_target)
                 }
 
-        rmse_val, rmse_count = metric_values['rmse'][1], metric_values['rmse'][0]
-        abs12_val, abs12_count = metric_values['abs12_rmse'][1], metric_values['abs12_rmse'][0]
-        abs34_val, abs34_count = metric_values['abs34_rmse'][1], metric_values['abs34_rmse'][0]
+        main_count, main_val = metric_values[main_key]
+        abs12_count, abs12_val = metric_values[abs12_key]
+        abs34_count, abs34_val = metric_values[abs34_key]
 
-        beta = 0.05
-        weighted_loss = (1.0 - beta) * rmse_val * rmse_count + beta * ( abs12_val * abs12_count + abs34_val * abs34_count )
-        total_count = (1.0 - beta) * rmse_count + beta * (abs12_count + abs34_count)
+        weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (abs12_val * abs12_count + abs34_val * abs34_count)
+        total_count = (1.0 - args.beta) * main_count + args.beta * (abs12_count + abs34_count)
         total_loss = weighted_loss / total_count
 
         loop.set_postfix(loss=total_loss.item())
@@ -309,15 +316,13 @@ for epoch in range(args.num_epochs):
         for key, (count, value) in metric_values.items():
             train_metrics[key].update(value.item(), count)
 
-        train_loss.update(total_loss.item(),  total_count)
+        train_loss.update(total_loss.item(),  1)
 
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
 
-        writer.add_scalar("train_mse", metric_values['rmse'][1].item(), global_step=step)
-        writer.add_scalar("train_mae", metric_values['mae'][1].item(), global_step=step)
-
+        writer.add_scalar(f"train_{main_key}", metric_values[main_key][1].item(), global_step=step)
         step = step + args.batch_size
 
 
@@ -363,6 +368,8 @@ for epoch in range(args.num_epochs):
 
                 save_counter = 0
     logger.info(f"elapse time:{time.time() - previous_time}")
+    #for key, tracker in train_metrics.items():
+    #    logger.info(f"{key} -> count: {tracker.count}, value: {tracker.value}")
     train_loss_history[epoch] = train_loss.getmean()
     if epoch % 1 == 0:
 
@@ -373,13 +380,12 @@ for epoch in range(args.num_epochs):
                 index_mapping,
                 device,
                 args,
-                beta,
                 epoch)
 
         valid_loss_history[epoch] = valid_loss
         logger.info(f"train_loss: {train_loss_history[epoch]:.3e} | valid_loss: {valid_loss_history[epoch]:.3e}")
         for key, meter in train_metrics.items():
-            train_value = meter.getsqrtmean() if 'rmse' in key else meter.getmean()
+            train_value = meter.getsqrtmean() if key.endswith('mse') else meter.getmean()
             train_metrics_history[key].append(train_value)
 
             assert key in valid_metrics, f"Missing key '{key}' in valid_metrics"
@@ -390,7 +396,7 @@ for epoch in range(args.num_epochs):
             logger.info(f"train_{key}: {train_value:.3e} | valid_{key}: {valid_value:.3e}")
 
         logger.info("")
-        schedule_losses.append(valid_metrics['rmse'])
+        schedule_losses.append(valid_metrics[main_key])
         mean_loss = sum(schedule_losses) / len(schedule_losses)
         scheduler.step(mean_loss)
 

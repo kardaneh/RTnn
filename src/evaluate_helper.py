@@ -58,6 +58,39 @@ def mae_all(pred, true):
     """
     return pred.numel(), torch.mean(torch.abs(pred - true))
 
+def nmae_all(pred, true):
+    """
+    """
+    mae = torch.mean(torch.abs(pred - true))
+    norm = torch.mean(torch.abs(true)) + 1e-8
+    nmae = mae / norm
+    return pred.numel(), nmae
+
+def nmse_all(pred, true):
+    """
+    Normalized Mean Squared Error (NMSE)
+    """
+    mse = torch.mean((pred - true) ** 2)
+    norm = torch.mean(true ** 2) + 1e-8
+    nmse = mse / norm
+    return pred.numel(), nmse
+
+def mare_all(pred, true):
+    """
+    """
+    relative_error = torch.abs(pred - true) / (torch.abs(true) + 1e-8)
+    mare = torch.mean(relative_error)
+    return pred.numel(), mare
+
+def gmrae_all(pred, true):
+    """
+    """
+    eps = 1e-8
+    relative_errors = torch.abs(pred - true) / (torch.abs(true) + eps)
+    log_rel_errors = torch.log(relative_errors + eps)
+    gmrae = torch.exp(torch.mean(log_rel_errors))
+    return pred.numel(), gmrae
+
 def unnorm_mpas(pred, targ, norm, idxmap):
     """
     Unnormalize MPAS predictions and targets using the provided normalization mapping.
@@ -83,7 +116,7 @@ def unnorm_mpas(pred, targ, norm, idxmap):
 
     return upred, utarg
 
-def get_hr(pred, targ, p=None):
+def calc_abs(pred, targ, p=None):
     """
     """
     abs12_pred = calc_hr(pred[:, 0:1, :], pred[:, 1:2, :], p)
@@ -110,16 +143,32 @@ def calc_hr(up, down, p=None):
     else:
         return -dnet[:, :, 1:]
 
-def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, device, args, beta, epoch):
+def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, device, args, epoch):
     model.eval()
 
+    metric_suffix = args.loss_type.lower()
+    assert metric_suffix in ['mse', 'mae', 'nmae', 'nmse'], \
+        "Invalid loss_type (should be one of 'mse', 'mae', 'nmae', 'nmse')"
+
+    if metric_suffix == "mse":
+        func = mse_all
+    elif metric_suffix == "mae":
+        func = mae_all
+    elif metric_suffix == "nmae":
+        func = nmae_all
+    elif metric_suffix == "nmse":
+        func = nmse_all
+    else:
+        raise ValueError(f"Unsupported loss type: {metric_suffix}")
+
+    main_key = f"{metric_suffix}"
+    abs12_key = f"abs12_{metric_suffix}"
+    abs34_key = f"abs34_{metric_suffix}"
+
     valid_metrics = {
-    'rmse': MetricTracker(),
-    'mae': MetricTracker(),
-    'abs12_rmse': MetricTracker(),
-    'abs34_rmse': MetricTracker(),
-    'abs12_mae': MetricTracker(),
-    'abs34_mae': MetricTracker()
+        main_key: MetricTracker(),
+        abs12_key: MetricTracker(),
+        abs34_key: MetricTracker()
     }
 
     valid_loss = MetricTracker()
@@ -136,104 +185,40 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, devi
             predicts = model(feature)
 
             predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
-            abs12_predict, abs12_target, abs34_predict, abs34_target = get_hr(predicts_unnorm, targets_unnorm)
+            abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
+            #abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts, targets)
             
             metric_values = {
-                    'rmse': mse_all(predicts, targets),
-                    'mae': mae_all(predicts, targets),
-                    'abs12_rmse': mse_all(abs12_predict, abs12_target),
-                    'abs12_mae': mae_all(abs12_predict, abs12_target),
-                    'abs34_rmse': mse_all(abs34_predict, abs34_target),
-                    'abs34_mae': mae_all(abs34_predict, abs34_target)
+                    main_key: func(predicts_unnorm, targets_unnorm),
+                    abs12_key: func(abs12_predict, abs12_target),
+                    abs34_key: func(abs34_predict, abs34_target)
                     }
 
             for key, (count, value) in metric_values.items():
                 valid_metrics[key].update(value.item(), count)
 
-            rmse_val, rmse_count = metric_values['rmse'][1], metric_values['rmse'][0]
-            abs12_val, abs12_count = metric_values['abs12_rmse'][1], metric_values['abs12_rmse'][0]
-            abs34_val, abs34_count = metric_values['abs34_rmse'][1], metric_values['abs34_rmse'][0]
+            main_count, main_val = metric_values[main_key]
+            abs12_count, abs12_val = metric_values[abs12_key]
+            abs34_count, abs34_val = metric_values[abs34_key]
 
-            weighted_loss = (1.0 - beta) * rmse_val * rmse_count + beta * ( abs12_val * abs12_count + abs34_val * abs34_count )
-            total_count = (1.0 - beta) * rmse_count + beta * (abs12_count + abs34_count)
-            total_loss_avg = weighted_loss / total_count
-            valid_loss.update(total_loss_avg.item(), total_count)
+            weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (abs12_val * abs12_count + abs34_val * abs34_count)
+            total_count = (1.0 - args.beta) * main_count + args.beta * (abs12_count + abs34_count)
+            total_loss = weighted_loss / total_count
+
+            valid_loss.update(total_loss.item(), 1)
 
 
             if epoch==args.num_epochs-1 and batch_idx < 50:
                 print("making plot", batch_idx)
                 base_dir = os.path.join("results", args.main_folder, args.sub_folder)
-                plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}.png"), sample_index=0)
+                plot_RTM(predicts, targets, os.path.join(base_dir, f"Flux{batch_idx}_{args.test_year}.png"), sample_index=0)
                 plot_flux_and_hr(
-                        predicts_unnorm, targets_unnorm,
+                        predicts, targets,
                         abs12_predict=abs12_predict, abs12_target=abs12_target, abs34_predict=abs34_predict, abs34_target=abs34_target,
-                        filename=os.path.join(base_dir, f"flux_abs_hexbin_{batch_idx}.png")
+                        filename=os.path.join(base_dir, f"flux_abs_hexbin_{batch_idx}_{args.test_year}.png")
                         )
 
     return valid_loss.getmean(), {
-            k: (tracker.getsqrtmean() if 'rmse' in k else tracker.getmean()) for k, tracker in valid_metrics.items()
-            }
-
-def check_accuracy_evaluate(loader, model, norm_mapping, index_mapping, device, args, beta, epoch):
-    model.eval()
-    
-    valid_metrics = {
-            'rmse': MetricTracker(),
-            'mae': MetricTracker(),
-            'swhr_rmse': MetricTracker(),
-            'lwhr_rmse': MetricTracker(),
-            'swhr_mae': MetricTracker(),
-            'lwhr_mae': MetricTracker()
-            }
-
-    valid_loss = MetricTracker()
-
-    with torch.no_grad():
-        for batch_idx, (feature, targets, auxis) in enumerate(loader):
-
-            feature_shape = feature.shape
-            target_shape = targets.shape
-            auxis_shape = auxis.shape
-            inner_batch_size = feature_shape[0] * feature_shape[1]
-            feature = feature.reshape(inner_batch_size, feature_shape[2], feature_shape[3]).to(device=device)
-            targets = targets.reshape(inner_batch_size, target_shape[2], target_shape[3]).to(device=device)
-            auxis = auxis.reshape(inner_batch_size, auxis_shape[2], auxis_shape[3]).to(device=device)
-
-            predicts = model(feature)
-
-            predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
-            swhr_predict, swhr_target, lwhr_predict, lwhr_target = get_hr(predicts_unnorm, targets_unnorm, p=auxis)
-
-            valid_len, valid_val = mse_all(predicts, targets)
-            valid_metrics['rmse'].update(valid_val.item(), valid_len)
-            total_loss = (1.0 - beta) * valid_val
-
-            valid_len, valid_val = mae_all(predicts, targets)
-            valid_metrics['mae'].update(valid_val.item(), valid_len)
-            
-            valid_len, valid_val = mse_all(swhr_predict, swhr_target)
-            valid_metrics['swhr_rmse'].update(valid_val.item(), valid_len)
-            total_loss += beta * valid_val
-
-            valid_len, valid_val = mae_all(swhr_predict, swhr_target)
-            valid_metrics['swhr_mae'].update(valid_val.item(), valid_len)
-
-            valid_len, valid_val = mse_all(lwhr_predict, lwhr_target)
-            valid_metrics['lwhr_rmse'].update(valid_val.item(), valid_len)
-            total_loss += beta * valid_val
-
-            valid_len, valid_val = mae_all(lwhr_predict, lwhr_target)
-            valid_metrics['lwhr_mae'].update(valid_val.item(), valid_len)
-
-            valid_loss.update(total_loss.item(), valid_len)
-
-            if epoch==args.num_epochs-1 and batch_idx < 50:
-                print("making plot", batch_idx)
-                base_dir = os.path.join("results", args.main_folder, args.sub_folder)
-                plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}.png"), sample_index=0)
-                plot_HeatRate(swhr_predict, swhr_target, lwhr_predict, lwhr_target, os.path.join(base_dir, f"HR{batch_idx}.png"), sample_index=0)
-                #plot_flux_and_hr(predicts_unnorm, targets_unnorm, swhr_predict, swhr_target, lwhr_predict, lwhr_target, os.path.join(base_dir, f"flux_hr_hexbin_{batch_idx}.png"))
-
-    return valid_loss.getmean(), {
-            k: (tracker.getsqrtmean() if 'rmse' in k else tracker.getmean()) for k, tracker in valid_metrics.items()
+            k: (tracker.getsqrtmean() if k.endswith('mse') else tracker.getmean())
+            for k, tracker in valid_metrics.items()
             }

@@ -280,7 +280,7 @@ for epoch in range(args.num_epochs):
 
     loop = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}")
     for batch_idx, (feature, targets) in loop:
-        #logger.info(f"batch idx:{batch_idx}")
+        logger.info(f"batch idx:{batch_idx}")
         if epoch == 0 and batch_idx == 0:
             logger.info(f"feature shape:{feature.shape}, target shape:{targets.shape}")
 
@@ -295,7 +295,6 @@ for epoch in range(args.num_epochs):
 
         predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
         abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
-        #abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts, targets)
         
         metric_values = {
                 main_key: func(predicts_unnorm, targets_unnorm),

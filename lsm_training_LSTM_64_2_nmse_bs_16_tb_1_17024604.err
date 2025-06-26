@@ -1,0 +1,1992 @@
+2025-06-26 10:33:08.084386: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-06-26 10:33:08.843979: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2025-06-26 10:33:08.845114: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2025-06-26 10:33:08.954640: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-06-26 10:33:09.228693: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-06-26 10:33:11.386228: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+NetCDF files path: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/
+NetCDF files path: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/
+Found 16 training files:
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+Found 16 test files:
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+  /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+Time range: 0 ... 288
+Spatial batches: 16
+Temporal batches: 24
+Time range: 0 ... 288
+Spatial batches: 16
+Temporal batches: 24
+Train size: 192, Test size: 192
+Model Info: {'Total': 136708, 'Trainable': 136708}
+Start training...
+Epoch 0:   0%|          | 0/12 [00:00<?, ?it/s]Torch batch index: 0
+  → Time index (tindex): 19
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+Torch batch index: 1
+  → Time index (tindex): 9
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 2
+  → Time index (tindex): 1
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 3
+  → Time index (tindex): 10
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 4
+  → Time index (tindex): 19
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 5
+  → Time index (tindex): 17
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 6
+  → Time index (tindex): 20
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 7
+  → Time index (tindex): 2
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 8
+  → Time index (tindex): 5
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 9
+  → Time index (tindex): 20
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 10
+  → Time index (tindex): 13
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 11
+  → Time index (tindex): 18
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 12
+  → Time index (tindex): 15
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 13
+  → Time index (tindex): 13
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 14
+  → Time index (tindex): 21
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 15
+  → Time index (tindex): 8
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+Torch batch index: 16
+  → Time index (tindex): 32
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+batch idx:0
+feature shape:torch.Size([16, 7860, 6, 10]), target shape:torch.Size([16, 7860, 4, 10])
+Torch batch index: 17
+  → Time index (tindex): 39
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Epoch 0:   0%|          | 0/12 [01:36<?, ?it/s, loss=0.828]Torch batch index: 18
+  → Time index (tindex): 38
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 19
+  → Time index (tindex): 34
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 20
+  → Time index (tindex): 47
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 21
+  → Time index (tindex): 31
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 22
+  → Time index (tindex): 36
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Epoch 0:   8%|▊         | 1/12 [01:39<18:14, 99.52s/it, loss=0.828]Torch batch index: 23
+  → Time index (tindex): 40
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 24
+  → Time index (tindex): 45
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 25
+  → Time index (tindex): 42
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 26
+  → Time index (tindex): 26
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 27
+  → Time index (tindex): 39
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 28
+  → Time index (tindex): 30
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 29
+  → Time index (tindex): 47
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 30
+  → Time index (tindex): 30
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 31
+  → Time index (tindex): 28
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+Torch batch index: 32
+  → Time index (tindex): 63
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+batch idx:1
+Epoch 0:   8%|▊         | 1/12 [01:45<18:14, 99.52s/it, loss=0.812]Epoch 0:  17%|█▋        | 2/12 [01:46<07:28, 44.85s/it, loss=0.812]Torch batch index: 33
+  → Time index (tindex): 55
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 34
+  → Time index (tindex): 48
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 35
+  → Time index (tindex): 59
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 36
+  → Time index (tindex): 48
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 37
+  → Time index (tindex): 58
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 38
+  → Time index (tindex): 63
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 39
+  → Time index (tindex): 66
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 40
+  → Time index (tindex): 63
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 41
+  → Time index (tindex): 67
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 42
+  → Time index (tindex): 65
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 43
+  → Time index (tindex): 62
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 44
+  → Time index (tindex): 57
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 45
+  → Time index (tindex): 57
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 46
+  → Time index (tindex): 67
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 47
+  → Time index (tindex): 67
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+Torch batch index: 48
+  → Time index (tindex): 76
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+batch idx:2
+Epoch 0:  17%|█▋        | 2/12 [01:56<07:28, 44.85s/it, loss=0.782]Epoch 0:  25%|██▌       | 3/12 [01:56<04:20, 28.99s/it, loss=0.782]Torch batch index: 49
+  → Time index (tindex): 76
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 50
+  → Time index (tindex): 86
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 51
+  → Time index (tindex): 90
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 52
+  → Time index (tindex): 85
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 53
+  → Time index (tindex): 74
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 54
+  → Time index (tindex): 75
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 55
+  → Time index (tindex): 77
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 56
+  → Time index (tindex): 76
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 57
+  → Time index (tindex): 83
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 58
+  → Time index (tindex): 77
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 59
+  → Time index (tindex): 84
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 60
+  → Time index (tindex): 88
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 61
+  → Time index (tindex): 88
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 62
+  → Time index (tindex): 80
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 63
+  → Time index (tindex): 95
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+batch idx:3
+Torch batch index: 64
+  → Time index (tindex): 118
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+Epoch 0:  25%|██▌       | 3/12 [02:06<04:20, 28.99s/it, loss=0.766]Epoch 0:  33%|███▎      | 4/12 [02:06<02:52, 21.52s/it, loss=0.766]Torch batch index: 65
+  → Time index (tindex): 98
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 66
+  → Time index (tindex): 109
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 67
+  → Time index (tindex): 105
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 68
+  → Time index (tindex): 111
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 69
+  → Time index (tindex): 115
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 70
+  → Time index (tindex): 107
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 71
+  → Time index (tindex): 111
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 72
+  → Time index (tindex): 107
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 73
+  → Time index (tindex): 101
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 74
+  → Time index (tindex): 117
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 75
+  → Time index (tindex): 115
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 76
+  → Time index (tindex): 109
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 77
+  → Time index (tindex): 98
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 78
+  → Time index (tindex): 117
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 79
+  → Time index (tindex): 104
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+batch idx:4
+Torch batch index: 80
+  → Time index (tindex): 121
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+Epoch 0:  33%|███▎      | 4/12 [02:16<02:52, 21.52s/it, loss=0.745]Epoch 0:  42%|████▏     | 5/12 [02:16<02:01, 17.40s/it, loss=0.745]Torch batch index: 81
+  → Time index (tindex): 139
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 82
+  → Time index (tindex): 136
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 83
+  → Time index (tindex): 136
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 84
+  → Time index (tindex): 129
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 85
+  → Time index (tindex): 131
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 86
+  → Time index (tindex): 136
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 87
+  → Time index (tindex): 129
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 88
+  → Time index (tindex): 127
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 89
+  → Time index (tindex): 133
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 90
+  → Time index (tindex): 142
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 91
+  → Time index (tindex): 140
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 92
+  → Time index (tindex): 121
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 93
+  → Time index (tindex): 129
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 94
+  → Time index (tindex): 133
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 95
+  → Time index (tindex): 130
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+batch idx:5
+Torch batch index: 96
+  → Time index (tindex): 167
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+Epoch 0:  42%|████▏     | 5/12 [02:26<02:01, 17.40s/it, loss=0.721]Epoch 0:  50%|█████     | 6/12 [02:26<01:29, 14.91s/it, loss=0.721]Torch batch index: 97
+  → Time index (tindex): 147
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 98
+  → Time index (tindex): 157
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 99
+  → Time index (tindex): 151
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 100
+  → Time index (tindex): 166
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 101
+  → Time index (tindex): 147
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 102
+  → Time index (tindex): 149
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 103
+  → Time index (tindex): 148
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 104
+  → Time index (tindex): 155
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 105
+  → Time index (tindex): 165
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 106
+  → Time index (tindex): 150
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 107
+  → Time index (tindex): 165
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 108
+  → Time index (tindex): 144
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 109
+  → Time index (tindex): 153
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 110
+  → Time index (tindex): 166
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 111
+  → Time index (tindex): 158
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+Torch batch index: 112
+  → Time index (tindex): 190
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+batch idx:6
+Epoch 0:  50%|█████     | 6/12 [02:36<01:29, 14.91s/it, loss=0.695]Epoch 0:  58%|█████▊    | 7/12 [02:36<01:06, 13.33s/it, loss=0.695]Torch batch index: 113
+  → Time index (tindex): 190
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 114
+  → Time index (tindex): 179
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 115
+  → Time index (tindex): 179
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 116
+  → Time index (tindex): 189
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 117
+  → Time index (tindex): 182
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 118
+  → Time index (tindex): 189
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 119
+  → Time index (tindex): 185
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 120
+  → Time index (tindex): 191
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 121
+  → Time index (tindex): 190
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 122
+  → Time index (tindex): 184
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 123
+  → Time index (tindex): 185
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 124
+  → Time index (tindex): 172
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 125
+  → Time index (tindex): 172
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 126
+  → Time index (tindex): 177
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 127
+  → Time index (tindex): 182
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+batch idx:7
+Torch batch index: 128
+  → Time index (tindex): 210
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+Epoch 0:  58%|█████▊    | 7/12 [02:46<01:06, 13.33s/it, loss=0.679]Epoch 0:  67%|██████▋   | 8/12 [02:46<00:49, 12.29s/it, loss=0.679]Torch batch index: 129
+  → Time index (tindex): 207
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 130
+  → Time index (tindex): 205
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 131
+  → Time index (tindex): 192
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 132
+  → Time index (tindex): 195
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 133
+  → Time index (tindex): 198
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 134
+  → Time index (tindex): 209
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 135
+  → Time index (tindex): 206
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 136
+  → Time index (tindex): 199
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 137
+  → Time index (tindex): 197
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 138
+  → Time index (tindex): 198
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 139
+  → Time index (tindex): 195
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 140
+  → Time index (tindex): 208
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 141
+  → Time index (tindex): 195
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 142
+  → Time index (tindex): 193
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 143
+  → Time index (tindex): 207
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+batch idx:8
+Torch batch index: 144
+  → Time index (tindex): 232
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+Epoch 0:  67%|██████▋   | 8/12 [02:56<00:49, 12.29s/it, loss=0.665]Epoch 0:  75%|███████▌  | 9/12 [02:56<00:34, 11.60s/it, loss=0.665]Torch batch index: 145
+  → Time index (tindex): 221
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 146
+  → Time index (tindex): 216
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 147
+  → Time index (tindex): 224
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 148
+  → Time index (tindex): 226
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 149
+  → Time index (tindex): 239
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 150
+  → Time index (tindex): 237
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 151
+  → Time index (tindex): 239
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 152
+  → Time index (tindex): 228
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 153
+  → Time index (tindex): 218
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 154
+  → Time index (tindex): 227
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 155
+  → Time index (tindex): 225
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 156
+  → Time index (tindex): 238
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 157
+  → Time index (tindex): 230
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 158
+  → Time index (tindex): 237
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 159
+  → Time index (tindex): 218
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+batch idx:9
+Torch batch index: 160
+  → Time index (tindex): 253
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+Epoch 0:  75%|███████▌  | 9/12 [03:06<00:34, 11.60s/it, loss=0.641]Epoch 0:  83%|████████▎ | 10/12 [03:06<00:22, 11.14s/it, loss=0.641]Torch batch index: 161
+  → Time index (tindex): 251
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 162
+  → Time index (tindex): 250
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 163
+  → Time index (tindex): 243
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 164
+  → Time index (tindex): 240
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 165
+  → Time index (tindex): 246
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 166
+  → Time index (tindex): 251
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 167
+  → Time index (tindex): 263
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 168
+  → Time index (tindex): 249
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 169
+  → Time index (tindex): 263
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 170
+  → Time index (tindex): 259
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 171
+  → Time index (tindex): 259
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 172
+  → Time index (tindex): 250
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 173
+  → Time index (tindex): 257
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 174
+  → Time index (tindex): 262
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 175
+  → Time index (tindex): 241
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+batch idx:10
+Torch batch index: 176
+  → Time index (tindex): 282
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1998.nc
+
+Epoch 0:  83%|████████▎ | 10/12 [03:16<00:22, 11.14s/it, loss=0.622]Epoch 0:  92%|█████████▏| 11/12 [03:16<00:10, 10.81s/it, loss=0.622]Torch batch index: 177
+  → Time index (tindex): 275
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1998.nc
+
+Torch batch index: 178
+  → Time index (tindex): 272
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1998.nc
+
+Torch batch index: 179
+  → Time index (tindex): 270
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1998.nc
+
+Torch batch index: 180
+  → Time index (tindex): 268
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1998.nc
+
+Torch batch index: 181
+  → Time index (tindex): 276
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1998.nc
+
+Torch batch index: 182
+  → Time index (tindex): 285
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1998.nc
+
+Torch batch index: 183
+  → Time index (tindex): 285
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1998.nc
+
+Torch batch index: 184
+  → Time index (tindex): 280
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1998.nc
+
+Torch batch index: 185
+  → Time index (tindex): 278
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1998.nc
+
+Torch batch index: 186
+  → Time index (tindex): 265
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1998.nc
+
+Torch batch index: 187
+  → Time index (tindex): 281
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1998.nc
+
+Torch batch index: 188
+  → Time index (tindex): 269
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1998.nc
+
+Torch batch index: 189
+  → Time index (tindex): 279
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1998.nc
+
+Torch batch index: 190
+  → Time index (tindex): 286
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1998.nc
+
+Torch batch index: 191
+  → Time index (tindex): 276
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1998.nc
+
+batch idx:11
+Epoch 0:  92%|█████████▏| 11/12 [03:26<00:10, 10.81s/it, loss=0.594]Epoch 0: 100%|██████████| 12/12 [03:26<00:00, 10.58s/it, loss=0.594]Epoch 0: 100%|██████████| 12/12 [03:26<00:00, 17.25s/it, loss=0.594]
+elapse time:207.07265543937683
+Torch batch index: 0
+  → Time index (tindex): 9
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 1
+  → Time index (tindex): 12
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 2
+  → Time index (tindex): 16
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 3
+  → Time index (tindex): 14
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 4
+  → Time index (tindex): 1
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 5
+  → Time index (tindex): 19
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 6
+  → Time index (tindex): 1
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 7
+  → Time index (tindex): 0
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 8
+  → Time index (tindex): 20
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 9
+  → Time index (tindex): 9
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 10
+  → Time index (tindex): 17
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 11
+  → Time index (tindex): 0
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 12
+  → Time index (tindex): 5
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 13
+  → Time index (tindex): 5
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 14
+  → Time index (tindex): 2
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 15
+  → Time index (tindex): 1
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 16
+  → Time index (tindex): 39
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 17
+  → Time index (tindex): 47
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 18
+  → Time index (tindex): 35
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 19
+  → Time index (tindex): 25
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 20
+  → Time index (tindex): 25
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 21
+  → Time index (tindex): 27
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 22
+  → Time index (tindex): 46
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 23
+  → Time index (tindex): 38
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 24
+  → Time index (tindex): 29
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 25
+  → Time index (tindex): 24
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 26
+  → Time index (tindex): 33
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 27
+  → Time index (tindex): 40
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 28
+  → Time index (tindex): 29
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 29
+  → Time index (tindex): 33
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 30
+  → Time index (tindex): 25
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 31
+  → Time index (tindex): 47
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 32
+  → Time index (tindex): 64
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 33
+  → Time index (tindex): 61
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 34
+  → Time index (tindex): 51
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 35
+  → Time index (tindex): 70
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 36
+  → Time index (tindex): 49
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 37
+  → Time index (tindex): 52
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 38
+  → Time index (tindex): 66
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 39
+  → Time index (tindex): 70
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 40
+  → Time index (tindex): 57
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 41
+  → Time index (tindex): 50
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 42
+  → Time index (tindex): 63
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 43
+  → Time index (tindex): 67
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 44
+  → Time index (tindex): 62
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 45
+  → Time index (tindex): 69
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 46
+  → Time index (tindex): 54
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 47
+  → Time index (tindex): 50
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 48
+  → Time index (tindex): 87
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 49
+  → Time index (tindex): 85
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 50
+  → Time index (tindex): 78
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 51
+  → Time index (tindex): 87
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 52
+  → Time index (tindex): 91
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 53
+  → Time index (tindex): 81
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 54
+  → Time index (tindex): 95
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 55
+  → Time index (tindex): 89
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 56
+  → Time index (tindex): 76
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 57
+  → Time index (tindex): 72
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 58
+  → Time index (tindex): 77
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 59
+  → Time index (tindex): 72
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 60
+  → Time index (tindex): 84
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 61
+  → Time index (tindex): 81
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 62
+  → Time index (tindex): 78
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 63
+  → Time index (tindex): 80
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 64
+  → Time index (tindex): 106
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 65
+  → Time index (tindex): 116
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 66
+  → Time index (tindex): 102
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 67
+  → Time index (tindex): 105
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 68
+  → Time index (tindex): 114
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 69
+  → Time index (tindex): 98
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 70
+  → Time index (tindex): 100
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 71
+  → Time index (tindex): 106
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 72
+  → Time index (tindex): 96
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 73
+  → Time index (tindex): 97
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 74
+  → Time index (tindex): 117
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 75
+  → Time index (tindex): 115
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 76
+  → Time index (tindex): 105
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 77
+  → Time index (tindex): 117
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 78
+  → Time index (tindex): 107
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 79
+  → Time index (tindex): 103
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 80
+  → Time index (tindex): 140
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 81
+  → Time index (tindex): 143
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 82
+  → Time index (tindex): 134
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 83
+  → Time index (tindex): 124
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 84
+  → Time index (tindex): 123
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 85
+  → Time index (tindex): 121
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 86
+  → Time index (tindex): 142
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 87
+  → Time index (tindex): 122
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 88
+  → Time index (tindex): 141
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 89
+  → Time index (tindex): 131
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 90
+  → Time index (tindex): 126
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 91
+  → Time index (tindex): 141
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 92
+  → Time index (tindex): 127
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 93
+  → Time index (tindex): 143
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 94
+  → Time index (tindex): 130
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 95
+  → Time index (tindex): 129
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 96
+  → Time index (tindex): 155
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 97
+  → Time index (tindex): 148
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 98
+  → Time index (tindex): 160
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 99
+  → Time index (tindex): 150
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 100
+  → Time index (tindex): 165
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 101
+  → Time index (tindex): 144
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 102
+  → Time index (tindex): 150
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 103
+  → Time index (tindex): 153
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 104
+  → Time index (tindex): 163
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 105
+  → Time index (tindex): 144
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 106
+  → Time index (tindex): 145
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 107
+  → Time index (tindex): 151
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 108
+  → Time index (tindex): 152
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 109
+  → Time index (tindex): 150
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 110
+  → Time index (tindex): 165
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 111
+  → Time index (tindex): 157
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 112
+  → Time index (tindex): 180
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 113
+  → Time index (tindex): 186
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 114
+  → Time index (tindex): 171
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 115
+  → Time index (tindex): 171
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 116
+  → Time index (tindex): 180
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 117
+  → Time index (tindex): 172
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 118
+  → Time index (tindex): 181
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 119
+  → Time index (tindex): 175
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 120
+  → Time index (tindex): 176
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 121
+  → Time index (tindex): 179
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 122
+  → Time index (tindex): 179
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 123
+  → Time index (tindex): 182
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 124
+  → Time index (tindex): 174
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 125
+  → Time index (tindex): 183
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 126
+  → Time index (tindex): 177
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 127
+  → Time index (tindex): 186
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 128
+  → Time index (tindex): 204
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 129
+  → Time index (tindex): 199
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 130
+  → Time index (tindex): 210
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 131
+  → Time index (tindex): 213
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 132
+  → Time index (tindex): 208
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 133
+  → Time index (tindex): 212
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 134
+  → Time index (tindex): 204
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 135
+  → Time index (tindex): 211
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 136
+  → Time index (tindex): 209
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 137
+  → Time index (tindex): 208
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 138
+  → Time index (tindex): 201
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 139
+  → Time index (tindex): 205
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 140
+  → Time index (tindex): 193
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 141
+  → Time index (tindex): 208
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 142
+  → Time index (tindex): 208
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 143
+  → Time index (tindex): 200
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 144
+  → Time index (tindex): 216
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 145
+  → Time index (tindex): 216
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 146
+  → Time index (tindex): 233
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 147
+  → Time index (tindex): 221
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 148
+  → Time index (tindex): 223
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 149
+  → Time index (tindex): 227
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 150
+  → Time index (tindex): 231
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 151
+  → Time index (tindex): 228
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 152
+  → Time index (tindex): 222
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 153
+  → Time index (tindex): 234
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 154
+  → Time index (tindex): 234
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 155
+  → Time index (tindex): 225
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 156
+  → Time index (tindex): 219
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 157
+  → Time index (tindex): 227
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 158
+  → Time index (tindex): 217
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 159
+  → Time index (tindex): 223
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 160
+  → Time index (tindex): 259
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 161
+  → Time index (tindex): 251
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 162
+  → Time index (tindex): 247
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 163
+  → Time index (tindex): 248
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 164
+  → Time index (tindex): 254
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 165
+  → Time index (tindex): 240
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 166
+  → Time index (tindex): 259
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 167
+  → Time index (tindex): 263
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 168
+  → Time index (tindex): 261
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 169
+  → Time index (tindex): 243
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 170
+  → Time index (tindex): 259
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 171
+  → Time index (tindex): 246
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 172
+  → Time index (tindex): 243
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 173
+  → Time index (tindex): 254
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 174
+  → Time index (tindex): 251
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 175
+  → Time index (tindex): 262
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+Torch batch index: 176
+  → Time index (tindex): 269
+  → Spatial batch index (sindex): 0
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_000_1999.nc
+
+Torch batch index: 177
+  → Time index (tindex): 281
+  → Spatial batch index (sindex): 1
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_001_1999.nc
+
+Torch batch index: 178
+  → Time index (tindex): 268
+  → Spatial batch index (sindex): 2
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_002_1999.nc
+
+Torch batch index: 179
+  → Time index (tindex): 266
+  → Spatial batch index (sindex): 3
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_003_1999.nc
+
+Torch batch index: 180
+  → Time index (tindex): 275
+  → Spatial batch index (sindex): 4
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_004_1999.nc
+
+Torch batch index: 181
+  → Time index (tindex): 287
+  → Spatial batch index (sindex): 5
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_005_1999.nc
+
+Torch batch index: 182
+  → Time index (tindex): 276
+  → Spatial batch index (sindex): 6
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_006_1999.nc
+
+Torch batch index: 183
+  → Time index (tindex): 282
+  → Spatial batch index (sindex): 7
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_007_1999.nc
+
+Torch batch index: 184
+  → Time index (tindex): 274
+  → Spatial batch index (sindex): 8
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_008_1999.nc
+
+Torch batch index: 185
+  → Time index (tindex): 270
+  → Spatial batch index (sindex): 9
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_009_1999.nc
+
+Torch batch index: 186
+  → Time index (tindex): 268
+  → Spatial batch index (sindex): 10
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_010_1999.nc
+
+Torch batch index: 187
+  → Time index (tindex): 274
+  → Spatial batch index (sindex): 11
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_011_1999.nc
+
+Torch batch index: 188
+  → Time index (tindex): 269
+  → Spatial batch index (sindex): 12
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_012_1999.nc
+
+Torch batch index: 189
+  → Time index (tindex): 282
+  → Spatial batch index (sindex): 13
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_013_1999.nc
+
+Torch batch index: 190
+  → Time index (tindex): 280
+  → Spatial batch index (sindex): 14
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_014_1999.nc
+
+Torch batch index: 191
+  → Time index (tindex): 267
+  → Spatial batch index (sindex): 15
+  → File used: /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/rtnetcdf_015_1999.nc
+
+train_loss: 7.125e-01 | valid_loss: 5.413e-01
+train_nmse: 8.440e-01 | valid_nmse: 7.356e-01
+train_abs12_nmse: 1.003e+00 | valid_abs12_nmse: 1.018e+00
+train_abs34_nmse: 1.026e+00 | valid_abs34_nmse: 1.076e+00
+

@@ -17,9 +17,9 @@ from model_prepare import load_model
 from model_helper import ModelUtils
 from evaluate_helper import (
     unnorm_mpas,
-    get_hr,
+    calc_abs,
     check_accuracy_evaluate_lsm,
-    MetricTracker, mse_all, mae_all
+    MetricTracker, mse_all, mae_all, nmae_all, nmse_all
     )
 from plot_helper import plot_metric_histories, plot_loss_histories
 
@@ -34,9 +34,16 @@ def parse_args():
     parser.add_argument("--sub_folder", type=str, default="temp", help="Sub-folder name")
     parser.add_argument("--prefix", type=str, default="temp", help="Prefix for saving")
     parser.add_argument("--dataset_type", type=str, default="Large", help="Type of dataset")
-    parser.add_argument("--loss_type", type=str, default="v01", help="Loss function type")
+    parser.add_argument(
+    '--loss_type',
+    type=str,
+    default='mse',
+    choices=['mse', 'mae', 'nmae', 'nmse'],
+    help='Loss type to use for flux weighting (mse, mae, nmae, or nmse)')
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
+    parser.add_argument("--beta", type=float, default=0.05, help="Weighting factor between RMSE and abs loss terms")
     parser.add_argument("--batch_size", type=int, default=200, help="Batch size")
+    parser.add_argument("--tbatch", type=int, default=24, help="Time batch length for the DataPreprocessor")
     parser.add_argument("--model_name", type=str, default="FC", help="Model name")
     parser.add_argument("--num_workers", type=int, default=4, help="Number of workers for data loading")
     parser.add_argument("--num_epochs", type=int, default=100, help="Number of epochs")
@@ -52,8 +59,8 @@ def parse_args():
 
 
 args = parse_args()
-train_sbatch_files = np.sort(glob.glob(os.path.join(args.train_data_files, f"rtnetcdf_*_{args.train_year}.nc")))
-test_sbatch_files = np.sort(glob.glob(os.path.join(args.test_data_files, f"rtnetcdf_*_{args.test_year}.nc")))
+train_sbatch_files = np.sort(glob.glob(args.train_data_files + f"rtnetcdf_*_{args.train_year}.nc"))[::]
+test_sbatch_files = np.sort(glob.glob(args.test_data_files + f"rtnetcdf_*_{args.test_year}.nc"))[::]
 train_df = xr.open_dataset(train_sbatch_files[0], engine="netcdf4")
 
 from torch.utils.tensorboard import SummaryWriter
@@ -61,6 +68,7 @@ from torch.utils.tensorboard import SummaryWriter
 FileUtils.makedir(os.path.join("logs", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("results", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("runs", args.main_folder, args.sub_folder))
+FileUtils.makedir(os.path.join("checkpoints", args.main_folder, args.sub_folder))
 
 if args.random_throw == "True":
     args.random_throw_boolean = True
@@ -122,11 +130,9 @@ index_mapping = {0: "collim_alb", 1: "collim_tran", 2: "isotrop_alb", 3: "isotro
 step = (0)
 logger.info(f"NetCDF files path: {args.train_data_files}")
 logger.info(f"NetCDF files path: {args.test_data_files}")
-
 logger.info(f"Found {len(train_sbatch_files)} training files:")
 for f in train_sbatch_files:
     logger.info(f"  {f}")
-
 logger.info(f"Found {len(test_sbatch_files)} test files:")
 for f in test_sbatch_files:
     logger.info(f"  {f}")
@@ -139,25 +145,22 @@ norm_mapping = {
         for var in train_df.data_vars
         }
 
-
 test_dataset = DataPreprocessor(
         logger = logger,
         dfs = test_sbatch_files,
         sbatch=len(test_sbatch_files),
         stime=0,
         etime=train_df.sizes['time'],
-        tbatch=24,
+        tbatch=args.tbatch,
         norm_mapping=norm_mapping
         )
 
-# Create DataLoader for testing
 test_loader = DataLoader(
     dataset=test_dataset,
     batch_size=args.batch_size,
     shuffle=False,
     num_workers=args.num_workers,
-    pin_memory=True,
-)
+    pin_memory=True)
 
 # ---------------------------------------------
 # Model Initialization
@@ -169,6 +172,7 @@ logger.info(f"Model Info: {model_info}")
 
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+
 # ---------------------------------------------
 # Load Checkpoint (if specified)
 # ---------------------------------------------
@@ -196,8 +200,7 @@ if torch.cuda.device_count() > 1:
 # ---------------------------------------------
 # Output Index Mapping & Training Start
 # ---------------------------------------------
-logger.info("Start ...")
-beta = 0.05
+logger.info("Start inference...")
 valid_loss, valid_metrics = check_accuracy_evaluate_lsm(
         test_loader,
         model,
@@ -205,9 +208,7 @@ valid_loss, valid_metrics = check_accuracy_evaluate_lsm(
         index_mapping,
         device,
         args,
-        beta,
-        args.num_epochs - 1,
-        args.test_year)
+        args.num_epochs - 1)
 
 logger.info(f"valid_loss: {valid_loss:.3e}")
 for key, meter in valid_metrics.items():

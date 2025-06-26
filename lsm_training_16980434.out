@@ -1,0 +1,75 @@
+Time = 20250625_024715
+Running training with:
+  Model Name      : LSTM_96_2
+  Sub Folder      : lr_0d001_beta_0d001_lf_nmse_date_20250625_024715
+  Prefix          : lr_0d001_beta_0d001_lf_nmse_date_20250625_024715
+  Batch Size      : 16
+  Temporal Batch Size      : 2
+  Num Workers     : 16
+  Num Epochs      : 150
+  Learning Rate   : 0.001
+  Loss Type       : nmse
+  Weighting factor   : 0.001
+  Training Data Files Path : /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/
+  Testing Data Files Path : /leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/
+  Train Year       : 1998
+  Test Year        : 1999
+
+Using device: cuda
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00051: reducing learning rate of group 0 to 5.0000e-04.
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00060: reducing learning rate of group 0 to 2.5000e-04.
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00078: reducing learning rate of group 0 to 1.2500e-04.
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00086: reducing learning rate of group 0 to 6.2500e-05.
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00100: reducing learning rate of group 0 to 3.1250e-05.
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00112: reducing learning rate of group 0 to 1.5625e-05.
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00118: reducing learning rate of group 0 to 7.8125e-06.
+=> Saving checkpoint
+Epoch 00125: reducing learning rate of group 0 to 3.9063e-06.
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00131: reducing learning rate of group 0 to 1.9531e-06.
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00142: reducing learning rate of group 0 to 9.7656e-07.
+=> Saving checkpoint
+=> Saving checkpoint
+Epoch 00148: reducing learning rate of group 0 to 4.8828e-07.
+making plot 0
+making plot 1
+making plot 2
+making plot 3
+making plot 4
+making plot 5
+making plot 6
+making plot 7
+making plot 8
+making plot 9
+making plot 10
+making plot 11

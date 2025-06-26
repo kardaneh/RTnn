@@ -5,9 +5,9 @@
 #SBATCH --qos=boost_qos_dbg
 #SBATCH --time 00:30:00
 #SBATCH -N 1
-#SBATCH --ntasks=32
-#SBATCH --gpus=2
-#SBATCH --mem=64G
+#SBATCH --ntasks-per-node=32
+#SBATCH --gpus-per-node=2
+#SBATCH --mem-per-gpu=64G
 #SBATCH --job-name=lsm_traning
 #SBATCH --error=lsm_training_%j.err
 #SBATCH --output=lsm_training_%j.out

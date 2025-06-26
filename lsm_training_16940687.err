@@ -1,4 +1,0 @@
-  File "/leonardo/home/userexternal/kardaneh/RTnn/src/main_lsm.py", line 37
-    parser.add_argument(
-                       ^
-SyntaxError: '(' was never closed

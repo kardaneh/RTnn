@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import os
 sys.path.append("..")
-from plot_helper import plot_RTM, plot_HeatRate, plot_flux_and_hr
+from plot_helper import plot_RTM, plot_HeatRate, plot_flux_and_abs
 
 class MetricTracker(object):
     """
@@ -93,16 +93,6 @@ def gmrae_all(pred, true):
 
 def unnorm_mpas(pred, targ, norm, idxmap):
     """
-    Unnormalize MPAS predictions and targets using the provided normalization mapping.
-
-    Parameters:
-        pred (torch.Tensor): Normalized predictions (batch, features, time).
-        targ (torch.Tensor): Normalized targets (batch, features, time).
-        norm (dict): Maps variable names to their 'mean' and 'std'.
-        idxmap (dict): Maps feature indices to variable names.
-
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor]: Unnormalized predictions and targets.
     """
     device = pred.device
     upred = torch.zeros_like(pred, device=device)
@@ -186,7 +176,6 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, devi
 
             predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
             abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
-            #abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts, targets)
             
             metric_values = {
                     main_key: func(predicts_unnorm, targets_unnorm),
@@ -208,12 +197,12 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, devi
             valid_loss.update(total_loss.item(), 1)
 
 
-            if epoch==args.num_epochs-1 and batch_idx < 50:
+            if epoch==args.num_epochs-1:
                 print("making plot", batch_idx)
                 base_dir = os.path.join("results", args.main_folder, args.sub_folder)
                 plot_RTM(predicts, targets, os.path.join(base_dir, f"Flux{batch_idx}_{args.test_year}.png"), sample_index=0)
-                plot_flux_and_hr(
-                        predicts, targets,
+                plot_flux_and_abs(
+                        predicts_unnorm, targets_unnorm,
                         abs12_predict=abs12_predict, abs12_target=abs12_target, abs34_predict=abs34_predict, abs34_target=abs34_target,
                         filename=os.path.join(base_dir, f"flux_abs_hexbin_{batch_idx}_{args.test_year}.png")
                         )

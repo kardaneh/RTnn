@@ -10,8 +10,9 @@ def load_model(model_name, device, feature_channel, signal_length):
         "LSTM": {"class": RNN_LSTM, "hidden_size": 96, "num_layers": 5},
         "LSTM_32_5": {"class": RNN_LSTM, "hidden_size": 32, "num_layers": 5},
         "LSTM_32_3": {"class": RNN_LSTM, "hidden_size": 32, "num_layers": 3},
+        "LSTM_96_2": {"class": RNN_LSTM, "hidden_size": 96, "num_layers": 2},
         "LSTM_64_2": {"class": RNN_LSTM, "hidden_size": 64, "num_layers": 2},
-        "GRU": {"class": RNN_GRU, "hidden_size": 128, "num_layers": 5},
+        "GRU_64_2": {"class": RNN_GRU, "hidden_size": 64, "num_layers": 2},
         "MyTransformer": {"class": MyTransformer,
             "embed_size": 32,
             "output_channel": 4,
@@ -66,7 +67,7 @@ def load_model(model_name, device, feature_channel, signal_length):
                 seq_length=config["seq_length"],
                 dropout=config["dropout"]
                 )
-    if model_name.startswith("LSTM") or model_name == "GRU":
+    if model_name.startswith("LSTM") or model_name.startswith("GRU"):
         model = config["class"](
                 feature_channel=feature_channel,
                 output_channel=4,

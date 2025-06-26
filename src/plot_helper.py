@@ -71,7 +71,7 @@ def plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, file
     ax = fig.add_subplot(gs[0, 0])
     ax.plot(abs12_predict[sample_index, 0, :], label="predict", **next(linestyles))
     ax.plot(abs12_target[sample_index, 0, :], label="true", **next(linestyles))
-    ax.set_title(r"$\mathrm{SW\ Heat\ Rate}$", fontsize=10)
+    ax.set_title(r"$\mathrm{SW\ Heat\ Rate}$")
     ax.set_ylabel(r"$\mathrm{Heat\ Rate\ [K\ d^{-1}]}$")
     ax.legend()
 
@@ -79,14 +79,14 @@ def plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, file
     linestyles = mpltex.linestyle_generator()
     ax.plot(abs34_predict[sample_index, 0, :], label="predict", **next(linestyles))
     ax.plot(abs34_target[sample_index, 0, :], label="true", **next(linestyles))
-    ax.set_title(r"$\mathrm{LW\ Heat\ Rate}$", fontsize=10)
+    ax.set_title(r"$\mathrm{LW\ Heat\ Rate}$")
     ax.set_ylabel(r"$\mathrm{Heat\ Rate\ [K\ d^{-1}]}$")
     ax.legend()
 
     plt.savefig(filename, bbox_inches='tight')
     plt.close(fig)
 
-def plot_flux_and_hr(
+def plot_flux_and_abs(
     predicts,
     targets,
     abs12_predict=None,
@@ -98,27 +98,26 @@ def plot_flux_and_hr(
     
     include_abs12 = abs12_predict is not None and abs12_target is not None
     include_abs34 = abs34_predict is not None and abs34_target is not None
-    include_hr = include_abs12 and include_abs34
+    include_abs = include_abs12 and include_abs34
 
-    if include_hr:
-        fig, axes = plt.subplots(3, 2, figsize=(10, 12))
+    if include_abs:
+        fig, axes = plt.subplots(3, 2, figsize=(10, 15))
     else:
         fig, axes = plt.subplots(2, 2, figsize=(10, 10))
-    plt.subplots_adjust(hspace=0.4, wspace=0.3)
+    plt.subplots_adjust(hspace=0.3, wspace=0.3, left=0.1, right=0.9, top=0.9, bottom=0.1)
 
-    # Plot labels for each flux
     index_map = {
-        (0, 0): 0,  # Flux1
-        (0, 1): 1,  # Flux2
-        (1, 0): 2,  # Flux3
-        (1, 1): 3   # Flux4
+        (0, 0): 0,
+        (0, 1): 1,
+        (1, 0): 2,
+        (1, 1): 3
     }
 
     name_dict = {
-        (0, 0): {"name": "Flux1", "plotname": r"$\mathrm{Flux_1}$"},
-        (0, 1): {"name": "Flux2", "plotname": r"$\mathrm{Flux_2}$"},
-        (1, 0): {"name": "Flux3", "plotname": r"$\mathrm{Flux_3}$"},
-        (1, 1): {"name": "Flux4", "plotname": r"$\mathrm{Flux_4}$"}
+        (0, 0): {"name": "Flux1u", "plotname": r"$\mathrm{Flux_{1u}}$"},
+        (0, 1): {"name": "Flux1d", "plotname": r"$\mathrm{Flux_{1d}}$"},
+        (1, 0): {"name": "Flux2u", "plotname": r"$\mathrm{Flux_{2u}}$"},
+        (1, 1): {"name": "Flux2d", "plotname": r"$\mathrm{Flux_{2d}}$"}
     }
 
     for (r, c), props in name_dict.items():
@@ -127,41 +126,42 @@ def plot_flux_and_hr(
         y_true = targets[:, flux_idx, :].reshape(-1).detach().cpu().numpy()
         ax = axes[r, c]
 
-        hb = ax.hexbin(y_true, y_pred, gridsize=200, cmap='jet', bins='log')
-        ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', linewidth=1)
+        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log')
+        ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
 
         r2 = r2_score(y_true, y_pred)
         ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
-        ax.set_title(props["plotname"])
+        flux_name = props["plotname"]
+        ax.set_title(rf"{flux_name}")
         ax.set_xlabel("Observed")
         ax.set_ylabel("Predicted")
 
-    if include_hr:
+    if include_abs:
         ax = axes[2, 0]
         y_pred = abs12_predict.reshape(-1).detach().cpu().numpy()
         y_true = abs12_target.reshape(-1).detach().cpu().numpy()
-        hb = ax.hexbin(y_true, y_pred, gridsize=200, cmap='jet', bins='log')
-        ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', linewidth=1)
+        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log')
+        ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
         r2 = r2_score(y_true, y_pred)
         ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
-        ax.set_title(r"$\mathrm{Abs_{12}}$")
+        ax.set_title(r"$\mathrm{Abs_{1}}$")
         ax.set_xlabel("Observed")
         ax.set_ylabel("Predicted")
 
         ax = axes[2, 1]
         y_pred = abs34_predict.reshape(-1).detach().cpu().numpy()
         y_true = abs34_target.reshape(-1).detach().cpu().numpy()
-        hb = ax.hexbin(y_true, y_pred, gridsize=200, cmap='jet', bins='log')
-        ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', linewidth=1)
+        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log')
+        ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
         r2 = r2_score(y_true, y_pred)
         ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
-        ax.set_title(r"$\mathrm{Abs_{34}}$")
+        ax.set_title(r"$\mathrm{Abs_{2}}$")
         ax.set_xlabel("Observed")
         ax.set_ylabel("Predicted")
 
     # Shared colorbar on the right
-    cbar_ax = fig.add_axes([0.92, 0.15, 0.015, 0.7])
-    fig.colorbar(hb, cax=cbar_ax, label='log10(density)')
+    cbar_ax = fig.add_axes([0.92, 0.1, 0.015, 0.8])
+    fig.colorbar(hb, cax=cbar_ax, label=r'$\mathrm{\log_{10}[Count]}$')
     plt.savefig(filename, bbox_inches='tight')
     plt.close(fig)
 

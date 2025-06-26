@@ -77,13 +77,13 @@ class DataPreprocessor(Dataset):
         sindex =  index % self.sbatch
         self.df = xr.open_dataset(self.dfs[sindex], engine="netcdf4")
         
-        """self.logger.info(
+        self.logger.info(
                 f"Torch batch index: {index}\n"
                 f"  → Time index (tindex): {tindex}\n"
                 f"  → Spatial batch index (sindex): {sindex}\n"
                 f"  → File used: {self.dfs[sindex]}\n"
                 )
-        """
+        
 
         sequence_length_dim = self.min_dims['dim_2']
         dim_1 = self.min_dims['dim_1']

@@ -16,7 +16,7 @@ from data_helper_lsm import DataPreprocessor
 from model_prepare import load_model
 from model_helper import ModelUtils
 from evaluate_helper import (
-    unnorm_mpas,
+    unnorm_mpas, unnorm_log1p,
     calc_abs,
     check_accuracy_evaluate_lsm,
     MetricTracker, mse_all, mae_all, nmae_all, nmse_all
@@ -69,6 +69,7 @@ FileUtils.makedir(os.path.join("logs", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("results", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("runs", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("checkpoints", args.main_folder, args.sub_folder))
+FileUtils.makedir(os.path.join("stats", args.main_folder, args.sub_folder))
 
 if args.random_throw == "True":
     args.random_throw_boolean = True
@@ -280,9 +281,8 @@ for epoch in range(args.num_epochs):
 
     loop = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}")
     for batch_idx, (feature, targets) in loop:
-        logger.info(f"batch idx:{batch_idx}")
         if epoch == 0 and batch_idx == 0:
-            logger.info(f"feature shape:{feature.shape}, target shape:{targets.shape}")
+            logger.info(f"batch idx:{batch_idx}, feature shape:{feature.shape}, target shape:{targets.shape}")
 
         feature_shape = feature.shape
         target_shape = targets.shape
@@ -293,11 +293,11 @@ for epoch in range(args.num_epochs):
 
         predicts = model(feature)
 
-        predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
+        predicts_unnorm, targets_unnorm = unnorm_log1p(predicts, targets, index_mapping) #unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
         abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
         
         metric_values = {
-                main_key: func(predicts_unnorm, targets_unnorm),
+                main_key: func(predicts, targets),
                 abs12_key: func(abs12_predict, abs12_target),
                 abs34_key: func(abs34_predict, abs34_target)
                 }

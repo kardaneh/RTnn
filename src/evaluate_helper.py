@@ -106,6 +106,20 @@ def unnorm_mpas(pred, targ, norm, idxmap):
 
     return upred, utarg
 
+def unnorm_log1p(pred, targ, idxmap):
+    """
+    """
+    device = pred.device
+    upred = torch.zeros_like(pred, device=device)
+    utarg = torch.zeros_like(targ, device=device)
+
+    for i, name in idxmap.items():
+        upred[:, i, :] = torch.expm1(pred[:, i, :])
+        utarg[:, i, :] = torch.expm1(targ[:, i, :])
+
+    return upred, utarg
+
+
 def calc_abs(pred, targ, p=None):
     """
     """
@@ -174,11 +188,11 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, devi
 
             predicts = model(feature)
 
-            predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
+            predicts_unnorm, targets_unnorm = unnorm_log1p(predicts, targets, index_mapping) ###unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
             abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
             
             metric_values = {
-                    main_key: func(predicts_unnorm, targets_unnorm),
+                    main_key: func(predicts, targets),
                     abs12_key: func(abs12_predict, abs12_target),
                     abs34_key: func(abs34_predict, abs34_target)
                     }

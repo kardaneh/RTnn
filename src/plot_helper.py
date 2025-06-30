@@ -5,6 +5,8 @@ import mpltex
 import math
 from matplotlib import rcParams as mpl
 from sklearn.metrics import r2_score
+from scipy.stats import iqr
+from sklearn.preprocessing import StandardScaler
 
 params = {
     'font.family': 'DejaVu Sans',
@@ -28,6 +30,71 @@ params = {
     'ytick.direction': 'out'
 }
 mpl.update(params)
+
+import xarray as xr
+import os
+import collections
+
+def stats(file_list, logger, output_dir):
+    """
+    """
+
+    variable_data = collections.defaultdict(list)
+    norm_vars = {"isotrop_tran", "isotrop_alb", "laieff_collim", "laieff_isotrop"}
+
+    logger.info("Reading and collecting variables across files...")
+    for fpath in file_list:
+        try:
+            ds = xr.open_dataset(fpath, engine="netcdf4")
+            logger.info(f"Processing file: {fpath}")
+            for var_name in ds.data_vars:
+                data = ds[var_name].values
+                variable_data[var_name].append(data.flatten())
+            ds.close()
+        except Exception as e:
+            logger.warning(f"Skipping file {fpath} due to error: {e}")
+            continue
+
+    for var_name, arrays in variable_data.items():
+        full_data = np.concatenate(arrays)
+        if full_data.size == 0:
+            logger.warning(f"{var_name} is empty after filtering, skipping.")
+            continue
+
+        vmin, vmax = np.min(full_data), np.max(full_data)
+        vmean, vstd = np.mean(full_data), np.std(full_data)
+
+        logger.info(f"\n--- Stats for {var_name} ---")
+        logger.info(f"  Count: {full_data.size}")
+        logger.info(f"  Min:   {vmin:.4e}")
+        logger.info(f"  Max:   {vmax:.4e}")
+        logger.info(f"  Mean:  {vmean:.4e}")
+        logger.info(f"  Std:   {vstd:.4e}")
+
+        if var_name == "coszang":
+            epsilon = 1
+            log_data = np.log(full_data + epsilon)
+            scaler = StandardScaler()
+            norm_data = scaler.fit_transform(log_data.reshape(-1, 1)).flatten()
+            norm_label = " (Log_Transformation_Standard_Scaling)"
+            file_suffix = "_histogram_Log_Transformation_Standard_Scaling.png"
+
+        else:
+            norm_data = full_data  # no normalization
+            norm_label = ""
+            file_suffix = "_histogram.png"
+
+        fig = plt.figure(figsize=(8, 5))
+        ax = fig.add_subplot(111)
+        ax.hist(norm_data, bins=200)
+        ax.set_yscale("log")
+        ax.set_title(f"Histogram of {var_name}{norm_label}")
+        ax.set_xlabel(var_name + norm_label)
+        ax.set_ylabel("Log Count")
+        ax.grid(True)
+        out_path = os.path.join(output_dir, f"{var_name}{file_suffix}")
+        plt.savefig(out_path, bbox_inches='tight')
+        plt.close(fig)
 
 def plot_RTM(predicts, targets, filename, sample_index):
     predicts = predicts.cpu().detach().numpy()

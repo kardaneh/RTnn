@@ -90,8 +90,8 @@ EOF
 #SBATCH --gpus-per-node=1
 #SBATCH --mem-per-gpu=64G
 #SBATCH --job-name=lsm_${tag}
-#SBATCH --error=lsm_training_${tag}.err
-#SBATCH --output=lsm_training_${tag}.out
+#SBATCH --error=lsm_training_${tag}_%j.err
+#SBATCH --output=lsm_training_${tag}_%j.out
 
 module load profile/deeplrn
 module load cineca-ai

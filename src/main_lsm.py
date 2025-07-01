@@ -139,7 +139,7 @@ for f in test_sbatch_files:
     logger.info(f"  {f}")
 
 
-norm_mapping = stats(train_sbatch_files, logger, os.path.join("stats", args.main_folder, args.sub_folder))
+norm_mapping = stats([train_sbatch_files[0]], logger, os.path.join("stats", args.main_folder, args.sub_folder))
 for var_name, stats_dict in norm_mapping.items():
     logger.info(f"Variable: {var_name}")
     for stat_key, value in stats_dict.items():
@@ -185,7 +185,7 @@ test_dataset = DataPreprocessor(
 train_loader = DataLoader(
     dataset=train_dataset,
     batch_size=args.batch_size,
-    shuffle=False,
+    shuffle=True,
     num_workers=args.num_workers,
     pin_memory=True)
 
@@ -284,7 +284,7 @@ train_loss = MetricTracker()
 
 for epoch in range(args.num_epochs):
     model.train()
-
+    #train_dataset.shuffle_time_blocks()
     for meter in train_metrics.values():
         meter.reset()
 

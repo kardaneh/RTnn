@@ -233,7 +233,7 @@ def plot_flux_and_abs(
         y_true = targets[:, flux_idx, :].reshape(-1).detach().cpu().numpy()
         ax = axes[r, c]
 
-        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log')
+        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log', vmin=1, vmax=1e6)
         ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
 
         r2 = r2_score(y_true, y_pred)
@@ -247,7 +247,7 @@ def plot_flux_and_abs(
         ax = axes[2, 0]
         y_pred = abs12_predict.reshape(-1).detach().cpu().numpy()
         y_true = abs12_target.reshape(-1).detach().cpu().numpy()
-        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log')
+        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log', vmin=1, vmax=1e6)
         ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
         r2 = r2_score(y_true, y_pred)
         ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
@@ -258,7 +258,7 @@ def plot_flux_and_abs(
         ax = axes[2, 1]
         y_pred = abs34_predict.reshape(-1).detach().cpu().numpy()
         y_true = abs34_target.reshape(-1).detach().cpu().numpy()
-        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log')
+        hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log', vmin=1, vmax=1e6)
         ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
         r2 = r2_score(y_true, y_pred)
         ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)

@@ -21,7 +21,7 @@ from evaluate_helper import (
     check_accuracy_evaluate_lsm,
     MetricTracker, mse_all, mae_all, nmae_all, nmse_all
     )
-from plot_helper import plot_metric_histories, plot_loss_histories
+from plot_helper import plot_metric_histories, plot_loss_histories, stats
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the RTM model")
@@ -69,6 +69,7 @@ FileUtils.makedir(os.path.join("logs", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("results", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("runs", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("checkpoints", args.main_folder, args.sub_folder))
+FileUtils.makedir(os.path.join("stats", args.main_folder, args.sub_folder))
 
 if args.random_throw == "True":
     args.random_throw_boolean = True
@@ -137,13 +138,25 @@ logger.info(f"Found {len(test_sbatch_files)} test files:")
 for f in test_sbatch_files:
     logger.info(f"  {f}")
 
-norm_mapping = {
-        var: {
-            'mean': train_df[var].mean().item(),
-            'std': train_df[var].std().item()
-            }
-        for var in train_df.data_vars
-        }
+
+norm_mapping = stats([train_sbatch_files[0]], logger, os.path.join("stats", args.main_folder, args.sub_folder))
+for var_name, stats_dict in norm_mapping.items():
+    logger.info(f"Variable: {var_name}")
+    for stat_key, value in stats_dict.items():
+        logger.info(f"  {stat_key}: {value:.4e}")
+
+normalization_type = {
+    'coszang': 'log1p_standard',
+    'laieff_collim': 'log1p_standard',
+    'laieff_isotrop': 'log1p_standard',
+    'leaf_ssa': 'log1p_standard',
+    'leaf_psd': 'log1p_standard',
+    'rs_surface_emu': 'log1p_standard',
+    'collim_alb': 'log1p_standard',
+    'collim_tran': 'log1p_standard',
+    'isotrop_alb': 'log1p_standard',
+    'isotrop_tran': 'log1p_standard'
+    }
 
 test_dataset = DataPreprocessor(
         logger = logger,
@@ -152,7 +165,8 @@ test_dataset = DataPreprocessor(
         stime=0,
         etime=train_df.sizes['time'],
         tbatch=args.tbatch,
-        norm_mapping=norm_mapping
+        norm_mapping=norm_mapping,
+        normalization_type=normalization_type
         )
 
 test_loader = DataLoader(
@@ -205,6 +219,7 @@ valid_loss, valid_metrics = check_accuracy_evaluate_lsm(
         test_loader,
         model,
         norm_mapping,
+        normalization_type,
         index_mapping,
         device,
         args,

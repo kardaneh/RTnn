@@ -26,6 +26,8 @@ class DataPreprocessor(Dataset):
         self.tbatch = tbatch
         self.norm_mapping = norm_mapping
         self.normalization_type = normalization_type
+        self.time_blocks = np.arange((self.etime - self.stime) // self.tbatch)
+        np.random.shuffle(self.time_blocks)
 
         self.logger.info(f"Time range: {self.stime} ... {self.etime}")
         self.logger.info(f"Spatial batches: {self.sbatch}")
@@ -39,10 +41,8 @@ class DataPreprocessor(Dataset):
                 'dim_4': np.inf
                 }
         
-        #self.loaded_dfs = []
         for file in self.dfs:
             ds = xr.open_dataset(file, engine="netcdf4")
-            #self.loaded_dfs.append(ds)
             for dim in self.min_dims:
                 if dim in ds.sizes:
                     self.min_dims[dim] = min(self.min_dims[dim], ds.sizes[dim])
@@ -68,6 +68,9 @@ class DataPreprocessor(Dataset):
                 'isotrop_alb', 
                 'isotrop_tran'
                 ]
+
+    def shuffle_time_blocks(self):
+        np.random.shuffle(self.time_blocks)
 
     def normalize(self, data, var_name):
         norm_type = self.normalization_type.get(var_name, "log1p_minmax")
@@ -133,8 +136,11 @@ class DataPreprocessor(Dataset):
     def __getitem__(self, index):
         """
         """
-        tindex = (index // self.sbatch) * self.tbatch + self.stime + np.random.randint(self.tbatch)
+        #tindex = (index // self.sbatch) * self.tbatch + self.stime + np.random.randint(self.tbatch)
         sindex =  index % self.sbatch
+        tblock_index = index // self.sbatch
+        tblock = self.time_blocks[tblock_index]
+        tindex = tblock * self.tbatch + self.stime + np.random.randint(self.tbatch)
         self.df = self.df = xr.open_dataset(self.dfs[sindex], engine="netcdf4") #self.loaded_dfs[sindex]
         
         """self.logger.info(

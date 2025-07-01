@@ -91,31 +91,84 @@ def gmrae_all(pred, true):
     gmrae = torch.exp(torch.mean(log_rel_errors))
     return pred.numel(), gmrae
 
-def unnorm_mpas(pred, targ, norm, idxmap):
+def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
     """
     """
     device = pred.device
     upred = torch.zeros_like(pred, device=device)
     utarg = torch.zeros_like(targ, device=device)
 
-    for i, name in idxmap.items():
-        std = norm[name]["std"]
-        mean = norm[name]["mean"]
-        upred[:, i, :] = pred[:, i, :] * std + mean
-        utarg[:, i, :] = targ[:, i, :] * std + mean
+    for i, var_name in idxmap.items():
+        norm_type = normalization_type.get(var_name, "log1p_minmax")
+        norm = norm_mapping[var_name]
 
-    return upred, utarg
+        if norm_type == "standard":
+            mean = norm["vmean"]
+            std = norm["vstd"]
+            upred[:, i, :] = pred[:, i, :] * std + mean
+            utarg[:, i, :] = targ[:, i, :] * std + mean
 
-def unnorm_log1p(pred, targ, idxmap):
-    """
-    """
-    device = pred.device
-    upred = torch.zeros_like(pred, device=device)
-    utarg = torch.zeros_like(targ, device=device)
+        elif norm_type == "minmax":
+            vmin = norm["vmin"]
+            vmax = norm["vmax"]
+            upred[:, i, :] = pred[:, i, :] * (vmax - vmin) + vmin
+            utarg[:, i, :] = targ[:, i, :] * (vmax - vmin) + vmin
 
-    for i, name in idxmap.items():
-        upred[:, i, :] = torch.expm1(pred[:, i, :])
-        utarg[:, i, :] = torch.expm1(targ[:, i, :])
+        elif norm_type == "robust":
+            median = norm["median"]
+            iqr = norm["iqr"]
+            upred[:, i, :] = pred[:, i, :] * iqr + median
+            utarg[:, i, :] = targ[:, i, :] * iqr + median
+
+        elif norm_type == "log1p_minmax":
+            log_min = norm["log_min"]
+            log_max = norm["log_max"]
+            unnorm_pred = pred[:, i, :] * (log_max - log_min) + log_min
+            unnorm_targ = targ[:, i, :] * (log_max - log_min) + log_min
+            upred[:, i, :] = torch.expm1(unnorm_pred)
+            utarg[:, i, :] = torch.expm1(unnorm_targ)
+
+        elif norm_type == "log1p_standard":
+            mean = norm["log_mean"]
+            std = norm["log_std"]
+            unnorm_pred = pred[:, i, :] * std + mean
+            unnorm_targ = targ[:, i, :] * std + mean
+            upred[:, i, :] = torch.expm1(unnorm_pred)
+            utarg[:, i, :] = torch.expm1(unnorm_targ)
+
+        elif norm_type == "log1p_robust":
+            median = norm["log_median"]
+            iqr = norm["log_iqr"]
+            unnorm_pred = pred[:, i, :] * iqr + median
+            unnorm_targ = targ[:, i, :] * iqr + median
+            upred[:, i, :] = torch.expm1(unnorm_pred)
+            utarg[:, i, :] = torch.expm1(unnorm_targ)
+
+        elif norm_type == "sqrt_minmax":
+            sqrt_min = norm["sqrt_min"]
+            sqrt_max = norm["sqrt_max"]
+            unnorm_pred = pred[:, i, :] * (sqrt_max - sqrt_min) + sqrt_min
+            unnorm_targ = targ[:, i, :] * (sqrt_max - sqrt_min) + sqrt_min
+            upred[:, i, :] = unnorm_pred ** 2
+            utarg[:, i, :] = unnorm_targ ** 2
+
+        elif norm_type == "sqrt_standard":
+            mean = norm["sqrt_mean"]
+            std = norm["sqrt_std"]
+            unnorm_pred = pred[:, i, :] * std + mean
+            unnorm_targ = targ[:, i, :] * std + mean
+            upred[:, i, :] = unnorm_pred ** 2
+            utarg[:, i, :] = unnorm_targ ** 2
+
+        elif norm_type == "sqrt_robust":
+            median = norm["sqrt_median"]
+            iqr = norm["sqrt_iqr"]
+            unnorm_pred = pred[:, i, :] * iqr + median
+            unnorm_targ = targ[:, i, :] * iqr + median
+            upred[:, i, :] = unnorm_pred ** 2
+            utarg[:, i, :] = unnorm_targ ** 2
+        else:
+            raise ValueError(f"Unsupported normalization type '{norm_type}' for variable '{var_name}'")
 
     return upred, utarg
 
@@ -147,7 +200,7 @@ def calc_hr(up, down, p=None):
     else:
         return -dnet[:, :, 1:]
 
-def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, device, args, epoch):
+def check_accuracy_evaluate_lsm(loader, model, norm_mapping, normalization_type, index_mapping, device, args, epoch):
     model.eval()
 
     metric_suffix = args.loss_type.lower()
@@ -188,7 +241,7 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, index_mapping, devi
 
             predicts = model(feature)
 
-            predicts_unnorm, targets_unnorm = unnorm_log1p(predicts, targets, index_mapping) ###unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
+            predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, normalization_type, index_mapping)
             abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
             
             metric_values = {

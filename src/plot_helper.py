@@ -35,12 +35,13 @@ import xarray as xr
 import os
 import collections
 
-def stats(file_list, logger, output_dir):
+def stats(file_list, logger, output_dir, norm_mapping=None):
     """
     """
-
     variable_data = collections.defaultdict(list)
-    norm_vars = {"isotrop_tran", "isotrop_alb", "laieff_collim", "laieff_isotrop"}
+
+    if norm_mapping is None:
+        norm_mapping = {}
 
     logger.info("Reading and collecting variables across files...")
     for fpath in file_list:
@@ -61,32 +62,69 @@ def stats(file_list, logger, output_dir):
             logger.warning(f"{var_name} is empty after filtering, skipping.")
             continue
 
-        vmin, vmax = np.min(full_data), np.max(full_data)
-        vmean, vstd = np.mean(full_data), np.std(full_data)
+        vmin = float(np.min(full_data))
+        vmax = float(np.max(full_data))
+        vmean = float(np.mean(full_data))
+        vstd = float(np.std(full_data))
+        q1 = float(np.percentile(full_data, 25))
+        q3 = float(np.percentile(full_data, 75))
+        iqr = q3 - q1 if q3 != q1 else 1.0
+        median = float(np.median(full_data))
 
-        logger.info(f"\n--- Stats for {var_name} ---")
-        logger.info(f"  Count: {full_data.size}")
-        logger.info(f"  Min:   {vmin:.4e}")
-        logger.info(f"  Max:   {vmax:.4e}")
-        logger.info(f"  Mean:  {vmean:.4e}")
-        logger.info(f"  Std:   {vstd:.4e}")
+        log_data = np.log1p(np.clip(full_data, a_min=0, a_max=None))
+        log_min = float(log_data.min())
+        log_max = float(log_data.max())
+        log_mean = float(log_data.mean())
+        log_std = float(log_data.std())
+        log_q1 = float(np.percentile(log_data, 25))
+        log_q3 = float(np.percentile(log_data, 75))
+        log_iqr = log_q3 - log_q1 if log_q3 != log_q1 else 1.0
+        log_median = float(np.median(log_data))
 
-        if var_name == "coszang":
-            epsilon = 1
-            log_data = np.log(full_data + epsilon)
-            scaler = StandardScaler()
-            norm_data = scaler.fit_transform(log_data.reshape(-1, 1)).flatten()
-            norm_label = " (Log_Transformation_Standard_Scaling)"
-            file_suffix = "_histogram_Log_Transformation_Standard_Scaling.png"
+        sqrt_data = np.sqrt(np.clip(full_data, a_min=0, a_max=None))
+        sqrt_min = float(sqrt_data.min())
+        sqrt_max = float(sqrt_data.max())
+        sqrt_mean = float(sqrt_data.mean())
+        sqrt_std = float(sqrt_data.std())
+        sqrt_q1 = float(np.percentile(sqrt_data, 25))
+        sqrt_q3 = float(np.percentile(sqrt_data, 75))
+        sqrt_iqr = sqrt_q3 - sqrt_q1 if sqrt_q3 != sqrt_q1 else 1.0
+        sqrt_median = float(np.median(sqrt_data))
 
-        else:
-            norm_data = full_data  # no normalization
-            norm_label = ""
-            file_suffix = "_histogram.png"
+        norm_mapping[var_name] = {
+        'vmin': vmin,
+        'vmax': vmax,
+        'vmean': vmean,
+        'vstd': vstd,
+        'q1': q1,
+        'q3': q3,
+        'iqr': iqr,
+        'median': median,
+
+        'log_min': log_min,
+        'log_max': log_max,
+        'log_mean': log_mean,
+        'log_std': log_std,
+        'log_q1': log_q1,
+        'log_q3': log_q3,
+        'log_iqr': log_iqr,
+        'log_median': log_median,
+
+        'sqrt_min': sqrt_min,
+        'sqrt_max': sqrt_max,
+        'sqrt_mean': sqrt_mean,
+        'sqrt_std': sqrt_std,
+        'sqrt_q1': sqrt_q1,
+        'sqrt_q3': sqrt_q3,
+        'sqrt_iqr': sqrt_iqr,
+        'sqrt_median': sqrt_median
+        }
+        norm_label = ""
+        file_suffix = "_histogram.png"
 
         fig = plt.figure(figsize=(8, 5))
         ax = fig.add_subplot(111)
-        ax.hist(norm_data, bins=200)
+        ax.hist(full_data, bins=200)
         ax.set_yscale("log")
         ax.set_title(f"Histogram of {var_name}{norm_label}")
         ax.set_xlabel(var_name + norm_label)
@@ -95,6 +133,8 @@ def stats(file_list, logger, output_dir):
         out_path = os.path.join(output_dir, f"{var_name}{file_suffix}")
         plt.savefig(out_path, bbox_inches='tight')
         plt.close(fig)
+
+    return norm_mapping
 
 def plot_RTM(predicts, targets, filename, sample_index):
     predicts = predicts.cpu().detach().numpy()

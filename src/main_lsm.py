@@ -16,12 +16,12 @@ from data_helper_lsm import DataPreprocessor
 from model_prepare import load_model
 from model_helper import ModelUtils
 from evaluate_helper import (
-    unnorm_mpas, unnorm_log1p,
+    unnorm_mpas,
     calc_abs,
     check_accuracy_evaluate_lsm,
     MetricTracker, mse_all, mae_all, nmae_all, nmse_all
     )
-from plot_helper import plot_metric_histories, plot_loss_histories
+from plot_helper import plot_metric_histories, plot_loss_histories, stats
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the RTM model")
@@ -138,13 +138,25 @@ logger.info(f"Found {len(test_sbatch_files)} test files:")
 for f in test_sbatch_files:
     logger.info(f"  {f}")
 
-norm_mapping = {
-        var: {
-            'mean': train_df[var].mean().item(),
-            'std': train_df[var].std().item()
-            }
-        for var in train_df.data_vars
-        }
+
+norm_mapping = stats(train_sbatch_files, logger, os.path.join("stats", args.main_folder, args.sub_folder))
+for var_name, stats_dict in norm_mapping.items():
+    logger.info(f"Variable: {var_name}")
+    for stat_key, value in stats_dict.items():
+        logger.info(f"  {stat_key}: {value:.4e}")
+
+normalization_type = {
+    'coszang': 'log1p_standard',
+    'laieff_collim': 'log1p_standard',
+    'laieff_isotrop': 'log1p_standard',
+    'leaf_ssa': 'log1p_standard',
+    'leaf_psd': 'log1p_standard',
+    'rs_surface_emu': 'log1p_standard',
+    'collim_alb': 'log1p_standard',
+    'collim_tran': 'log1p_standard',
+    'isotrop_alb': 'log1p_standard',
+    'isotrop_tran': 'log1p_standard'
+    }
 
 # Create training dataset
 train_dataset = DataPreprocessor(
@@ -154,7 +166,8 @@ train_dataset = DataPreprocessor(
         stime=0, 
         etime=train_df.sizes['time'],
         tbatch=args.tbatch,
-        norm_mapping=norm_mapping
+        norm_mapping=norm_mapping,
+        normalization_type=normalization_type
         )
 
 test_dataset = DataPreprocessor(
@@ -164,7 +177,8 @@ test_dataset = DataPreprocessor(
         stime=0,
         etime=train_df.sizes['time'],
         tbatch=24,
-        norm_mapping=norm_mapping
+        norm_mapping=norm_mapping,
+        normalization_type=normalization_type
         )
 
 # Create DataLoader for training
@@ -293,7 +307,7 @@ for epoch in range(args.num_epochs):
 
         predicts = model(feature)
 
-        predicts_unnorm, targets_unnorm = unnorm_log1p(predicts, targets, index_mapping) #unnorm_mpas(predicts, targets, norm_mapping, index_mapping)
+        predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, normalization_type, index_mapping)
         abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
         
         metric_values = {
@@ -376,6 +390,7 @@ for epoch in range(args.num_epochs):
                 test_loader,
                 model,
                 norm_mapping,
+                normalization_type,
                 index_mapping,
                 device,
                 args,

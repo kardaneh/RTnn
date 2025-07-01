@@ -27,4 +27,8 @@ stream_handler.setLevel(logging.INFO)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
-stats([train_sbatch_files[0]], logger, os.path.join("stats", "."))
+norm_mapping = stats([train_sbatch_files[0]], logger, os.path.join("stats", "."))
+for var_name, stats_dict in norm_mapping.items():
+    print(f"Variable: {var_name}")
+    for stat_key, value in stats_dict.items():
+        print(f"  {stat_key}: {value:.4e}")

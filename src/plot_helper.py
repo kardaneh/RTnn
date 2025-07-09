@@ -286,10 +286,10 @@ def plot_metric_histories(train_history, valid_history, filename="training_valid
         Output image file name for the plot.
     """
     num_metrics = len(train_history)
-    cols = 2
+    cols = 3
     rows = math.ceil(num_metrics / cols)
 
-    fig = plt.figure(tight_layout=True, figsize=(10, 4 * rows))
+    fig = plt.figure(tight_layout=True, figsize=(5 * cols, 4 * rows))
     gs = gridspec.GridSpec(rows, cols)
 
     for idx, key in enumerate(train_history):
@@ -300,9 +300,9 @@ def plot_metric_histories(train_history, valid_history, filename="training_valid
         ax.plot(train_history[key], label="train", **next(linestyles))
         ax.plot(valid_history[key], label="valid", **next(linestyles))
         ax.set_yscale("log")
-        ax.set_title(key.replace('_', ' ').upper(), fontsize=10)
+        #ax.set_title(key.replace('_', ' ').upper())
         ax.set_xlabel("Epoch")
-        ax.set_ylabel("Value")
+        ax.set_ylabel(key.replace('_', ' ').upper())
         ax.legend()
         ax.grid(True)
 

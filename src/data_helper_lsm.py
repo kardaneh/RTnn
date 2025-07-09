@@ -3,6 +3,8 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 import xarray as xr
+from collections import defaultdict
+import re
 
 class DataPreprocessor(Dataset):
     """
@@ -11,21 +13,39 @@ class DataPreprocessor(Dataset):
             self, 
             logger, 
             dfs, 
-            sbatch, 
             stime, 
-            etime, 
+            tstep, 
             tbatch,
             norm_mapping={},
             normalization_type={}
             ):
         self.logger = logger
-        self.dfs = dfs
-        self.sbatch = sbatch
         self.stime = stime
-        self.etime = etime
+        self.tstep = tstep
         self.tbatch = tbatch
         self.norm_mapping = norm_mapping
         self.normalization_type = normalization_type
+
+
+        self.train_sbatch_files_by_year = defaultdict(list)
+        for f in dfs:
+            match = re.search(r'_(\d{4})\.nc$', f)
+            if match:
+                year = int(match.group(1))
+                self.train_sbatch_files_by_year[year].append(f)
+
+        first_key = list(self.train_sbatch_files_by_year.keys())[0]
+        self.sbatch = len(self.train_sbatch_files_by_year[first_key])
+        self.years = sorted(self.train_sbatch_files_by_year.keys())
+        self.year_to_index = {y: i for i, y in enumerate(self.years)}
+        self.etime = self.tstep * len(self.years)
+
+        self.dfs = [(year, sindex, path)
+                for year in self.years
+                for sindex, path in enumerate(sorted(self.train_sbatch_files_by_year[year]))
+                ]
+        
+
         self.time_blocks = np.arange((self.etime - self.stime) // self.tbatch)
         np.random.shuffle(self.time_blocks)
 
@@ -41,11 +61,12 @@ class DataPreprocessor(Dataset):
                 'dim_4': np.inf
                 }
         
-        for file in self.dfs:
-            ds = xr.open_dataset(file, engine="netcdf4")
+        for _, _, file_path in self.dfs:
+            ds = xr.open_dataset(file_path, engine="netcdf4")
             for dim in self.min_dims:
                 if dim in ds.sizes:
                     self.min_dims[dim] = min(self.min_dims[dim], ds.sizes[dim])
+            ds.close()
 
         self.cosz = [
                 'coszang'
@@ -137,20 +158,39 @@ class DataPreprocessor(Dataset):
         """
         """
         #tindex = (index // self.sbatch) * self.tbatch + self.stime + np.random.randint(self.tbatch)
-        sindex =  index % self.sbatch
+        #sindex =  index % self.sbatch
+        #tblock_index = index // self.sbatch
+        #tblock = self.time_blocks[tblock_index]
+        #tindex = tblock * self.tbatch + self.stime + np.random.randint(self.tbatch)
+        #self.df = self.df = xr.open_dataset(self.dfs[sindex], engine="netcdf4") #self.loaded_dfs[sindex]
+        
+        sindex = index % self.sbatch
         tblock_index = index // self.sbatch
         tblock = self.time_blocks[tblock_index]
-        tindex = tblock * self.tbatch + self.stime + np.random.randint(self.tbatch)
-        self.df = self.df = xr.open_dataset(self.dfs[sindex], engine="netcdf4") #self.loaded_dfs[sindex]
-        
+
+        year_index = tblock // (self.tstep // self.tbatch)
+        local_tblock = tblock % (self.tstep // self.tbatch)
+        tindex = local_tblock * self.tbatch + self.stime + np.random.randint(self.tbatch)
+
+        year = self.years[year_index]
+        dfs_index = year_index * self.sbatch + sindex
+        _, _, path = self.dfs[dfs_index]
+
+        self.df = xr.open_dataset(path, engine="netcdf4")
+
         """self.logger.info(
                 f"Torch batch index: {index}\n"
-                f"  → Time index (tindex): {tindex}\n"
+                f"  → Time block index: {tblock_index}\n"
+                f"  → Selected time block (tblock): {tblock}\n"
+                f"  → Year index: {year_index} → Year: {year}\n"
+                f"  → Local tblock: {local_tblock}\n"
+                f"  → Final time index (tindex): {tindex}\n"
                 f"  → Spatial batch index (sindex): {sindex}\n"
-                f"  → File used: {self.dfs[sindex]}\n"
+                f"  → dfs index: {dfs_index}\n"
+                f"  → File used: {path}"
                 )
-        """
 
+        """
         sequence_length_dim = self.min_dims['dim_2']
         dim_1 = self.min_dims['dim_1']
         dim_3 = self.min_dims['dim_3']

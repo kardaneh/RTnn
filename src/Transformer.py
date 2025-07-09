@@ -193,16 +193,16 @@ def testTFB():
 
 
 def testEncoder():
-    model = Encoder(feature_channel=34,
+    model = Encoder(feature_channel=6,
                     output_channel=4,
-                    embed_size=128,
-                    num_layers=6,
-                    heads=1,
-                    forward_expansion=1,
-                    seq_length=57,
+                    embed_size=64,
+                    num_layers=2,
+                    heads=4,
+                    forward_expansion=4,
+                    seq_length=10,
                     dropout=0.1)
 
-    x = torch.randn(100, 34, 57)
+    x = torch.randn(125760, 6, 10)
     import time
     time1 = time.time()
     result = model(x)

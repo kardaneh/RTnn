@@ -1,42 +1,78 @@
 import torch
+import torch.nn as nn
 import numpy as np
 import sys
 import os
 sys.path.append("..")
 from plot_helper import plot_RTM, plot_HeatRate, plot_flux_and_abs
 
-class MetricTracker(object):
-    """
-    track and compute running averages of metrics over multiple batches
-    """
+class NMSELoss(nn.Module):
+    def __init__(self, eps=1e-8):
+        super(NMSELoss, self).__init__()
+        self.eps = eps
+        self.mse = nn.MSELoss()
 
+    def forward(self, pred, target):
+        mse = self.mse(pred, target)
+        norm = torch.mean(target ** 2) + self.eps
+        return mse / norm
+
+class NMAELoss(nn.Module):
+    def __init__(self, eps=1e-8):
+        super(NMAELoss, self).__init__()
+        self.eps = eps
+        self.l1 = nn.L1Loss()
+
+    def forward(self, pred, target):
+        mae = self.l1(pred, target)
+        norm = torch.mean(torch.abs(target)) + self.eps
+        return mae / norm
+
+class CombinedMSEMAELoss(nn.Module):
+    def __init__(self, alpha=0.5):
+        super(CombinedMSEMAELoss, self).__init__()
+        self.alpha = alpha
+        self.mse = nn.MSELoss()
+        self.mae = nn.L1Loss()
+
+    def forward(self, pred, target):
+        loss_mse = self.mse(pred, target)
+        loss_mae = self.mae(pred, target)
+        combined_loss = self.alpha * loss_mse + (1.0 - self.alpha) * loss_mae
+        return combined_loss
+
+class LogCoshLoss(nn.Module):
+    def forward(self, pred, target):
+        return torch.mean(torch.log(torch.cosh(pred - target + 1e-8)))
+
+class WMSELoss(nn.Module):
+    def __init__(self, epsilon=1e-4, gamma=2):
+        super().__init__()
+        self.eps = epsilon
+        self.gamma = gamma
+
+    def forward(self, pred, target):
+        target_mean = torch.mean(target)
+        weight = torch.log1p((1 / (target + self.eps)) ** self.gamma)
+        loss = weight * (pred - target) ** 2
+        return torch.mean(loss)
+
+class MetricTracker(object):
     def __init__(self):
         self.reset()
 
     def reset(self):
-        """
-        resets the stored value and count
-        """
         self.value = 0.0
         self.count = 0
 
     def update(self, value, count):
-        """
-        Adds a new value to the running total, weighted by the number of observations 
-        """
         self.count += count
         self.value += value * count
 
     def getmean(self):
-        """ 
-        current average 
-        """
         return self.value / self.count
 
     def getsqrtmean(self):
-        """
-        square root of the current average
-        """
         return np.sqrt(self.getmean())
 
 
@@ -57,6 +93,17 @@ def mae_all(pred, true):
     Mean Absolute Error
     """
     return pred.numel(), torch.mean(torch.abs(pred - true))
+
+def r2_all(pred, true):
+    count = pred.numel()
+    mse = torch.mean((pred - true) ** 2)
+    var = torch.var(true)
+
+    if var == 0:
+        r2 = torch.tensor(1.0 if mse == 0 else 0.0, device=pred.device)
+    else:
+        r2 = 1 - mse / var
+    return count, r2
 
 def nmae_all(pred, true):
     """
@@ -204,29 +251,39 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, normalization_type,
     model.eval()
 
     metric_suffix = args.loss_type.lower()
-    assert metric_suffix in ['mse', 'mae', 'nmae', 'nmse'], \
-        "Invalid loss_type (should be one of 'mse', 'mae', 'nmae', 'nmse')"
+    assert metric_suffix in ['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber'], \
+    "Invalid loss_type (should be one of 'mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber')"
 
     if metric_suffix == "mse":
-        func = mse_all
+        func = nn.MSELoss()
     elif metric_suffix == "mae":
-        func = mae_all
+        func = nn.L1Loss()
     elif metric_suffix == "nmae":
-        func = nmae_all
+        func = NMAELoss()
     elif metric_suffix == "nmse":
-        func = nmse_all
+        func = NMSELoss()
+    elif metric_suffix == "wmse":
+        func = WMSELoss()
+    elif metric_suffix == "logcosh":
+        func = LogCoshLoss()
+    elif metric_suffix == "smoothl1":
+        if not hasattr(args, "beta_delta"):
+            raise ValueError("SmoothL1Loss requires --beta_delta")
+        func = nn.SmoothL1Loss(beta=args.beta_delta)
+    elif metric_suffix == "huber":
+        if not hasattr(args, "beta_delta"):
+            raise ValueError("HuberLoss requires --beta_delta")
+        func = nn.HuberLoss(delta=args.beta_delta)
     else:
         raise ValueError(f"Unsupported loss type: {metric_suffix}")
 
-    main_key = f"{metric_suffix}"
-    abs12_key = f"abs12_{metric_suffix}"
-    abs34_key = f"abs34_{metric_suffix}"
-
-    valid_metrics = {
-        main_key: MetricTracker(),
-        abs12_key: MetricTracker(),
-        abs34_key: MetricTracker()
-    }
+    metric_names = ["NMAE", "NMSE", "R2"]
+    metric_funcs = {"NMAE": nmae_all, "NMSE": nmse_all, "R2": r2_all}
+    output_keys = ["fluxes", "abs12", "abs34"]
+    valid_metrics = {}
+    for key in output_keys:
+        for metric in metric_names:
+            valid_metrics[f"{key}_{metric}"] = MetricTracker()
 
     valid_loss = MetricTracker()
 
@@ -244,18 +301,24 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, normalization_type,
             predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, normalization_type, index_mapping)
             abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
             
-            metric_values = {
-                    main_key: func(predicts, targets),
-                    abs12_key: func(abs12_predict, abs12_target),
-                    abs34_key: func(abs34_predict, abs34_target)
+            output_dict = {
+                    "fluxes": (predicts, targets),
+                    "abs12": (abs12_predict, abs12_target),
+                    "abs34": (abs34_predict, abs34_target)
                     }
 
-            for key, (count, value) in metric_values.items():
-                valid_metrics[key].update(value.item(), count)
+            for key in output_keys:
+                pred, tgt = output_dict[key]
+                for metric in metric_names:
+                    metric_key = f"{key}_{metric}"
+                    if metric_key not in valid_metrics:
+                        raise KeyError(f"Metric key '{metric_key}' not found in valid_metrics")
+                    count, value = metric_funcs[metric](pred, tgt)
+                    valid_metrics[metric_key].update(value.item(), count)
 
-            main_count, main_val = metric_values[main_key]
-            abs12_count, abs12_val = metric_values[abs12_key]
-            abs34_count, abs34_val = metric_values[abs34_key]
+            main_count, main_val = predicts.numel(), func(predicts, targets)
+            abs12_count, abs12_val = abs12_predict.numel(), func(abs12_predict, abs12_target)
+            abs34_count, abs34_val = abs34_predict.numel(), func(abs34_predict, abs34_target)
 
             weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (abs12_val * abs12_count + abs34_val * abs34_count)
             total_count = (1.0 - args.beta) * main_count + args.beta * (abs12_count + abs34_count)
@@ -275,6 +338,6 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, normalization_type,
                         )
 
     return valid_loss.getmean(), {
-            k: (tracker.getsqrtmean() if k.endswith('mse') else tracker.getmean())
+            k: (tracker.getsqrtmean() if k.lower().endswith('mse') else tracker.getmean())
             for k, tracker in valid_metrics.items()
             }

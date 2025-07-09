@@ -10,7 +10,7 @@ def load_model(model_name, device, feature_channel, signal_length):
         "LSTM": {"class": RNN_LSTM, "hidden_size": 96, "num_layers": 5},
         "LSTM_32_5": {"class": RNN_LSTM, "hidden_size": 32, "num_layers": 5},
         "LSTM_32_3": {"class": RNN_LSTM, "hidden_size": 32, "num_layers": 3},
-        "LSTM_96_2": {"class": RNN_LSTM, "hidden_size": 96, "num_layers": 2},
+        "LSTM_96_3": {"class": RNN_LSTM, "hidden_size": 96, "num_layers": 3},
         "LSTM_64_2": {"class": RNN_LSTM, "hidden_size": 64, "num_layers": 2},
         "GRU_64_2": {"class": RNN_GRU, "hidden_size": 64, "num_layers": 2},
         "MyTransformer": {"class": MyTransformer,
@@ -31,6 +31,24 @@ def load_model(model_name, device, feature_channel, signal_length):
             "forward_expansion": 1,
             "dropout": 0.0
         },
+        "ATT_32_1": {"class": Encoder,
+            "embed_size": 32,
+            "output_channel": 4,
+            "seq_length": signal_length,
+            "num_layers": 1,
+            "nhead": 1,
+            "forward_expansion": 2,
+            "dropout": 0.0
+            },
+        "ATT_64_3": {"class": Encoder,
+            "embed_size": 64,
+            "output_channel": 4,
+            "seq_length": signal_length,
+            "num_layers": 3,
+            "nhead": 4,
+            "forward_expansion": 4,
+            "dropout": 0.0
+            },
         "FC": {
             "class": FullyConnectedNet,
             "hidden_dim": 128,
@@ -56,7 +74,7 @@ def load_model(model_name, device, feature_channel, signal_length):
                 forward_expansion=config["forward_expansion"],
                 dropout=config["dropout"]
                 )
-    if model_name == "ATT":
+    if model_name.startswith("ATT"):
         model = config["class"](
                 feature_channel=feature_channel,
                 output_channel=config["output_channel"],

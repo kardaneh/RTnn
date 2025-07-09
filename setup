@@ -1,25 +1,27 @@
 #!/bin/bash
 
 # Define test configurations
-declare -a models=("LSTM_64_2")
-declare -a loss_types=("nmse")
+declare -a models=("ATT_64_3")
+declare -a loss_types=("huber")
 declare -a batch_sizes=(16)
 declare -a tbatches=(1)
 
 # Shared config
 model="Prod"
 norm="log1p_standard"
-num_workers=4
-num_epochs=150
+num_workers=16
+num_epochs=100
 learning_rate=0.001
 beta=0.001
+beta_delta=1.0
 train_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/"
 test_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1990-2000/"
-train_year="1998"
+train_year="1994-1998"
 test_year="1999"
 
 lr_str=${learning_rate//./d}
 beta_str=${beta//./d}
+bd_str=${beta_delta//./d}
 
 # Loop over all combinations
 for model_name in "${models[@]}"; do
@@ -29,11 +31,16 @@ for model_name in "${models[@]}"; do
 
         DATE=$(date +"%Y%m%d")
         TODAY=$(date +"%Y%m%d_%H%M%S")
-        tag="${model_name}_Norm_${norm}_Loss_${loss_type}_Sblock_${batch_size}_Tblock_${time_batch}_Nworkers_${num_workers}_Nepochs_${num_epochs}_Lrate_${lr_str}_beta_${beta_str}"
+        if [[ "$loss_type" == "huber" || "$loss_type" == "smoothl1" ]]; then
+          bd_tag="_BetaDelta_${bd_str}"
+        else
+          bd_tag=""
+        fi
+        tag="${model_name}_nrm_${norm}_l_${loss_type}${bd_tag}_sb_${batch_size}_tb_${time_batch}_nw_${num_workers}_ne_${num_epochs}_lr_${lr_str}_beta_${beta_str}"
         run_script="run_script_lsm_${tag}.sh"
         sbatch_script="sbatch_script_${tag}.sh"
-        main_folder="${model}__${model_name}_Sblock_${batch_size}_Tblock_${time_batch}_Nworkers_${num_workers}_Nepochs_${num_epochs}"
-        sub_folder="Norm_${norm}_Lrate_${lr_str}_beta_${beta_str}_Loss_${loss_type}_date_${TODAY}"
+        main_folder="${model}__${model_name}_sb_${batch_size}_tb_${time_batch}_nw_${num_workers}_ne_${num_epochs}"
+        sub_folder="nrm_${norm}_lr_${lr_str}_beta_${beta_str}_l_${loss_type}${bd_tag}_date_${TODAY}"
         prefix="$sub_folder"
 
         # Write run script
@@ -53,6 +60,7 @@ python src/main_lsm.py \\
     --prefix "$prefix" \\
     --dataset_type "LSM" \\
     --loss_type "$loss_type" \\
+    --beta_delta "$beta_delta" \\
     --learning_rate "$learning_rate" \\
     --beta "$beta" \\
     --batch_size "$batch_size" \\
@@ -79,7 +87,7 @@ EOF
           echo "#SBATCH --qos=boost_qos_dbg" >> $sbatch_script
           time_limit="00:30:00"
         else
-          time_limit="04:00:00"
+          time_limit="14:00:00"
         fi
 
         # Append the rest of the SLURM script
@@ -87,7 +95,7 @@ EOF
 #SBATCH --time=${time_limit}
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=32
-#SBATCH --gpus-per-node=1
+#SBATCH --gpus-per-node=2
 #SBATCH --mem-per-gpu=64G
 #SBATCH --job-name=lsm_${tag}
 #SBATCH --error=lsm_training_${tag}_%j.err

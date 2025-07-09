@@ -19,16 +19,26 @@ from evaluate_helper import (
     unnorm_mpas,
     calc_abs,
     check_accuracy_evaluate_lsm,
-    MetricTracker, mse_all, mae_all, nmae_all, nmse_all
+    MetricTracker, NMSELoss, NMAELoss, LogCoshLoss, WMSELoss,
+    mse_all, mae_all, r2_all, nmae_all, nmse_all
     )
 from plot_helper import plot_metric_histories, plot_loss_histories, stats
+
+def parse_years(year_str):
+    if '-' in year_str:
+        start, end = map(int, year_str.split('-'))
+        return list(range(start, end + 1))
+    return list(map(int, year_str.split(',')))
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the RTM model")
     parser.add_argument("--root_dir", type=str, default="", help="Root directory")
     parser.add_argument("--train_data_files", type=str, default="", help="Path to training dataset")
     parser.add_argument("--test_data_files", type=str, default="", help="Path to training dataset")
-    parser.add_argument("--train_year", type=str, default="1998", help="Year for training data")
+    parser.add_argument(
+            "--train_years", type=str, default="1998", 
+            help="Comma-separated list or range of years for training data (e.g., '1998,1999,2000' or '1998-2000')"
+            )
     parser.add_argument("--test_year", type=str, default="2000", help="Year for testing data")
     parser.add_argument("--main_folder", type=str, default="temp", help="Main folder name")
     parser.add_argument("--sub_folder", type=str, default="temp", help="Sub-folder name")
@@ -38,8 +48,13 @@ def parse_args():
     '--loss_type',
     type=str,
     default='mse',
-    choices=['mse', 'mae', 'nmae', 'nmse'],
-    help='Loss type to use for flux weighting (mse, mae, nmae, or nmse)')
+    choices=['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber'],
+    help='Loss type to use for flux weighting (mse, mae, nmae, nmse, wmse, logcosh, smoothl1, huber)')
+    parser.add_argument(
+    '--beta_delta',
+    type=float,
+    default=1.0,
+    help='Beta or Delta value for SmoothL1Loss or Huber loss (only used if loss_type is smoothl1 or huber)')
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--beta", type=float, default=0.05, help="Weighting factor between RMSE and abs loss terms")
     parser.add_argument("--batch_size", type=int, default=200, help="Batch size")
@@ -59,7 +74,13 @@ def parse_args():
 
 
 args = parse_args()
-train_sbatch_files = np.sort(glob.glob(args.train_data_files + f"rtnetcdf_*_{args.train_year}.nc"))[::]
+train_years = parse_years(args.train_years)
+#train_sbatch_files = np.sort(glob.glob(args.train_data_files + f"rtnetcdf_*_{args.train_year}.nc"))[::]
+train_sbatch_files = sorted(
+        file
+        for year in train_years
+        for file in glob.glob(f"{args.train_data_files}/rtnetcdf_*_{year}.nc")
+        )
 test_sbatch_files = np.sort(glob.glob(args.test_data_files + f"rtnetcdf_*_{args.test_year}.nc"))[::]
 train_df = xr.open_dataset(train_sbatch_files[0], engine="netcdf4")
 
@@ -162,9 +183,8 @@ normalization_type = {
 train_dataset = DataPreprocessor(
         logger = logger,
         dfs = train_sbatch_files,
-        sbatch=len(train_sbatch_files),
         stime=0, 
-        etime=train_df.sizes['time'],
+        tstep=train_df.sizes['time'],
         tbatch=args.tbatch,
         norm_mapping=norm_mapping,
         normalization_type=normalization_type
@@ -173,9 +193,8 @@ train_dataset = DataPreprocessor(
 test_dataset = DataPreprocessor(
         logger = logger,
         dfs = test_sbatch_files,
-        sbatch=len(test_sbatch_files),
         stime=0,
-        etime=train_df.sizes['time'],
+        tstep=train_df.sizes['time'],
         tbatch=24,
         norm_mapping=norm_mapping,
         normalization_type=normalization_type
@@ -215,11 +234,43 @@ model = model.to(device)
 # ---------------------------------------------
 # Loss Functions & Optimizer Setup
 # ---------------------------------------------
-criterion_mse = nn.MSELoss()
-criterion_mae = nn.L1Loss()
+metric_suffix = args.loss_type.lower()
+assert metric_suffix in ['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber'], \
+    "Invalid loss_type (should be one of 'mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber')"
+
+if metric_suffix == "mse":
+    func = nn.MSELoss()
+elif metric_suffix == "mae":
+    func = nn.L1Loss()
+elif metric_suffix == "nmae":
+    func = NMAELoss()
+elif metric_suffix == "nmse":
+    func = NMSELoss()
+elif metric_suffix == "wmse":
+    func = WMSELoss()
+elif metric_suffix == "logcosh":
+    func = LogCoshLoss()
+elif metric_suffix == "smoothl1":
+    if not hasattr(args, "beta_delta"):
+        raise ValueError("SmoothL1Loss requires --beta_delta")
+    func = nn.SmoothL1Loss(beta=args.beta_delta)
+elif metric_suffix == "huber":
+    if not hasattr(args, "beta_delta"):
+        raise ValueError("HuberLoss requires --beta_delta")
+    func = nn.HuberLoss(delta=args.beta_delta)
+else:
+    raise ValueError(f"Unsupported loss type: {metric_suffix}")
+
+
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=5, verbose=True)
-
+metric_names = ["NMAE", "NMSE", "R2"]
+metric_funcs = {"NMAE": nmae_all, "NMSE": nmse_all, "R2": r2_all}
+output_keys = ["fluxes", "abs12", "abs34"]
+train_metrics = {}
+for key in output_keys:
+    for metric in metric_names:
+        train_metrics[f"{key}_{metric}"] = MetricTracker()
 # ---------------------------------------------
 # Load Checkpoint (if specified)
 # ---------------------------------------------
@@ -249,31 +300,6 @@ if torch.cuda.device_count() > 1:
 # ---------------------------------------------
 logger.info("Start training...")
 
-metric_suffix = args.loss_type.lower()
-assert metric_suffix in ['mse', 'mae', 'nmae', 'nmse'], \
-    "Invalid loss_type (should be one of 'mse', 'mae', 'nmae', 'nmse')"
-
-if metric_suffix == "mse":
-    func = mse_all
-elif metric_suffix == "mae":
-    func = mae_all
-elif metric_suffix == "nmae":
-    func = nmae_all
-elif metric_suffix == "nmse":
-    func = nmse_all
-else:
-    raise ValueError(f"Unsupported loss type: {metric_suffix}")
-
-main_key = f"{metric_suffix}"
-abs12_key = f"abs12_{metric_suffix}"
-abs34_key = f"abs34_{metric_suffix}"
-
-train_metrics = {
-    main_key: MetricTracker(),
-    abs12_key: MetricTracker(),
-    abs34_key: MetricTracker()
-    }
-
 train_metrics_history = {key: [] for key in train_metrics}
 valid_metrics_history = {key: [] for key in train_metrics}
 
@@ -284,7 +310,6 @@ train_loss = MetricTracker()
 
 for epoch in range(args.num_epochs):
     model.train()
-    #train_dataset.shuffle_time_blocks()
     for meter in train_metrics.values():
         meter.reset()
 
@@ -310,32 +335,36 @@ for epoch in range(args.num_epochs):
         predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, normalization_type, index_mapping)
         abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
         
-        metric_values = {
-                main_key: func(predicts, targets),
-                abs12_key: func(abs12_predict, abs12_target),
-                abs34_key: func(abs34_predict, abs34_target)
+        output_dict = {
+                "fluxes": (predicts, targets),
+                "abs12": (abs12_predict, abs12_target),
+                "abs34": (abs34_predict, abs34_target)
                 }
+        for key in output_keys:
+            pred, tgt = output_dict[key]
+            for metric in metric_names:
+                metric_key = f"{key}_{metric}"
+                if metric_key not in train_metrics:
+                    raise KeyError(f"Metric key '{metric_key}' not found in train_metrics")
+                count, value = metric_funcs[metric](pred, tgt)
+                train_metrics[metric_key].update(value.item(), count)
 
-        main_count, main_val = metric_values[main_key]
-        abs12_count, abs12_val = metric_values[abs12_key]
-        abs34_count, abs34_val = metric_values[abs34_key]
+
+        main_count, main_val = predicts.numel(), func(predicts, targets)
+        abs12_count, abs12_val = abs12_predict.numel(), func(abs12_predict, abs12_target)
+        abs34_count, abs34_val = abs34_predict.numel(), func(abs34_predict, abs34_target)
 
         weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (abs12_val * abs12_count + abs34_val * abs34_count)
         total_count = (1.0 - args.beta) * main_count + args.beta * (abs12_count + abs34_count)
         total_loss = weighted_loss / total_count
-
         loop.set_postfix(loss=total_loss.item())
-        
-        for key, (count, value) in metric_values.items():
-            train_metrics[key].update(value.item(), count)
-
         train_loss.update(total_loss.item(),  1)
 
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
 
-        writer.add_scalar(f"train_{main_key}", metric_values[main_key][1].item(), global_step=step)
+        writer.add_scalar("train/total_loss", total_loss.item(), global_step=step)
         step = step + args.batch_size
 
 
@@ -381,8 +410,6 @@ for epoch in range(args.num_epochs):
 
                 save_counter = 0
     logger.info(f"elapse time:{time.time() - previous_time}")
-    #for key, tracker in train_metrics.items():
-    #    logger.info(f"{key} -> count: {tracker.count}, value: {tracker.value}")
     train_loss_history[epoch] = train_loss.getmean()
     if epoch % 1 == 0:
 
@@ -399,7 +426,7 @@ for epoch in range(args.num_epochs):
         valid_loss_history[epoch] = valid_loss
         logger.info(f"train_loss: {train_loss_history[epoch]:.3e} | valid_loss: {valid_loss_history[epoch]:.3e}")
         for key, meter in train_metrics.items():
-            train_value = meter.getsqrtmean() if key.endswith('mse') else meter.getmean()
+            train_value = meter.getsqrtmean() if key.lower().endswith('mse') else meter.getmean()
             train_metrics_history[key].append(train_value)
 
             assert key in valid_metrics, f"Missing key '{key}' in valid_metrics"
@@ -410,7 +437,7 @@ for epoch in range(args.num_epochs):
             logger.info(f"train_{key}: {train_value:.3e} | valid_{key}: {valid_value:.3e}")
 
         logger.info("")
-        schedule_losses.append(valid_metrics[main_key])
+        schedule_losses.append(valid_metrics["fluxes_NMAE"])
         mean_loss = sum(schedule_losses) / len(schedule_losses)
         scheduler.step(mean_loss)
 

@@ -18,7 +18,7 @@ from model_helper import ModelUtils
 from evaluate_helper import (
     unnorm_mpas,
     calc_abs,
-    check_accuracy_evaluate_lsm,
+    check_accuracy_evaluate_lsm, get_loss_function,
     MetricTracker, NMSELoss, NMAELoss, LogCoshLoss, WMSELoss,
     mse_all, mae_all, r2_all, nmae_all, nmse_all
     )
@@ -66,6 +66,7 @@ def parse_args():
     parser.add_argument("--save_checkpoint_name",type=str,default="test.pth.tar",help="Checkpoint file name")
     parser.add_argument("--save_per_samples",type=int,default=10000,help="Frequency of saving checkpoints")
     parser.add_argument("--load_model",choices=("True", "False"),default="False",help="Load a pre-trained model")
+    parser.add_argument("--inference",choices=("True", "False"),default="False", help="Run in inference-only mode (skip training)")
     parser.add_argument("--load_checkpoint_name",type=str,default="test.pth.tar",help="Checkpoint file to load")
     parser.add_argument("--random_throw",choices=("True", "False"),default="False",help="Random throw option")
     parser.add_argument("--only_layer",choices=("True", "False"),default="False",help="Use only a specific layer")
@@ -190,12 +191,13 @@ train_dataset = DataPreprocessor(
         normalization_type=normalization_type
         )
 
+test_tbatch = 1 if args.inference == "True" else 24
 test_dataset = DataPreprocessor(
         logger = logger,
         dfs = test_sbatch_files,
         stime=0,
         tstep=train_df.sizes['time'],
-        tbatch=24,
+        tbatch=test_tbatch,
         norm_mapping=norm_mapping,
         normalization_type=normalization_type
         )
@@ -225,52 +227,26 @@ logger.info(f"Train size: {len(train_dataset)}, Test size: {len(test_dataset)}")
 # Model Initialization
 # ---------------------------------------------
 model = load_model(model_name=args.model_name, device=device, feature_channel=6, signal_length=10)
-
 model_info = ModelUtils.get_parameter_number(model)
 logger.info(f"Model Info: {model_info}")
-
 model = model.to(device)
 
 # ---------------------------------------------
 # Loss Functions & Optimizer Setup
 # ---------------------------------------------
-metric_suffix = args.loss_type.lower()
-assert metric_suffix in ['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber'], \
-    "Invalid loss_type (should be one of 'mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber')"
+valid_loss_types = ['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber']
+loss_type = args.loss_type.lower()
+assert loss_type in valid_loss_types, f"Invalid loss_type (should be one of {valid_loss_types})"
 
-if metric_suffix == "mse":
-    func = nn.MSELoss()
-elif metric_suffix == "mae":
-    func = nn.L1Loss()
-elif metric_suffix == "nmae":
-    func = NMAELoss()
-elif metric_suffix == "nmse":
-    func = NMSELoss()
-elif metric_suffix == "wmse":
-    func = WMSELoss()
-elif metric_suffix == "logcosh":
-    func = LogCoshLoss()
-elif metric_suffix == "smoothl1":
-    if not hasattr(args, "beta_delta"):
-        raise ValueError("SmoothL1Loss requires --beta_delta")
-    func = nn.SmoothL1Loss(beta=args.beta_delta)
-elif metric_suffix == "huber":
-    if not hasattr(args, "beta_delta"):
-        raise ValueError("HuberLoss requires --beta_delta")
-    func = nn.HuberLoss(delta=args.beta_delta)
-else:
-    raise ValueError(f"Unsupported loss type: {metric_suffix}")
-
-
+func = get_loss_function(loss_type, args)
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=5, verbose=True)
+
 metric_names = ["NMAE", "NMSE", "R2"]
 metric_funcs = {"NMAE": nmae_all, "NMSE": nmse_all, "R2": r2_all}
 output_keys = ["fluxes", "abs12", "abs34"]
-train_metrics = {}
-for key in output_keys:
-    for metric in metric_names:
-        train_metrics[f"{key}_{metric}"] = MetricTracker()
+train_metrics = {f"{k}_{m}": MetricTracker() for k in output_keys for m in metric_names}
+
 # ---------------------------------------------
 # Load Checkpoint (if specified)
 # ---------------------------------------------
@@ -290,10 +266,30 @@ if args.save_model == "True":
 # ---------------------------------------------
 if torch.cuda.is_available():
     model.cuda()
+    if torch.cuda.device_count() > 1:
+        logger.info(f"Using {torch.cuda.device_count()} GPUs!")
+        model = nn.DataParallel(model)
 
-if torch.cuda.device_count() > 1:
-    logger.info(f"Using {torch.cuda.device_count()} GPUs!")
-    model = nn.DataParallel(model)
+# ---------------------------------------------
+# Evaluation Only Mode
+# ---------------------------------------------
+if args.inference == "True":
+    if not args.load_model == "True":
+        raise ValueError("In inference mode, --load_model must be set to 'True' to load the model for evaluation.")
+    logger.info("Inference mode enabled. Skipping training...")
+    valid_loss, valid_metrics = check_accuracy_evaluate_lsm(
+        test_loader,
+        model,
+        norm_mapping,
+        normalization_type,
+        index_mapping,
+        device,
+        args,
+        args.num_epochs - 1)
+    logger.info(f"Inference valid_loss: {valid_loss:.3e}")
+    for key, val in valid_metrics.items():
+        logger.info(f"Inference {key}: {val:.3e}")
+    exit(0)
 
 # ---------------------------------------------
 # Output Index Mapping & Training Start
@@ -302,19 +298,15 @@ logger.info("Start training...")
 
 train_metrics_history = {key: [] for key in train_metrics}
 valid_metrics_history = {key: [] for key in train_metrics}
-
 train_loss_history = [0] * args.num_epochs
 valid_loss_history = [0] * args.num_epochs
-
 train_loss = MetricTracker()
 
 for epoch in range(args.num_epochs):
     model.train()
     for meter in train_metrics.values():
         meter.reset()
-
     train_loss.reset()
-
     schedule_losses = []
     previous_time = time.time()
 
@@ -365,7 +357,7 @@ for epoch in range(args.num_epochs):
         optimizer.step()
 
         writer.add_scalar("train/total_loss", total_loss.item(), global_step=step)
-        step = step + args.batch_size
+        step += args.batch_size
 
 
         if args.save_model == "True":
@@ -409,7 +401,7 @@ for epoch in range(args.num_epochs):
                     torch.save(model, filename_full)
 
                 save_counter = 0
-    logger.info(f"elapse time:{time.time() - previous_time}")
+    logger.info(f"Epoch {epoch} elapsed time: {time.time() - previous_time:.2f}s")
     train_loss_history[epoch] = train_loss.getmean()
     if epoch % 1 == 0:
 

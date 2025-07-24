@@ -2,7 +2,7 @@ from ConvLSTM1D import RNN_LSTM, RNN_GRU
 from my_transformer_encoder import MyTransformer
 from Transformer import Encoder
 from FullyConnectedNet import FullyConnectedNet
-
+from UNet1D import UNET
 def load_model(model_name, device, feature_channel, signal_length):
     """
     """
@@ -40,21 +40,36 @@ def load_model(model_name, device, feature_channel, signal_length):
             "forward_expansion": 2,
             "dropout": 0.0
             },
-        "ATT_64_3": {"class": Encoder,
+        "ATT_64_2": {"class": Encoder,
             "embed_size": 64,
             "output_channel": 4,
             "seq_length": signal_length,
-            "num_layers": 3,
-            "nhead": 4,
-            "forward_expansion": 4,
-            "dropout": 0.0
+            "num_layers": 2,
+            "nhead": 1,
+            "forward_expansion": 1,
+            "dropout": 0.3
             },
-        "FC": {
+        "FC_196_3": {
             "class": FullyConnectedNet,
-            "hidden_dim": 128,
+            "hidden_dim": 196,
             "num_hidden_layers": 3,
             "output_channel": 4,
             "dim_expand": 0
+        },
+        "UNET_24_48_96": {
+            "class": UNET,
+            "features": [24, 48, 96],
+            "output_channel": 4
+        },
+        "UNET_32_64_128": {
+            "class": UNET,
+            "features": [32, 64, 128],
+            "output_channel": 4
+        },
+        "UNET_4_8_16": {
+            "class": UNET,
+            "features": [4, 8, 16],
+            "output_channel": 4
         }
 
     }
@@ -92,7 +107,7 @@ def load_model(model_name, device, feature_channel, signal_length):
                 hidden_size=config["hidden_size"],
                 num_layers=config["num_layers"]
                 )
-    if model_name == "FC":
+    if model_name.startswith("FC"):
         model = config["class"](
             in_channels=feature_channel,
             out_channels=config["output_channel"],
@@ -100,5 +115,11 @@ def load_model(model_name, device, feature_channel, signal_length):
             hidden_dim=config["hidden_dim"],
             signal_length=signal_length,
             dim_expand=config["dim_expand"]
+        )
+    if model_name.startswith("UNET"):
+        model = config["class"](
+            feature_channel=feature_channel,
+            output_channel=config["output_channel"],
+            features=config["features"]
         )
     return model

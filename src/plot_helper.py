@@ -6,7 +6,9 @@ import math
 from matplotlib import rcParams as mpl
 from sklearn.metrics import r2_score
 from scipy.stats import iqr
-from sklearn.preprocessing import StandardScaler
+import matplotlib.ticker as ticker
+import random
+from matplotlib.colors import LogNorm
 
 params = {
     'font.family': 'DejaVu Sans',
@@ -136,59 +138,260 @@ def stats(file_list, logger, output_dir, norm_mapping=None):
 
     return norm_mapping
 
-def plot_RTM(predicts, targets, filename, sample_index):
+def plot_RTM(predicts, targets, filename):
     predicts = predicts.cpu().detach().numpy()
     targets = targets.cpu().detach().numpy()
+    num_samples = predicts.shape[0]
+    sample_indices = random.sample(range(num_samples), 7)
 
-    fig = plt.figure(tight_layout=True, figsize=(10, 8))
+    fig = plt.figure(tight_layout=True, figsize=(12, 12))
+    plt.subplots_adjust(hspace=0.2, wspace=0.2, left=0.1, right=0.9, top=0.9, bottom=0.1)
     gs = gridspec.GridSpec(2, 2)
 
     name_dict = {
-        (0, 0): {"name": "Flux1", "plotname": r"$\mathrm{Flux_1}$"},
-        (0, 1): {"name": "Flux2", "plotname": r"$\mathrm{Flux_2}$"},
-        (1, 0): {"name": "Flux3", "plotname": r"$\mathrm{Flux_3}$"},
-        (1, 1): {"name": "Flux4", "plotname": r"$\mathrm{Flux_4}$"}
+        (0, 0): {"plotname": r"$\mathrm{Flux_1}$"},
+        (0, 1): {"plotname": r"$\mathrm{Flux_2}$"},
+        (1, 0): {"plotname": r"$\mathrm{Flux_3}$"},
+        (1, 1): {"plotname": r"$\mathrm{Flux_4}$"}
     }
 
     index_map = [(0, 0), (0, 1), (1, 0), (1, 1)]
+    legend_lines = []
+    legend_labels = []
 
     for idx, (i, j) in enumerate(index_map):
         ax = fig.add_subplot(gs[i, j])
-        linestyles = mpltex.linestyle_generator(markers=[])
-        ax.plot(predicts[sample_index, idx, :], label="predict", **next(linestyles))
-        ax.plot(targets[sample_index, idx, :], label="true", **next(linestyles))
-        ax.set_title(name_dict[(i, j)]["plotname"], fontsize=10)
-        ax.set_xticks(np.arange(0, 56, 25))
-        ax.set_ylabel(r"$\mathrm{Flux\ RMSE\ [W\ m^{-2}]}$")
-        ax.legend()
+        linestyles = mpltex.linestyle_generator()
+        for sample_index in sample_indices:
+            pred_line, = ax.plot(
+                    predicts[sample_index, idx, :],
+                    label=f"Predict",
+                    **next(linestyles)
+                    )
+            true_line, = ax.plot(
+                    targets[sample_index, idx, :],
+                    label=f"True",
+                    **next(linestyles)
+                    )
+            if idx == 0:
+                legend_lines.extend([pred_line, true_line])
+                legend_labels.extend([pred_line.get_label(), true_line.get_label()])
 
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(3))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
+        ax.set_ylabel(name_dict[(i, j)]["plotname"])
+        ax.set_xlabel(r"$\mathrm{Level}$")
+        ax.set_ylim(0, 1)
+        ax.set_xlim(0, predicts.shape[-1] - 1)
+        fig.legend(
+                handles=legend_lines,
+                labels=legend_labels,
+                loc='center right',
+                bbox_to_anchor=(1.2, 0.5),
+                borderaxespad=0.5,
+                frameon=False,
+                ncol=1
+                )
     plt.savefig(filename, bbox_inches='tight')
     plt.close(fig)
 
-def plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, filename, sample_index):
+def plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, filename):
     abs12_predict = abs12_predict.cpu().detach().numpy()
     abs12_target = abs12_target.cpu().detach().numpy()
     abs34_predict = abs34_predict.cpu().detach().numpy()
     abs34_target = abs34_target.cpu().detach().numpy()
 
-    fig = plt.figure(tight_layout=True, figsize=(5, 10))
-    gs = gridspec.GridSpec(2, 1)
+    num_samples = abs12_predict.shape[0]
+    sample_indices = random.sample(range(num_samples), 7)
 
-    linestyles = mpltex.linestyle_generator(markers=[])
-    ax = fig.add_subplot(gs[0, 0])
-    ax.plot(abs12_predict[sample_index, 0, :], label="predict", **next(linestyles))
-    ax.plot(abs12_target[sample_index, 0, :], label="true", **next(linestyles))
-    ax.set_title(r"$\mathrm{SW\ Heat\ Rate}$")
-    ax.set_ylabel(r"$\mathrm{Heat\ Rate\ [K\ d^{-1}]}$")
-    ax.legend()
+    fig = plt.figure(tight_layout=False, figsize=(6, 12))
+    plt.subplots_adjust(hspace=0.2, wspace=0.2, left=0.1, right=0.9, top=0.9, bottom=0.1)
+    gs = gridspec.GridSpec(2, 1, figure=fig)
 
-    ax = fig.add_subplot(gs[1, 0])
+    legend_lines = []
+    legend_labels = []
+
+    ax1 = fig.add_subplot(gs[0, 0])
     linestyles = mpltex.linestyle_generator()
-    ax.plot(abs34_predict[sample_index, 0, :], label="predict", **next(linestyles))
-    ax.plot(abs34_target[sample_index, 0, :], label="true", **next(linestyles))
-    ax.set_title(r"$\mathrm{LW\ Heat\ Rate}$")
-    ax.set_ylabel(r"$\mathrm{Heat\ Rate\ [K\ d^{-1}]}$")
-    ax.legend()
+
+    for sample_index in sample_indices:
+        pred_line, = ax1.plot(
+            abs12_predict[sample_index, 0, :],
+            label="Predict",
+            **next(linestyles)
+        )
+        true_line, = ax1.plot(
+            abs12_target[sample_index, 0, :],
+            label="True",
+            **next(linestyles)
+        )
+
+        legend_lines.extend([pred_line, true_line])
+        legend_labels.extend([pred_line.get_label(), true_line.get_label()])
+
+    ax1.set_ylabel(r"$\mathrm{Absorption_{12}}$")
+    ax1.xaxis.set_major_locator(ticker.MultipleLocator(3))
+    ax1.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
+    ax1.set_xlim(0, abs12_predict.shape[-1] - 1)
+    ax1.set_ylim(0, 1)
+
+    ax2 = fig.add_subplot(gs[1, 0])
+    linestyles = mpltex.linestyle_generator()
+
+    for sample_index in sample_indices:
+        ax2.plot(
+            abs34_predict[sample_index, 0, :],
+            label="Predict",
+            **next(linestyles)
+        )
+        ax2.plot(
+            abs34_target[sample_index, 0, :],
+            label="True",
+            **next(linestyles)
+        )
+
+    ax2.set_ylabel(r"$\mathrm{Absorption_{34}}$")
+    ax2.set_xlabel(r"$\mathrm{Level}$")
+    ax2.xaxis.set_major_locator(ticker.MultipleLocator(3))
+    ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
+    ax2.set_xlim(0, abs34_predict.shape[-1] - 1)
+    ax2.set_ylim(0, 1)
+
+    fig.legend(
+        handles=legend_lines,
+        labels=legend_labels,
+        loc='center right',
+        bbox_to_anchor=(1.3, 0.5),
+        borderaxespad=0.5,
+        frameon=False,
+        ncol=1
+    )
+
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close(fig)
+
+def plot_flux_and_abs_lines(
+        predicts,
+        targets,
+        abs12_predict=None,
+        abs12_target=None,
+        abs34_predict=None,
+        abs34_target=None,
+        filename="output_lines.png"
+        ):
+    
+    predicts = predicts.cpu().detach().numpy()
+    targets = targets.cpu().detach().numpy()
+    include_abs12 = abs12_predict is not None and abs12_target is not None
+    include_abs34 = abs34_predict is not None and abs34_target is not None
+    include_abs = include_abs12 and include_abs34
+
+    if include_abs:
+        fig, axes = plt.subplots(3, 2, figsize=(10, 15))
+    else:
+        fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+
+    plt.subplots_adjust(hspace=0.3, wspace=0.3, left=0.1, right=0.9, top=0.9, bottom=0.1)
+
+    num_samples = predicts.shape[0]
+    sample_indices = random.sample(range(num_samples), 7)
+
+    index_map = {
+        (0, 0): 0,
+        (0, 1): 1,
+        (1, 0): 2,
+        (1, 1): 3
+    }
+
+    name_dict = {
+        (0, 0): {"plotname": r"$\mathrm{Flux_{1u}}$"},
+        (0, 1): {"plotname": r"$\mathrm{Flux_{1d}}$"},
+        (1, 0): {"plotname": r"$\mathrm{Flux_{2u}}$"},
+        (1, 1): {"plotname": r"$\mathrm{Flux_{2d}}$"}
+    }
+
+    legend_lines = []
+    legend_labels = []
+
+    for (r, c), props in name_dict.items():
+        flux_idx = index_map[(r, c)]
+        ax = axes[r, c]
+        linestyles = mpltex.linestyle_generator()
+
+        for sample_index in sample_indices:
+            pred_line, = ax.plot(
+                predicts[sample_index, flux_idx, :],
+                label="Predict",
+                **next(linestyles)
+            )
+            true_line, = ax.plot(
+                targets[sample_index, flux_idx, :],
+                label="True",
+                **next(linestyles)
+            )
+            if (r, c) == (0, 0):
+                legend_lines.extend([pred_line, true_line])
+                legend_labels.extend([pred_line.get_label(), true_line.get_label()])
+
+        ax.set_xlabel(r"$\mathrm{Level}$")
+        ax.set_ylabel(props["plotname"])
+        ax.set_xlim(0, predicts.shape[-1] - 1)
+        ax.set_ylim(0, 1)
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(3))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
+
+    if include_abs:
+        ax = axes[2, 0]
+        linestyles = mpltex.linestyle_generator()
+        for sample_index in sample_indices:
+            pred_line, = ax.plot(
+                abs12_predict[sample_index, 0, :].cpu().detach().numpy(),
+                label="Predict)",
+                **next(linestyles)
+            )
+            true_line, = ax.plot(
+                abs12_target[sample_index, 0, :].cpu().detach().numpy(),
+                label="True",
+                **next(linestyles)
+            )
+
+        ax.set_ylabel(r"$\mathrm{Absorption_{1}}$")
+        ax.set_xlabel(r"$\mathrm{Level}$")
+        ax.set_xlim(0, abs12_predict.shape[-1] - 1)
+        ax.set_ylim(0, 1)
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(3))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
+
+        ax = axes[2, 1]
+        linestyles = mpltex.linestyle_generator()
+        for sample_index in sample_indices:
+            pred_line, = ax.plot(
+                abs34_predict[sample_index, 0, :].cpu().detach().numpy(),
+                label="Predict",
+                **next(linestyles)
+            )
+            true_line, = ax.plot(
+                abs34_target[sample_index, 0, :].cpu().detach().numpy(),
+                label="True",
+                **next(linestyles)
+            )
+
+        ax.set_ylabel(r"$\mathrm{Absorption_{2}}$")
+        ax.set_xlabel(r"$\mathrm{Level}$")
+        ax.set_xlim(0, abs34_predict.shape[-1] - 1)
+        ax.set_ylim(0, 1)
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(3))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
+
+    fig.legend(
+        handles=legend_lines,
+        labels=legend_labels,
+        loc='center right',
+        bbox_to_anchor=(1.1, 0.5),
+        borderaxespad=0.5,
+        frameon=False,
+        ncol=1
+    )
 
     plt.savefig(filename, bbox_inches='tight')
     plt.close(fig)
@@ -227,6 +430,8 @@ def plot_flux_and_abs(
         (1, 1): {"name": "Flux2d", "plotname": r"$\mathrm{Flux_{2d}}$"}
     }
 
+    num_ticks = 4
+
     for (r, c), props in name_dict.items():
         flux_idx = index_map[(r, c)]
         y_pred = predicts[:, flux_idx, :].reshape(-1).detach().cpu().numpy()
@@ -234,8 +439,13 @@ def plot_flux_and_abs(
         ax = axes[r, c]
 
         hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log', vmin=1, vmax=1e6)
+        #ax.set_xlim(y_true.min(), y_true.max())
+        #ax.set_ylim(y_true.min(), y_true.max())
+        ax.xaxis.set_major_locator(ticker.MultipleLocator((y_true.max() - y_true.min()) / 4))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator((y_true.max() - y_true.min()) / 4))
+        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
         ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
-
         r2 = r2_score(y_true, y_pred)
         ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
         flux_name = props["plotname"]
@@ -248,6 +458,13 @@ def plot_flux_and_abs(
         y_pred = abs12_predict.reshape(-1).detach().cpu().numpy()
         y_true = abs12_target.reshape(-1).detach().cpu().numpy()
         hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log', vmin=1, vmax=1e6)
+        #ax.set_xlim(y_true.min(), y_true.max())
+        #ax.set_ylim(y_true.min(), y_true.max())
+        ax.xaxis.set_major_locator(ticker.MultipleLocator((y_true.max() - y_true.min()) / 4))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator((y_true.max() - y_true.min()) / 4))
+        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+
         ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
         r2 = r2_score(y_true, y_pred)
         ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
@@ -260,6 +477,12 @@ def plot_flux_and_abs(
         y_true = abs34_target.reshape(-1).detach().cpu().numpy()
         hb = ax.hexbin(y_true, y_pred, gridsize=100, cmap='jet', bins='log', vmin=1, vmax=1e6)
         ax.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r:', linewidth=0.5)
+        #ax.set_xlim(y_true.min(), y_true.max())
+        #ax.set_ylim(y_true.min(), y_true.max())
+        ax.xaxis.set_major_locator(ticker.MultipleLocator((y_true.max() - y_true.min()) / 4))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator((y_true.max() - y_true.min()) / 4))
+        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
         r2 = r2_score(y_true, y_pred)
         ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
         ax.set_title(r"$\mathrm{Abs_{2}}$")

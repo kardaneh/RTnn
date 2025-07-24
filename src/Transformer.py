@@ -214,4 +214,4 @@ def testEncoder():
 
 
 if __name__ == "__main__":
-    testEncoder()
+   testEncoder()

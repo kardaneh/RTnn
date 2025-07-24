@@ -68,14 +68,14 @@ def test():
         in_channels=6,
         out_channels=4,
         num_hidden_layers=3,
-        hidden_dim=32,
+        hidden_dim=196,
         signal_length=10,
         dim_expand=0
     )
 
     print("Model Summary:\n", model)
 
-    dummy_input = torch.randn(105840, 6, 10)
+    dummy_input = torch.randn(125760, 6, 10)
     output = model(dummy_input)
 
     print(f"\nOutput shape: {output.shape}")

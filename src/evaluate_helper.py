@@ -4,7 +4,7 @@ import numpy as np
 import sys
 import os
 sys.path.append("..")
-from plot_helper import plot_RTM, plot_HeatRate, plot_flux_and_abs
+from plot_helper import plot_RTM, plot_HeatRate, plot_flux_and_abs, plot_flux_and_abs_lines
 
 class NMSELoss(nn.Module):
     def __init__(self, eps=1e-8):
@@ -75,6 +75,25 @@ class MetricTracker(object):
     def getsqrtmean(self):
         return np.sqrt(self.getmean())
 
+def get_loss_function(loss_type, args):
+    if loss_type == "mse":
+        return nn.MSELoss()
+    elif loss_type == "mae":
+        return nn.L1Loss()
+    elif loss_type == "nmae":
+        return NMAELoss()
+    elif loss_type == "nmse":
+        return NMSELoss()
+    elif loss_type == "wmse":
+        return WMSELoss()
+    elif loss_type == "logcosh":
+        return LogCoshLoss()
+    elif loss_type in ["smoothl1", "huber"]:
+        if not hasattr(args, "beta_delta"):
+            raise ValueError(f"{loss_type.capitalize()}Loss requires --beta_delta")
+        return nn.SmoothL1Loss(beta=args.beta_delta) if loss_type == "smoothl1" else nn.HuberLoss(delta=args.beta_delta)
+    else:
+        raise ValueError(f"Unsupported loss type: {loss_type}")
 
 def mse_all(pred, true):
     """
@@ -250,40 +269,15 @@ def calc_hr(up, down, p=None):
 def check_accuracy_evaluate_lsm(loader, model, norm_mapping, normalization_type, index_mapping, device, args, epoch):
     model.eval()
 
-    metric_suffix = args.loss_type.lower()
-    assert metric_suffix in ['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber'], \
-    "Invalid loss_type (should be one of 'mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber')"
-
-    if metric_suffix == "mse":
-        func = nn.MSELoss()
-    elif metric_suffix == "mae":
-        func = nn.L1Loss()
-    elif metric_suffix == "nmae":
-        func = NMAELoss()
-    elif metric_suffix == "nmse":
-        func = NMSELoss()
-    elif metric_suffix == "wmse":
-        func = WMSELoss()
-    elif metric_suffix == "logcosh":
-        func = LogCoshLoss()
-    elif metric_suffix == "smoothl1":
-        if not hasattr(args, "beta_delta"):
-            raise ValueError("SmoothL1Loss requires --beta_delta")
-        func = nn.SmoothL1Loss(beta=args.beta_delta)
-    elif metric_suffix == "huber":
-        if not hasattr(args, "beta_delta"):
-            raise ValueError("HuberLoss requires --beta_delta")
-        func = nn.HuberLoss(delta=args.beta_delta)
-    else:
-        raise ValueError(f"Unsupported loss type: {metric_suffix}")
+    valid_loss_types = ['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber']
+    loss_type = args.loss_type.lower()
+    assert loss_type in valid_loss_types, f"Invalid loss_type (should be one of {valid_loss_types})"
+    func = get_loss_function(loss_type, args)
 
     metric_names = ["NMAE", "NMSE", "R2"]
     metric_funcs = {"NMAE": nmae_all, "NMSE": nmse_all, "R2": r2_all}
     output_keys = ["fluxes", "abs12", "abs34"]
-    valid_metrics = {}
-    for key in output_keys:
-        for metric in metric_names:
-            valid_metrics[f"{key}_{metric}"] = MetricTracker()
+    valid_metrics = {f"{k}_{m}": MetricTracker() for k in output_keys for m in metric_names}
 
     valid_loss = MetricTracker()
 
@@ -330,7 +324,13 @@ def check_accuracy_evaluate_lsm(loader, model, norm_mapping, normalization_type,
             if epoch==args.num_epochs-1:
                 print("making plot", batch_idx)
                 base_dir = os.path.join("results", args.main_folder, args.sub_folder)
-                plot_RTM(predicts, targets, os.path.join(base_dir, f"Flux{batch_idx}_{args.test_year}.png"), sample_index=0)
+                #plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}_{args.test_year}.png"))
+                #plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, os.path.join(base_dir, f"Abs{batch_idx}_{args.test_year}.png"))
+                plot_flux_and_abs_lines(
+                        predicts_unnorm, targets_unnorm,
+                        abs12_predict=abs12_predict, abs12_target=abs12_target, abs34_predict=abs34_predict, abs34_target=abs34_target,
+                        filename=os.path.join(base_dir, f"Lineplot_Flux_Abs{batch_idx}_{args.test_year}.png")
+                        )
                 plot_flux_and_abs(
                         predicts_unnorm, targets_unnorm,
                         abs12_predict=abs12_predict, abs12_target=abs12_target, abs34_predict=abs34_predict, abs34_target=abs34_target,

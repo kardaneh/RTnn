@@ -36,7 +36,6 @@ class ModelUtils:
         from torchstat import stat
 
         stat(model, input_shape)
-        print(result)
 
     @staticmethod
     def print_model_layer(model):

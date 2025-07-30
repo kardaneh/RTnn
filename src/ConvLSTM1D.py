@@ -144,11 +144,11 @@ def test(model_type="lstm"):
     print(f"Output shape: {y.size()}")
     total_params = sum(p.numel() for p in net.parameters())
     print(f"Total parameters: {total_params}")
-    
+
     print("RNN_LSTM(")
     for name, param in net.named_parameters():
         shape_str = f"{list(param.shape)}"
-    
+
         # Parameter type
         if "weight_ih" in name:
             param_type = "W_ih (input → hidden)"
@@ -164,15 +164,24 @@ def test(model_type="lstm"):
             param_type = "Final Linear Bias"
         else:
             param_type = "Other"
-    
+
         # Layer and direction
         layer_info = ""
-        if "_l0" in name: layer_info = " [L0]"
-        elif "_l1" in name: layer_info = " [L1]"
-        elif "_l2" in name: layer_info = " [L2]"
-        
-        direction = " (→)" if "reverse" not in name and "lstm" in name else " (←)" if "reverse" in name else ""
-    
+        if "_l0" in name:
+            layer_info = " [L0]"
+        elif "_l1" in name:
+            layer_info = " [L1]"
+        elif "_l2" in name:
+            layer_info = " [L2]"
+
+        direction = (
+            " (→)"
+            if "reverse" not in name and "lstm" in name
+            else " (←)"
+            if "reverse" in name
+            else ""
+        )
+
         print(f"  {name:<30} {shape_str:<20} {param_type}{layer_info}{direction}")
     print(")")
 

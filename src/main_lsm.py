@@ -1,5 +1,6 @@
 import argparse
-import os, glob
+import os
+import glob
 import logging
 import datetime
 import time
@@ -18,74 +19,150 @@ from model_helper import ModelUtils
 from evaluate_helper import (
     unnorm_mpas,
     calc_abs,
-    check_accuracy_evaluate_lsm, get_loss_function,
-    MetricTracker, NMSELoss, NMAELoss, LogCoshLoss, WMSELoss,
-    mse_all, mae_all, r2_all, nmae_all, nmse_all
-    )
+    check_accuracy_evaluate_lsm,
+    get_loss_function,
+    MetricTracker,
+    r2_all,
+    nmae_all,
+    nmse_all,
+)
 from plot_helper import plot_metric_histories, plot_loss_histories, stats
+from torch.utils.tensorboard import SummaryWriter
+
 
 def parse_years(year_str):
-    if '-' in year_str:
-        start, end = map(int, year_str.split('-'))
+    if "-" in year_str:
+        start, end = map(int, year_str.split("-"))
         return list(range(start, end + 1))
-    return list(map(int, year_str.split(',')))
+    return list(map(int, year_str.split(",")))
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the RTM model")
     parser.add_argument("--root_dir", type=str, default="", help="Root directory")
-    parser.add_argument("--train_data_files", type=str, default="", help="Path to training dataset")
-    parser.add_argument("--test_data_files", type=str, default="", help="Path to training dataset")
     parser.add_argument(
-            "--train_years", type=str, default="1998", 
-            help="Comma-separated list or range of years for training data (e.g., '1998,1999,2000' or '1998-2000')"
-            )
-    parser.add_argument("--test_year", type=str, default="2000", help="Year for testing data")
-    parser.add_argument("--main_folder", type=str, default="temp", help="Main folder name")
-    parser.add_argument("--sub_folder", type=str, default="temp", help="Sub-folder name")
+        "--train_data_files", type=str, default="", help="Path to training dataset"
+    )
+    parser.add_argument(
+        "--test_data_files", type=str, default="", help="Path to training dataset"
+    )
+    parser.add_argument(
+        "--train_years",
+        type=str,
+        default="1998",
+        help="Comma-separated list or range of years for training data (e.g., '1998,1999,2000' or '1998-2000')",
+    )
+    parser.add_argument(
+        "--test_year", type=str, default="2000", help="Year for testing data"
+    )
+    parser.add_argument(
+        "--main_folder", type=str, default="temp", help="Main folder name"
+    )
+    parser.add_argument(
+        "--sub_folder", type=str, default="temp", help="Sub-folder name"
+    )
     parser.add_argument("--prefix", type=str, default="temp", help="Prefix for saving")
-    parser.add_argument("--dataset_type", type=str, default="Large", help="Type of dataset")
     parser.add_argument(
-    '--loss_type',
-    type=str,
-    default='mse',
-    choices=['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber'],
-    help='Loss type to use for flux weighting (mse, mae, nmae, nmse, wmse, logcosh, smoothl1, huber)')
+        "--dataset_type", type=str, default="Large", help="Type of dataset"
+    )
     parser.add_argument(
-    '--beta_delta',
-    type=float,
-    default=1.0,
-    help='Beta or Delta value for SmoothL1Loss or Huber loss (only used if loss_type is smoothl1 or huber)')
-    parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
-    parser.add_argument("--beta", type=float, default=0.05, help="Weighting factor between RMSE and abs loss terms")
+        "--loss_type",
+        type=str,
+        default="mse",
+        choices=["mse", "mae", "nmae", "nmse", "wmse", "logcosh", "smoothl1", "huber"],
+        help="Loss type to use for flux weighting (mse, mae, nmae, nmse, wmse, logcosh, smoothl1, huber)",
+    )
+    parser.add_argument(
+        "--beta_delta",
+        type=float,
+        default=1.0,
+        help="Beta or Delta value for SmoothL1Loss or Huber loss (only used if loss_type is smoothl1 or huber)",
+    )
+    parser.add_argument(
+        "--learning_rate", type=float, default=1e-3, help="Learning rate"
+    )
+    parser.add_argument(
+        "--beta",
+        type=float,
+        default=0.05,
+        help="Weighting factor between RMSE and abs loss terms",
+    )
     parser.add_argument("--batch_size", type=int, default=200, help="Batch size")
-    parser.add_argument("--tbatch", type=int, default=24, help="Time batch length for the DataPreprocessor")
+    parser.add_argument(
+        "--tbatch",
+        type=int,
+        default=24,
+        help="Time batch length for the DataPreprocessor",
+    )
     parser.add_argument("--model_name", type=str, default="FC", help="Model name")
-    parser.add_argument("--num_workers", type=int, default=4, help="Number of workers for data loading")
+    parser.add_argument(
+        "--num_workers", type=int, default=4, help="Number of workers for data loading"
+    )
     parser.add_argument("--num_epochs", type=int, default=100, help="Number of epochs")
-    parser.add_argument("--save_model", choices=("True", "False"), default="False", help="Save the trained model")
-    parser.add_argument("--save_checkpoint_name",type=str,default="test.pth.tar",help="Checkpoint file name")
-    parser.add_argument("--save_per_samples",type=int,default=10000,help="Frequency of saving checkpoints")
-    parser.add_argument("--load_model",choices=("True", "False"),default="False",help="Load a pre-trained model")
-    parser.add_argument("--inference",choices=("True", "False"),default="False", help="Run in inference-only mode (skip training)")
-    parser.add_argument("--load_checkpoint_name",type=str,default="test.pth.tar",help="Checkpoint file to load")
-    parser.add_argument("--random_throw",choices=("True", "False"),default="False",help="Random throw option")
-    parser.add_argument("--only_layer",choices=("True", "False"),default="False",help="Use only a specific layer")
+    parser.add_argument(
+        "--save_model",
+        choices=("True", "False"),
+        default="False",
+        help="Save the trained model",
+    )
+    parser.add_argument(
+        "--save_checkpoint_name",
+        type=str,
+        default="test.pth.tar",
+        help="Checkpoint file name",
+    )
+    parser.add_argument(
+        "--save_per_samples",
+        type=int,
+        default=10000,
+        help="Frequency of saving checkpoints",
+    )
+    parser.add_argument(
+        "--load_model",
+        choices=("True", "False"),
+        default="False",
+        help="Load a pre-trained model",
+    )
+    parser.add_argument(
+        "--inference",
+        choices=("True", "False"),
+        default="False",
+        help="Run in inference-only mode (skip training)",
+    )
+    parser.add_argument(
+        "--load_checkpoint_name",
+        type=str,
+        default="test.pth.tar",
+        help="Checkpoint file to load",
+    )
+    parser.add_argument(
+        "--random_throw",
+        choices=("True", "False"),
+        default="False",
+        help="Random throw option",
+    )
+    parser.add_argument(
+        "--only_layer",
+        choices=("True", "False"),
+        default="False",
+        help="Use only a specific layer",
+    )
     args = parser.parse_args()
     return args
 
 
 args = parse_args()
 train_years = parse_years(args.train_years)
-#train_sbatch_files = np.sort(glob.glob(args.train_data_files + f"rtnetcdf_*_{args.train_year}.nc"))[::]
+# train_sbatch_files = np.sort(glob.glob(args.train_data_files + f"rtnetcdf_*_{args.train_year}.nc"))[::]
 train_sbatch_files = sorted(
-        file
-        for year in train_years
-        for file in glob.glob(f"{args.train_data_files}/rtnetcdf_*_{year}.nc")
-        )
-test_sbatch_files = np.sort(glob.glob(args.test_data_files + f"rtnetcdf_*_{args.test_year}.nc"))[::]
+    file
+    for year in train_years
+    for file in glob.glob(f"{args.train_data_files}/rtnetcdf_*_{year}.nc")
+)
+test_sbatch_files = np.sort(
+    glob.glob(args.test_data_files + f"rtnetcdf_*_{args.test_year}.nc")
+)[::]
 train_df = xr.open_dataset(train_sbatch_files[0], engine="netcdf4")
-
-from torch.utils.tensorboard import SummaryWriter
 
 FileUtils.makedir(os.path.join("logs", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("results", args.main_folder, args.sub_folder))
@@ -116,7 +193,7 @@ logger.setLevel(logging.INFO)
 if logger.hasHandlers():
     logger.handlers.clear()
 
-file_handler = logging.FileHandler(log_file, mode='w')
+file_handler = logging.FileHandler(log_file, mode="w")
 file_handler.setLevel(logging.INFO)
 
 # logs to console
@@ -150,7 +227,7 @@ writer = SummaryWriter(f"runs/{args.main_folder}/{args.sub_folder}/")
 
 # Initialize the step counter for TensorBoard logging or training steps
 index_mapping = {0: "collim_alb", 1: "collim_tran", 2: "isotrop_alb", 3: "isotrop_tran"}
-step = (0)
+step = 0
 logger.info(f"NetCDF files path: {args.train_data_files}")
 logger.info(f"NetCDF files path: {args.test_data_files}")
 logger.info(f"Found {len(train_sbatch_files)} training files:")
@@ -161,46 +238,50 @@ for f in test_sbatch_files:
     logger.info(f"  {f}")
 
 
-norm_mapping = stats([train_sbatch_files[0]], logger, os.path.join("stats", args.main_folder, args.sub_folder))
+norm_mapping = stats(
+    [train_sbatch_files[0]],
+    logger,
+    os.path.join("stats", args.main_folder, args.sub_folder),
+)
 for var_name, stats_dict in norm_mapping.items():
     logger.info(f"Variable: {var_name}")
     for stat_key, value in stats_dict.items():
         logger.info(f"  {stat_key}: {value:.4e}")
 
 normalization_type = {
-    'coszang': 'log1p_standard',
-    'laieff_collim': 'log1p_standard',
-    'laieff_isotrop': 'log1p_standard',
-    'leaf_ssa': 'log1p_standard',
-    'leaf_psd': 'log1p_standard',
-    'rs_surface_emu': 'log1p_standard',
-    'collim_alb': 'log1p_standard',
-    'collim_tran': 'log1p_standard',
-    'isotrop_alb': 'log1p_standard',
-    'isotrop_tran': 'log1p_standard'
-    }
+    "coszang": "log1p_standard",
+    "laieff_collim": "log1p_standard",
+    "laieff_isotrop": "log1p_standard",
+    "leaf_ssa": "log1p_standard",
+    "leaf_psd": "log1p_standard",
+    "rs_surface_emu": "log1p_standard",
+    "collim_alb": "log1p_standard",
+    "collim_tran": "log1p_standard",
+    "isotrop_alb": "log1p_standard",
+    "isotrop_tran": "log1p_standard",
+}
 
 # Create training dataset
 train_dataset = DataPreprocessor(
-        logger = logger,
-        dfs = train_sbatch_files,
-        stime=0, 
-        tstep=train_df.sizes['time'],
-        tbatch=args.tbatch,
-        norm_mapping=norm_mapping,
-        normalization_type=normalization_type
-        )
+    logger=logger,
+    dfs=train_sbatch_files,
+    stime=0,
+    tstep=train_df.sizes["time"],
+    tbatch=args.tbatch,
+    norm_mapping=norm_mapping,
+    normalization_type=normalization_type,
+)
 
 test_tbatch = 1 if args.inference == "True" else 24
 test_dataset = DataPreprocessor(
-        logger = logger,
-        dfs = test_sbatch_files,
-        stime=0,
-        tstep=train_df.sizes['time'],
-        tbatch=test_tbatch,
-        norm_mapping=norm_mapping,
-        normalization_type=normalization_type
-        )
+    logger=logger,
+    dfs=test_sbatch_files,
+    stime=0,
+    tstep=train_df.sizes["time"],
+    tbatch=test_tbatch,
+    norm_mapping=norm_mapping,
+    normalization_type=normalization_type,
+)
 
 # Create DataLoader for training
 train_loader = DataLoader(
@@ -208,7 +289,8 @@ train_loader = DataLoader(
     batch_size=args.batch_size,
     shuffle=True,
     num_workers=args.num_workers,
-    pin_memory=True)
+    pin_memory=True,
+)
 
 # Create DataLoader for testing
 test_loader = DataLoader(
@@ -216,7 +298,8 @@ test_loader = DataLoader(
     batch_size=args.batch_size,
     shuffle=False,
     num_workers=args.num_workers,
-    pin_memory=True)
+    pin_memory=True,
+)
 
 # ---------------------------------------------
 # Dataset Information
@@ -226,7 +309,9 @@ logger.info(f"Train size: {len(train_dataset)}, Test size: {len(test_dataset)}")
 # ---------------------------------------------
 # Model Initialization
 # ---------------------------------------------
-model = load_model(model_name=args.model_name, device=device, feature_channel=6, signal_length=10)
+model = load_model(
+    model_name=args.model_name, device=device, feature_channel=6, signal_length=10
+)
 model_info = ModelUtils.get_parameter_number(model)
 logger.info(f"Model Info: {model_info}")
 model = model.to(device)
@@ -234,13 +319,26 @@ model = model.to(device)
 # ---------------------------------------------
 # Loss Functions & Optimizer Setup
 # ---------------------------------------------
-valid_loss_types = ['mse', 'mae', 'nmae', 'nmse', 'wmse', 'logcosh', 'smoothl1', 'huber']
+valid_loss_types = [
+    "mse",
+    "mae",
+    "nmae",
+    "nmse",
+    "wmse",
+    "logcosh",
+    "smoothl1",
+    "huber",
+]
 loss_type = args.loss_type.lower()
-assert loss_type in valid_loss_types, f"Invalid loss_type (should be one of {valid_loss_types})"
+assert (
+    loss_type in valid_loss_types
+), f"Invalid loss_type (should be one of {valid_loss_types})"
 
 func = get_loss_function(loss_type, args)
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=5, verbose=True)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, factor=0.5, patience=5, verbose=True
+)
 
 metric_names = ["NMAE", "NMSE", "R2"]
 metric_funcs = {"NMAE": nmae_all, "NMSE": nmse_all, "R2": r2_all}
@@ -251,7 +349,9 @@ train_metrics = {f"{k}_{m}": MetricTracker() for k in output_keys for m in metri
 # Load Checkpoint (if specified)
 # ---------------------------------------------
 if args.load_model == "True":
-    checkpoint_path = os.path.join("checkpoints", args.main_folder, args.sub_folder, args.load_checkpoint_name)
+    checkpoint_path = os.path.join(
+        "checkpoints", args.main_folder, args.sub_folder, args.load_checkpoint_name
+    )
     checkpoint = torch.load(checkpoint_path)
     ModelUtils.load_checkpoint(checkpoint, model, optimizer)
 
@@ -275,7 +375,9 @@ if torch.cuda.is_available():
 # ---------------------------------------------
 if args.inference == "True":
     if not args.load_model == "True":
-        raise ValueError("In inference mode, --load_model must be set to 'True' to load the model for evaluation.")
+        raise ValueError(
+            "In inference mode, --load_model must be set to 'True' to load the model for evaluation."
+        )
     logger.info("Inference mode enabled. Skipping training...")
     valid_loss, valid_metrics = check_accuracy_evaluate_lsm(
         test_loader,
@@ -285,7 +387,8 @@ if args.inference == "True":
         index_mapping,
         device,
         args,
-        args.num_epochs - 1)
+        args.num_epochs - 1,
+    )
     logger.info(f"Inference valid_loss: {valid_loss:.3e}")
     for key, val in valid_metrics.items():
         logger.info(f"Inference {key}: {val:.3e}")
@@ -313,44 +416,65 @@ for epoch in range(args.num_epochs):
     loop = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}")
     for batch_idx, (feature, targets) in loop:
         if epoch == 0 and batch_idx == 0:
-            logger.info(f"batch idx:{batch_idx}, feature shape:{feature.shape}, target shape:{targets.shape}")
+            logger.info(
+                f"batch idx:{batch_idx}, feature shape:{feature.shape}, target shape:{targets.shape}"
+            )
 
         feature_shape = feature.shape
         target_shape = targets.shape
 
         inner_batch_size = feature_shape[0] * feature_shape[1]
-        feature = feature.reshape(inner_batch_size, feature_shape[2], feature_shape[3]).to(device=device)
-        targets = targets.reshape(inner_batch_size, target_shape[2], target_shape[3]).to(device=device)
+        feature = feature.reshape(
+            inner_batch_size, feature_shape[2], feature_shape[3]
+        ).to(device=device)
+        targets = targets.reshape(
+            inner_batch_size, target_shape[2], target_shape[3]
+        ).to(device=device)
 
         predicts = model(feature)
 
-        predicts_unnorm, targets_unnorm = unnorm_mpas(predicts, targets, norm_mapping, normalization_type, index_mapping)
-        abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(predicts_unnorm, targets_unnorm)
-        
+        predicts_unnorm, targets_unnorm = unnorm_mpas(
+            predicts, targets, norm_mapping, normalization_type, index_mapping
+        )
+        abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(
+            predicts_unnorm, targets_unnorm
+        )
+
         output_dict = {
-                "fluxes": (predicts, targets),
-                "abs12": (abs12_predict, abs12_target),
-                "abs34": (abs34_predict, abs34_target)
-                }
+            "fluxes": (predicts, targets),
+            "abs12": (abs12_predict, abs12_target),
+            "abs34": (abs34_predict, abs34_target),
+        }
         for key in output_keys:
             pred, tgt = output_dict[key]
             for metric in metric_names:
                 metric_key = f"{key}_{metric}"
                 if metric_key not in train_metrics:
-                    raise KeyError(f"Metric key '{metric_key}' not found in train_metrics")
+                    raise KeyError(
+                        f"Metric key '{metric_key}' not found in train_metrics"
+                    )
                 count, value = metric_funcs[metric](pred, tgt)
                 train_metrics[metric_key].update(value.item(), count)
 
-
         main_count, main_val = predicts.numel(), func(predicts, targets)
-        abs12_count, abs12_val = abs12_predict.numel(), func(abs12_predict, abs12_target)
-        abs34_count, abs34_val = abs34_predict.numel(), func(abs34_predict, abs34_target)
+        abs12_count, abs12_val = (
+            abs12_predict.numel(),
+            func(abs12_predict, abs12_target),
+        )
+        abs34_count, abs34_val = (
+            abs34_predict.numel(),
+            func(abs34_predict, abs34_target),
+        )
 
-        weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (abs12_val * abs12_count + abs34_val * abs34_count)
-        total_count = (1.0 - args.beta) * main_count + args.beta * (abs12_count + abs34_count)
+        weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (
+            abs12_val * abs12_count + abs34_val * abs34_count
+        )
+        total_count = (1.0 - args.beta) * main_count + args.beta * (
+            abs12_count + abs34_count
+        )
         total_loss = weighted_loss / total_count
         loop.set_postfix(loss=total_loss.item())
-        train_loss.update(total_loss.item(),  1)
+        train_loss.update(total_loss.item(), 1)
 
         optimizer.zero_grad()
         total_loss.backward()
@@ -358,7 +482,6 @@ for epoch in range(args.num_epochs):
 
         writer.add_scalar("train/total_loss", total_loss.item(), global_step=step)
         step += args.batch_size
-
 
         if args.save_model == "True":
             save_counter = save_counter + args.batch_size
@@ -404,21 +527,25 @@ for epoch in range(args.num_epochs):
     logger.info(f"Epoch {epoch} elapsed time: {time.time() - previous_time:.2f}s")
     train_loss_history[epoch] = train_loss.getmean()
     if epoch % 1 == 0:
-
         valid_loss, valid_metrics = check_accuracy_evaluate_lsm(
-                test_loader,
-                model,
-                norm_mapping,
-                normalization_type,
-                index_mapping,
-                device,
-                args,
-                epoch)
+            test_loader,
+            model,
+            norm_mapping,
+            normalization_type,
+            index_mapping,
+            device,
+            args,
+            epoch,
+        )
 
         valid_loss_history[epoch] = valid_loss
-        logger.info(f"train_loss: {train_loss_history[epoch]:.3e} | valid_loss: {valid_loss_history[epoch]:.3e}")
+        logger.info(
+            f"train_loss: {train_loss_history[epoch]:.3e} | valid_loss: {valid_loss_history[epoch]:.3e}"
+        )
         for key, meter in train_metrics.items():
-            train_value = meter.getsqrtmean() if key.lower().endswith('mse') else meter.getmean()
+            train_value = (
+                meter.getsqrtmean() if key.lower().endswith("mse") else meter.getmean()
+            )
             train_metrics_history[key].append(train_value)
 
             assert key in valid_metrics, f"Missing key '{key}' in valid_metrics"
@@ -426,7 +553,9 @@ for epoch in range(args.num_epochs):
             valid_value = valid_metrics[key]
             valid_metrics_history[key].append(valid_value)
 
-            logger.info(f"train_{key}: {train_value:.3e} | valid_{key}: {valid_value:.3e}")
+            logger.info(
+                f"train_{key}: {train_value:.3e} | valid_{key}: {valid_value:.3e}"
+            )
 
         logger.info("")
         schedule_losses.append(valid_metrics["fluxes_NMAE"])
@@ -434,5 +563,13 @@ for epoch in range(args.num_epochs):
         scheduler.step(mean_loss)
 
 base_dir = os.path.join("results", args.main_folder, args.sub_folder)
-plot_metric_histories(train_metrics_history, valid_metrics_history, os.path.join(base_dir, f"metrics_panel.png"))
-plot_loss_histories(train_loss_history, valid_loss_history, os.path.join(base_dir, f"training_validation_loss.png"))
+plot_metric_histories(
+    train_metrics_history,
+    valid_metrics_history,
+    os.path.join(base_dir, "metrics_panel.png"),
+)
+plot_loss_histories(
+    train_loss_history,
+    valid_loss_history,
+    os.path.join(base_dir, "training_validation_loss.png"),
+)

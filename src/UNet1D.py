@@ -1,16 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
-import sys
-import os
-import torch
-from torch.autograd.functional import jacobian
-from torch.autograd import grad
-from torch.optim import LBFGS, Adam, SGD
-import logging
-import time
-import matplotlib.pyplot as plt
-from DimChangeModule import DimChange
 
 
 class DoubleConv(nn.Module):
@@ -20,11 +10,9 @@ class DoubleConv(nn.Module):
             nn.Conv1d(feature_channel, output_channel, 3, 1, 1, bias=False),
             nn.BatchNorm1d(output_channel),
             nn.ReLU(inplace=True),
-
             nn.Conv1d(output_channel, output_channel, 3, 1, 1, bias=False),
             nn.BatchNorm1d(output_channel),
             nn.ReLU(inplace=True),
-
         )
 
     def forward(self, x):
@@ -32,8 +20,9 @@ class DoubleConv(nn.Module):
 
 
 class UNET(nn.Module):
-    def __init__(self, feature_channel=6, output_channel=4,
-                 features=[32, 64, 128, 256]):
+    def __init__(
+        self, feature_channel=6, output_channel=4, features=[32, 64, 128, 256]
+    ):
         super(UNET, self).__init__()
         self.ups = nn.ModuleList()
         self.downs = nn.ModuleList()
@@ -47,8 +36,12 @@ class UNET(nn.Module):
         # up part of UNET
         for feature in reversed(features):
             self.ups.append(
-                nn.ConvTranspose1d(feature*2, feature,
-                                   kernel_size=2, stride=2,)
+                nn.ConvTranspose1d(
+                    feature * 2,
+                    feature,
+                    kernel_size=2,
+                    stride=2,
+                )
             )
             self.ups.append(DoubleConv(feature * 2, feature))
 
@@ -72,8 +65,12 @@ class UNET(nn.Module):
 
             # print(x.shape, skip_connection.shape)
             if x.shape != skip_connection.shape:
-                x = nnf.interpolate(x, size=(skip_connection.shape[-1],),
-                                    mode='linear', align_corners=False)
+                x = nnf.interpolate(
+                    x,
+                    size=(skip_connection.shape[-1],),
+                    mode="linear",
+                    align_corners=False,
+                )
                 # x = torch.nn.functional.upsample(
                 #     x, size=skip_connection.shape[-1], scale_factor=None, mode='linear', align_corners=None)
             concat_skip = torch.cat((skip_connection, x), dim=1)

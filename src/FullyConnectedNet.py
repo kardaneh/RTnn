@@ -9,6 +9,7 @@ from DimChangeModule import DimChange  # Make sure this module exists
 
 class FCBlock(nn.Module):
     """A fully connected block with Linear -> BatchNorm -> ReLU"""
+
     def __init__(self, in_features, out_features):
         super(FCBlock, self).__init__()
         self.linear = nn.Linear(in_features, out_features)
@@ -24,9 +25,16 @@ class FCBlock(nn.Module):
 
 class FullyConnectedNet(nn.Module):
     """Fully connected neural network for 1D feature input"""
-    def __init__(self, in_channels, out_channels,
-                 num_hidden_layers, hidden_dim,
-                 signal_length=55, dim_expand=0):
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        num_hidden_layers,
+        hidden_dim,
+        signal_length=55,
+        dim_expand=0,
+    ):
         super(FullyConnectedNet, self).__init__()
 
         self.in_channels = in_channels
@@ -38,9 +46,9 @@ class FullyConnectedNet(nn.Module):
         self.input_layer = FCBlock(in_channels * signal_length, hidden_dim)
 
         # Intermediate hidden layers
-        self.hidden_layers = nn.Sequential(*[
-            FCBlock(hidden_dim, hidden_dim) for _ in range(num_hidden_layers)
-        ])
+        self.hidden_layers = nn.Sequential(
+            *[FCBlock(hidden_dim, hidden_dim) for _ in range(num_hidden_layers)]
+        )
 
         # Final projection layer
         self.output_layer = nn.Linear(hidden_dim, signal_length * out_channels)
@@ -70,7 +78,7 @@ def test():
         num_hidden_layers=3,
         hidden_dim=196,
         signal_length=10,
-        dim_expand=0
+        dim_expand=0,
     )
 
     print("Model Summary:\n", model)

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import sys
 # sys.path.append("..")
 # from utils.model_helper import ModelUtils
 
@@ -107,9 +106,8 @@ class Encoder(nn.Module):
         heads,
         forward_expansion,
         seq_length,
-        dropout
+        dropout,
     ):
-
         super(Encoder, self).__init__()
         self.embed_size = embed_size
         self.word_embedding = nn.Embedding(feature_channel, embed_size)
@@ -135,17 +133,18 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         self.final = nn.Conv1d(
-            embed_size, output_channel, kernel_size=1, padding=0, bias=True)
+            embed_size, output_channel, kernel_size=1, padding=0, bias=True
+        )
 
         # self.final = nn.Linear(embed_size, output_channel)
 
     def forward(self, x, mask=None):
-
         x = torch.permute(x, (0, 2, 1))
         N = x.shape[0]
 
-        positions = torch.arange(0, self.seq_length).expand(
-            N, self.seq_length).to(x.device)
+        positions = (
+            torch.arange(0, self.seq_length).expand(N, self.seq_length).to(x.device)
+        )
         positions = self.position_embedding(positions)
 
         out = self.first_act(self.first(x))
@@ -163,9 +162,8 @@ class Encoder(nn.Module):
 
 def get_parameter_number(model):
     total_num = sum(p.numel() for p in model.parameters())
-    trainable_num = sum(p.numel()
-                        for p in model.parameters() if p.requires_grad)
-    return {'Total': total_num, 'Trainable': trainable_num}
+    trainable_num = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return {"Total": total_num, "Trainable": trainable_num}
 
 
 def testSF():
@@ -181,8 +179,7 @@ def testSF():
 
 
 def testTFB():
-    net = TransformerBlock(embed_size=128, heads=2,
-                           dropout=0.1, forward_expansion=2)
+    net = TransformerBlock(embed_size=128, heads=2, dropout=0.1, forward_expansion=2)
 
     values = torch.randn(100, 57, 128)
     keys = torch.randn(100, 57, 128)
@@ -193,17 +190,20 @@ def testTFB():
 
 
 def testEncoder():
-    model = Encoder(feature_channel=6,
-                    output_channel=4,
-                    embed_size=64,
-                    num_layers=2,
-                    heads=4,
-                    forward_expansion=4,
-                    seq_length=10,
-                    dropout=0.1)
+    model = Encoder(
+        feature_channel=6,
+        output_channel=4,
+        embed_size=64,
+        num_layers=2,
+        heads=4,
+        forward_expansion=4,
+        seq_length=10,
+        dropout=0.1,
+    )
 
     x = torch.randn(125760, 6, 10)
     import time
+
     time1 = time.time()
     result = model(x)
     print(time.time() - time1)
@@ -214,4 +214,4 @@ def testEncoder():
 
 
 if __name__ == "__main__":
-   testEncoder()
+    testEncoder()

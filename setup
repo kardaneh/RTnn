@@ -1,105 +1,157 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Define test configurations
-declare -a models=("ATT_64_2")
-declare -a loss_types=("huber")
-declare -a batch_sizes=(16)
-declare -a tbatches=(1)
+# ======================
+# 1. Basic
+# ======================
+MODE="Debug"  # 'Prod' or 'Debug'
+DATE=$(date +"%Y%m%d")
+TODAY=$(date +"%Y%m%d_%H%M%S")
 
-# Shared config
-model="Prod"
-norm="log1p_standard"
-num_workers=16
-num_epochs=80
+# ======================
+# 2. Model
+# ======================
+type="transformer"
+hidden_size=64
+num_layers=2
+output_channel=4
+seq_length=10
+feature_channel=6
+embed_size=64
+nhead=4
+forward_expansion=4
+dropout=0.0
+
+# ======================
+# 3. Training
+# ======================
+batch_size=16
+time_batch=1
+num_epochs=2
 learning_rate=0.001
+loss_type="huber"
 beta=0.2
 beta_delta=1.0
+num_workers=16
+
+# ======================
+# 4. Data
+# ======================
 train_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large/"
 test_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large/"
-train_year="1996-1998"
+train_years="1996-1998"
 test_year="1999"
+norm="log1p_standard"
 
-lr_str=${learning_rate//./d}
-beta_str=${beta//./d}
-bd_str=${beta_delta//./d}
+# ======================
+# 5. Output
+# ======================
+save_model="True"
+save_checkpoint_name="model"
+save_per_samples=10000
+load_model="False"
 
-# Loop over all combinations
-for model_name in "${models[@]}"; do
-  for loss_type in "${loss_types[@]}"; do
-    for batch_size in "${batch_sizes[@]}"; do
-      for time_batch in "${tbatches[@]}"; do
+# ======================
+# Script
+# ======================
 
-        DATE=$(date +"%Y%m%d")
-        TODAY=$(date +"%Y%m%d_%H%M%S")
-        if [[ "$loss_type" == "huber" || "$loss_type" == "smoothl1" ]]; then
-          bd_tag="_BetaDelta_${bd_str}"
-        else
-          bd_tag=""
-        fi
-        tag="${model_name}_nrm_${norm}_l_${loss_type}${bd_tag}_sb_${batch_size}_tb_${time_batch}_nw_${num_workers}_ne_${num_epochs}_lr_${lr_str}_beta_${beta_str}"
-        run_script="run_script_lsm_${tag}.sh"
-        sbatch_script="sbatch_script_${tag}.sh"
-        main_folder="${model}__${model_name}_sb_${batch_size}_tb_${time_batch}_nw_${num_workers}_ne_${num_epochs}"
-        sub_folder="nrm_${norm}_lr_${lr_str}_beta_${beta_str}_l_${loss_type}${bd_tag}_date_${TODAY}"
-        prefix="$sub_folder"
+lr_str="${learning_rate//./d}"
+beta_str="${beta//./d}"
+bd_str="${beta_delta//./d}"
 
-        # Write run script
-        cat <<EOF > $run_script
-#!/bin/bash
-echo "Time = $TODAY"
-echo "Running training with model: $model_name, loss: $loss_type"
+if [[ "$loss_type" == "huber" || "$loss_type" == "smoothl1" ]]; then
+  bd_tag="_BetaDelta_${bd_str}"
+else
+  bd_tag=""
+fi
+
+model_parts=("$type" "h${hidden_size}" "l${num_layers}")
+[ -n "${output_channel+x}" ] && model_parts+=("out${output_channel}")
+[ -n "${seq_length+x}" ] && model_parts+=("s${seq_length}")
+[ -n "${feature_channel+x}" ] && model_parts+=("fc${feature_channel}")
+[ -n "${embed_size+x}" ] && model_parts+=("em${embed_size}")
+[ -n "${nhead+x}" ] && model_parts+=("nh${nhead}")
+[ -n "${forward_expansion+x}" ] && model_parts+=("fe${forward_expansion}")
+[ -n "${dropout+x}" ] && model_parts+=("do${dropout}")
+
+model_name=$(IFS=_ ; echo "${model_parts[*]}")
+tag="${model_name}_nrm_${norm}_l_${loss_type}${bd_tag}_sb_${batch_size}_tb_${time_batch}_nw_${num_workers}_ne_${num_epochs}_lr_${lr_str}_beta_${beta_str}"
+main_folder="${MODE}__${model_name}_sb_${batch_size}_tb_${time_batch}_nw_${num_workers}_ne_${num_epochs}"
+sub_folder="nrm_${norm}_lr_${lr_str}_beta_${beta_str}_l_${loss_type}${bd_tag}_date_${TODAY}"
+prefix="$sub_folder"
+
+run_script="run_lsm_${tag}.sh"
+sbatch_script="sbatch_lsm_${tag}.sh"
+
+# ======================
+# Run Script
+# ======================
+cat > $run_script <<EOF
+#!/usr/bin/env bash
+echo "Starting training: $TODAY"
+echo "Model: $model_name"
+echo "Config: $tag"
 
 python src/main_lsm.py \\
     --root_dir "./" \\
     --main_folder "$main_folder" \\
     --sub_folder "$sub_folder" \\
-    --train_data_files "$train_data_files" \\
-    --test_data_files "$test_data_files" \\
-    --train_year "$train_year" \\
-    --test_year "$test_year" \\
     --prefix "$prefix" \\
-    --dataset_type "LSM" \\
-    --loss_type "$loss_type" \\
-    --beta_delta "$beta_delta" \\
-    --learning_rate "$learning_rate" \\
-    --beta "$beta" \\
-    --batch_size "$batch_size" \\
-    --tbatch "$time_batch" \\
-    --model_name "$model_name" \\
-    --num_workers "$num_workers" \\
-    --num_epochs "$num_epochs" \\
-    --save_mode "True" \\
-    --save_checkpoint_name "model" \\
-    --save_per_samples 10000 \\
-    --load_model "False"
+    --type "$type" \\
+    --hidden_size "$hidden_size" \\
+    --num_layers "$num_layers" \\
 EOF
 
-        chmod +x $run_script
+[ -n "${output_channel+x}" ] && echo "    --output_channel \"$output_channel\" \\" >> $run_script
+[ -n "${seq_length+x}" ] && echo "    --seq_length \"$seq_length\" \\" >> $run_script
+[ -n "${feature_channel+x}" ] && echo "    --feature_channel \"$feature_channel\" \\" >> $run_script
+[ -n "${embed_size+x}" ] && echo "    --embed_size \"$embed_size\" \\" >> $run_script
+[ -n "${nhead+x}" ] && echo "    --nhead \"$nhead\" \\" >> $run_script
+[ -n "${forward_expansion+x}" ] && echo "    --forward_expansion \"$forward_expansion\" \\" >> $run_script
+[ -n "${dropout+x}" ] && echo "    --dropout \"$dropout\" \\" >> $run_script
 
-        # Write SLURM batch script
-        cat <<EOF > $sbatch_script
-#!/bin/bash
+cat >> $run_script <<EOF
+    --model_name "$model_name" \\
+    --batch_size "$batch_size" \\
+    --tbatch "$time_batch" \\
+    --num_epochs "$num_epochs" \\
+    --learning_rate "$learning_rate" \\
+    --loss_type "$loss_type" \\
+    --beta "$beta" \\
+    --beta_delta "$beta_delta" \\
+    --train_data_files "$train_data_files" \\
+    --test_data_files "$test_data_files" \\
+    --train_years "$train_years" \\
+    --test_year "$test_year" \\
+    --norm "$norm" \\
+    --num_workers "$num_workers" \\
+    --save_model "$save_model" \\
+    --save_checkpoint_name "$save_checkpoint_name" \\
+    --save_per_samples "$save_per_samples" \\
+    --load_model "$load_model"
+EOF
+
+chmod +x $run_script
+
+# ======================
+# SBATCH Script
+# ======================
+cat > $sbatch_script <<EOF
+#!/usr/bin/env bash
 #SBATCH -A EUHPC_D17_070
 #SBATCH -p boost_usr_prod
 EOF
-        # Insert QOS line if Debug
-        if [ "$model" == "Debug" ]; then
-          echo "#SBATCH --qos=boost_qos_dbg" >> $sbatch_script
-          time_limit="00:30:00"
-        else
-          time_limit="18:00:00"
-        fi
 
-        # Append the rest of the SLURM script
-        cat <<EOF >> $sbatch_script
-#SBATCH --time=${time_limit}
+[ "$MODE" == "Debug" ] && echo "#SBATCH --qos=boost_qos_dbg" >> $sbatch_script
+
+cat >> $sbatch_script <<EOF
+#SBATCH --time=$([ "$MODE" == "Debug" ] && echo "00:30:00" || echo "24:00:00")
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=32
 #SBATCH --gpus-per-node=4
 #SBATCH --mem-per-gpu=64G
 #SBATCH --job-name=lsm_${tag}
-#SBATCH --error=lsm_training_${tag}_%j.err
-#SBATCH --output=lsm_training_${tag}_%j.out
+#SBATCH --error=lsm_${tag}_%j.err
+#SBATCH --output=lsm_${tag}_%j.out
 
 module load profile/deeplrn
 module load cineca-ai
@@ -107,13 +159,21 @@ source /leonardo/home/userexternal/kardaneh/RTnn/python-venv/bin/activate
 
 ./$run_script
 EOF
-        chmod +x $sbatch_script
 
-        echo "Generated: $run_script and $sbatch_script"
-        # Optionally auto-submit
-        # sbatch $sbatch_script
+chmod +x $sbatch_script
 
-      done
-    done
-  done
-done
+# ======================
+# Output
+# ======================
+echo "=== Setup Complete ==="
+echo "Model: $model_name"
+echo "Tag: $tag"
+echo "Main folder: $main_folder"
+echo "Sub folder: $sub_folder"
+echo "Prefix: $prefix"
+echo ""
+echo "Run script: ./$run_script"
+echo "SBATCH script: ./$sbatch_script"
+echo ""
+echo "To start training:"
+echo "  sbatch ./$sbatch_script"

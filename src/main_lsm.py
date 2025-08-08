@@ -39,114 +39,185 @@ def parse_years(year_str):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the RTM model")
-    parser.add_argument("--root_dir", type=str, default="", help="Root directory")
-    parser.add_argument(
-        "--train_data_files", type=str, default="", help="Path to training dataset"
-    )
-    parser.add_argument(
-        "--test_data_files", type=str, default="", help="Path to training dataset"
-    )
-    parser.add_argument(
-        "--train_years",
-        type=str,
-        default="1998",
-        help="Comma-separated list or range of years for training data (e.g., '1998,1999,2000' or '1998-2000')",
-    )
-    parser.add_argument(
-        "--test_year", type=str, default="2000", help="Year for testing data"
-    )
-    parser.add_argument(
-        "--main_folder", type=str, default="temp", help="Main folder name"
-    )
-    parser.add_argument(
-        "--sub_folder", type=str, default="temp", help="Sub-folder name"
-    )
-    parser.add_argument("--prefix", type=str, default="temp", help="Prefix for saving")
-    parser.add_argument(
-        "--dataset_type", type=str, default="Large", help="Type of dataset"
-    )
-    parser.add_argument(
-        "--loss_type",
-        type=str,
-        default="mse",
-        choices=["mse", "mae", "nmae", "nmse", "wmse", "logcosh", "smoothl1", "huber"],
-        help="Loss type to use for flux weighting (mse, mae, nmae, nmse, wmse, logcosh, smoothl1, huber)",
-    )
-    parser.add_argument(
-        "--beta_delta",
-        type=float,
-        default=1.0,
-        help="Beta or Delta value for SmoothL1Loss or Huber loss (only used if loss_type is smoothl1 or huber)",
-    )
-    parser.add_argument(
-        "--learning_rate", type=float, default=1e-3, help="Learning rate"
-    )
-    parser.add_argument(
-        "--beta",
-        type=float,
-        default=0.05,
-        help="Weighting factor between RMSE and abs loss terms",
-    )
-    parser.add_argument("--batch_size", type=int, default=200, help="Batch size")
-    parser.add_argument(
-        "--tbatch",
-        type=int,
-        default=24,
-        help="Time batch length for the DataPreprocessor",
-    )
-    parser.add_argument("--model_name", type=str, default="FC", help="Model name")
-    parser.add_argument(
-        "--num_workers", type=int, default=4, help="Number of workers for data loading"
-    )
-    parser.add_argument("--num_epochs", type=int, default=100, help="Number of epochs")
-    parser.add_argument(
-        "--save_model",
-        choices=("True", "False"),
-        default="False",
-        help="Save the trained model",
-    )
-    parser.add_argument(
-        "--save_checkpoint_name",
-        type=str,
-        default="test.pth.tar",
-        help="Checkpoint file name",
-    )
-    parser.add_argument(
-        "--save_per_samples",
-        type=int,
-        default=10000,
-        help="Frequency of saving checkpoints",
-    )
-    parser.add_argument(
-        "--load_model",
-        choices=("True", "False"),
-        default="False",
-        help="Load a pre-trained model",
-    )
-    parser.add_argument(
-        "--inference",
-        choices=("True", "False"),
-        default="False",
-        help="Run in inference-only mode (skip training)",
-    )
-    parser.add_argument(
-        "--load_checkpoint_name",
-        type=str,
-        default="test.pth.tar",
-        help="Checkpoint file to load",
-    )
-    parser.add_argument(
-        "--random_throw",
-        choices=("True", "False"),
-        default="False",
-        help="Random throw option",
-    )
-    parser.add_argument(
-        "--only_layer",
-        choices=("True", "False"),
-        default="False",
-        help="Use only a specific layer",
-    )
+    parser.add_argument("--root_dir", 
+                       type=str, 
+                       default="./", 
+                       help="Root directory for all operations")
+    
+    parser.add_argument("--train_data_files",
+                       type=str,
+                       default="./data/train/",
+                       help="Path to training dataset directory or file pattern")
+    
+    parser.add_argument("--test_data_files",
+                       type=str,
+                       default="./data/test/",
+                       help="Path to testing dataset directory or file pattern")
+
+    parser.add_argument("--train_years",
+                       type=str,
+                       default="1995-1999",
+                       help="Training years as comma-separated list or range")
+    
+    parser.add_argument("--test_year",
+                       type=str,
+                       default="2000",
+                       help="Test year or year range")
+
+    parser.add_argument("--main_folder",
+                       type=str,
+                       default="results",
+                       help="Main output folder name")
+    
+    parser.add_argument("--sub_folder",
+                       type=str,
+                       default="experiment",
+                       help="Sub-folder name for current run")
+    
+    parser.add_argument("--prefix",
+                       type=str,
+                       default="run",
+                       help="Prefix for saved files")
+
+    parser.add_argument("--dataset_type",
+                       type=str,
+                       default="LSM",
+                       choices=["LSM", "RTM"],
+                       help="Type of dataset being processed")
+    
+    parser.add_argument("--norm",
+                       type=str,
+                       default="log1p_standard",
+                       choices=["log1p_standard", "standard", "minmax", "none"],
+                       help="Data normalization scheme")
+
+    parser.add_argument("--loss_type",
+                       type=str,
+                       default="mse",
+                       choices=["mse", "mae", "nmae", "nmse", "wmse", "logcosh", "smoothl1", "huber"],
+                       help="Loss function type")
+    
+    parser.add_argument("--beta_delta",
+                       type=float,
+                       default=1.0,
+                       help="Delta parameter for Huber/SmoothL1 loss")
+    
+    parser.add_argument("--learning_rate",
+                       type=float,
+                       default=0.001,
+                       help="Initial learning rate")
+    
+    parser.add_argument("--beta",
+                       type=float,
+                       default=0.05,
+                       help="Weighting factor for loss components")
+
+    parser.add_argument("--batch_size",
+                       type=int,
+                       default=16,
+                       help="Number of samples per batch")
+    
+    parser.add_argument("--tbatch",
+                       type=int,
+                       default=24,
+                       help="Temporal batch length for processing")
+    
+    parser.add_argument("--num_epochs",
+                       type=int,
+                       default=100,
+                       help="Total number of training epochs")
+    
+    parser.add_argument("--num_workers",
+                       type=int,
+                       default=4,
+                       help="Number of data loader workers")
+
+    parser.add_argument("--type",
+                       type=str,
+                       default="lstm",
+                       choices=["lstm", "gru", "fcn", "fullyconnected", "transformer", "cnn", "mlp"],
+                       help="Model architecture type")
+    
+    parser.add_argument("--hidden_size",
+                       type=int,
+                       default=256,
+                       help="Size of hidden layers")
+    
+    parser.add_argument("--num_layers",
+                       type=int,
+                       default=3,
+                       help="Number of model layers")
+    
+    parser.add_argument("--seq_length",
+                       type=int,
+                       default=10,
+                       help="Sequence length (None for default)")
+    
+    parser.add_argument("--feature_channel",
+                       type=int,
+                       default=6,
+                       help="Input feature channels (None for default)")
+    
+    parser.add_argument("--output_channel",
+                       type=int,
+                       default=4,
+                       help="Number of output channels")
+    
+    parser.add_argument("--embed_size",
+                       type=int,
+                       default=64,
+                       help="Embedding dimension (None for default)")
+    
+    parser.add_argument("--nhead",
+                       type=int,
+                       default=4,
+                       help="Attention heads (None for default)")
+    
+    parser.add_argument("--forward_expansion",
+                       type=int,
+                       default=4,
+                       help="Feed-forward expansion factor")
+    
+    parser.add_argument("--dropout",
+                       type=float,
+                       default=0.0,
+                       help="Dropout rate (None for no dropout)")
+
+    parser.add_argument("--model_name",
+                       type=str,
+                       default="",
+                       help="Custom model name (auto-generated if empty)")
+    
+    parser.add_argument("--save_model",
+                       type=lambda x: x.lower() == "true",
+                       default=False,
+                       help="Enable model checkpoint saving")
+    
+    parser.add_argument("--save_checkpoint_name",
+                       type=str,
+                       default="model",
+                       help="Base name for saved checkpoints")
+    
+    parser.add_argument("--save_per_samples",
+                       type=int,
+                       default=10000,
+                       help="Save checkpoint every N samples")
+    
+    parser.add_argument("--load_model",
+                       type=lambda x: x.lower() == "true",
+                       default=False,
+                       help="Load existing model")
+
+    parser.add_argument("--inference",
+                       type=lambda x: x.lower() == "true",
+                       default=False,
+                       help="Run in inference-only mode")
+    
+    parser.add_argument("--load_checkpoint_name",
+                       type=str,
+                       default="model.pth.tar",
+                       help="Checkpoint file to load")
+    
     args = parser.parse_args()
     return args
 
@@ -169,16 +240,6 @@ FileUtils.makedir(os.path.join("results", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("runs", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("checkpoints", args.main_folder, args.sub_folder))
 FileUtils.makedir(os.path.join("stats", args.main_folder, args.sub_folder))
-
-if args.random_throw == "True":
-    args.random_throw_boolean = True
-else:
-    args.random_throw_boolean = False
-
-if args.only_layer == "True":
-    args.only_layer_boolean = True
-else:
-    args.only_layer_boolean = False
 
 # Create a FileHandler to log the output to a file
 now = datetime.datetime.now()
@@ -309,9 +370,7 @@ logger.info(f"Train size: {len(train_dataset)}, Test size: {len(test_dataset)}")
 # ---------------------------------------------
 # Model Initialization
 # ---------------------------------------------
-model = load_model(
-    model_name=args.model_name, device=device, feature_channel=6, signal_length=10
-)
+model = load_model(args)
 model_info = ModelUtils.get_parameter_number(model)
 logger.info(f"Model Info: {model_info}")
 model = model.to(device)

@@ -1,14 +1,12 @@
-name: CI
+name: Documentation
 
 on:
   push:
-    branches: [ master, develop ]
-  pull_request:
-    branches: [ master ]
-  workflow_dispatch:  # Allow manual triggers
+    branches: [master]
+  workflow_dispatch:
 
 jobs:
-  checks:
+  build-docs:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,39 +25,39 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          uv pip install -e ".[ci,dev]"
+          # Install RTnn with docs dependencies (no heavy deps)
+          uv pip install -e ".[docs]"
 
-      - name: Run pre-commit
+      - name: Build documentation
         run: |
           source .venv/bin/activate
-          pre-commit run --all-files
+          cd docs
+          make clean
+          make html
+          echo "✅ Documentation built successfully!"
 
-      - name: Run unit tests
-        run: |
-          source .venv/bin/activate
-          python -m unittest tests.test_rnn
-          python -m unittest tests.test_fcn
-          python -m unittest tests.test_transformer
+      - name: Upload docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/build/html/
 
-      - name: Check package builds
-        run: uv build
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-docs
+    if: github.ref == 'refs/heads/master'
 
-      - name: Basic import test
-        run: |
-          source .venv/bin/activate
-          python -c "
-          try:
-              import torch
-              print('✅ PyTorch available')
-          except ImportError:
-              print('⚠️ PyTorch not available')
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation
+          path: public
 
-          import rtnn
-          print(f'✅ RTnn version: {rtnn.__version__}')
-          print('✅ Basic imports work')
-          "
-
-      - name: CLI version test
-        run: |
-          source .venv/bin/activate
-          rtnn --version
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.RTNN_PAGES_TOKEN }}
+          publish_dir: public
+          publish_branch: gh-pages
+          force_orphan: true

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rtnn"
 version = "0.1.0"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { file = "LICENSE" }
 description = "RTnn: Radiative Transfer Neural Networks for Climate Science"
 authors = [{ name = "Kazem Ardaneh", email = "kardaneh@ipsl.fr" }]

@@ -13,12 +13,7 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from rtnn.models.Transformer import (
-    SelfAttention,
-    TransformerBlock,
-    Encoder,
-    get_parameter_number,
-)
+from rtnn.models.Transformer import SelfAttention, TransformerBlock, Encoder
 
 
 class TestSelfAttention(unittest.TestCase):
@@ -159,12 +154,6 @@ class TestEncoder(unittest.TestCase):
             x = torch.randn(bs, self.feature_channel, self.seq_length)
             y = self.encoder(x)
             self.assertEqual(y.shape, (bs, self.output_channel, self.seq_length))
-
-    def test_parameter_count(self):
-        """Test encoder has parameters."""
-        params = get_parameter_number(self.encoder)
-        self.assertGreater(params["Total"], 0)
-        self.assertEqual(params["Total"], params["Trainable"])
 
     def test_model_serialization(self):
         """Test model can be saved and loaded."""

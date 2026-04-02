@@ -27,6 +27,7 @@ extensions = [
 
 # Mock heavy dependencies for faster doc building
 autodoc_mock_imports = [
+    "rtnn",
     "torch",
     "torchvision",
     "xarray",

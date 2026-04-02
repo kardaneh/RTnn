@@ -1,3 +1,24 @@
+"""
+Evaluation utilities for RTnn model assessment.
+
+This module provides comprehensive evaluation tools for radiative transfer
+neural network models, including custom loss functions, metric computation,
+and visualization helpers.
+
+The module includes:
+- Custom loss functions (NMSE, NMAE, combined MSE-MAE, LogCosh, Weighted MSE)
+- Metric calculators for evaluation (MSE, MAE, MBE, R², NMSE, NMAE, MARE, GMRAE)
+- Data normalization/de-normalization utilities
+- Absorption rate calculations
+- Main evaluation loop for LSM models
+
+Dependencies
+------------
+torch : For tensor operations and loss functions
+numpy : For numerical operations
+plot_helper : For visualization utilities
+"""
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -5,10 +26,27 @@ import sys
 import os
 
 sys.path.append("..")
-from plot_helper import plot_flux_and_abs, plot_flux_and_abs_lines
+from rtnn.plot_helper import plot_flux_and_abs, plot_flux_and_abs_lines
 
 
 class NMSELoss(nn.Module):
+    """
+    Normalized Mean Squared Error Loss.
+
+    Computes MSE normalized by the mean square of the target values.
+    Useful when the scale of the target variable varies.
+
+    Parameters
+    ----------
+    eps : float, optional
+        Small constant for numerical stability. Default is 1e-8.
+
+    Examples
+    --------
+    >>> criterion = NMSELoss()
+    >>> loss = criterion(predictions, targets)
+    """
+
     def __init__(self, eps=1e-8):
         super(NMSELoss, self).__init__()
         self.eps = eps
@@ -21,6 +59,18 @@ class NMSELoss(nn.Module):
 
 
 class NMAELoss(nn.Module):
+    """
+    Normalized Mean Absolute Error Loss.
+
+    Computes MAE normalized by the mean absolute value of the target.
+    Provides a scale-invariant error metric.
+
+    Parameters
+    ----------
+    eps : float, optional
+        Small constant for numerical stability. Default is 1e-8.
+    """
+
     def __init__(self, eps=1e-8):
         super(NMAELoss, self).__init__()
         self.eps = eps
@@ -33,6 +83,17 @@ class NMAELoss(nn.Module):
 
 
 class CombinedMSEMAELoss(nn.Module):
+    """
+    Combined MSE and MAE loss with adjustable weighting.
+
+    Allows balancing between MSE (sensitive to outliers) and MAE (robust).
+
+    Parameters
+    ----------
+    alpha : float, optional
+        Weight for MSE component. MAE weight is (1 - alpha). Default is 0.5.
+    """
+
     def __init__(self, alpha=0.5):
         super(CombinedMSEMAELoss, self).__init__()
         self.alpha = alpha
@@ -47,11 +108,34 @@ class CombinedMSEMAELoss(nn.Module):
 
 
 class LogCoshLoss(nn.Module):
+    """
+    Log-Cosh loss function.
+
+    Smooth approximation of MAE that is differentiable everywhere and less
+    sensitive to outliers than MSE.
+
+    Formula: L = mean(log(cosh(pred - target)))
+    """
+
     def forward(self, pred, target):
         return torch.mean(torch.log(torch.cosh(pred - target + 1e-8)))
 
 
 class WMSELoss(nn.Module):
+    """
+    Weighted Mean Squared Error Loss.
+
+    Applies higher weight to smaller target values, useful for variables
+    where small values are important.
+
+    Parameters
+    ----------
+    epsilon : float, optional
+        Small constant for numerical stability. Default is 1e-4.
+    gamma : float, optional
+        Exponent for weight calculation. Default is 2.
+    """
+
     def __init__(self, epsilon=1e-4, gamma=2):
         super().__init__()
         self.eps = epsilon
@@ -64,6 +148,23 @@ class WMSELoss(nn.Module):
 
 
 class MetricTracker(object):
+    """
+    Tracks and aggregates metric values across batches.
+
+    Provides functionality to update metrics with batch values and compute
+    mean statistics over the entire dataset.
+
+    Examples
+    --------
+    >>> tracker = MetricTracker()
+    >>> tracker.update(0.5, 32)  # value=0.5, count=32
+    >>> tracker.update(0.6, 32)
+    >>> tracker.getmean()
+    0.55
+    >>> tracker.getsqrtmean()
+    0.7416
+    """
+
     def __init__(self):
         self.reset()
 
@@ -83,6 +184,39 @@ class MetricTracker(object):
 
 
 def get_loss_function(loss_type, args):
+    """
+    Factory function to instantiate the requested loss function.
+
+    Parameters
+    ----------
+    loss_type : str
+        Type of loss function. Options:
+        - 'mse': Mean Squared Error
+        - 'mae': Mean Absolute Error
+        - 'nmae': Normalized Mean Absolute Error
+        - 'nmse': Normalized Mean Squared Error
+        - 'wmse': Weighted Mean Squared Error
+        - 'logcosh': Log-Cosh loss
+        - 'smoothl1': Smooth L1 Loss (Huber-like)
+        - 'huber': Huber Loss
+    args : argparse.Namespace
+        Arguments containing loss-specific parameters (e.g., beta_delta for Huber).
+
+    Returns
+    -------
+    torch.nn.Module
+        Initialized loss function.
+
+    Raises
+    ------
+    ValueError
+        If loss_type is not supported or required parameters are missing.
+
+    Examples
+    --------
+    >>> args = argparse.Namespace(beta_delta=1.0)
+    >>> criterion = get_loss_function('huber', args)
+    """
     if loss_type == "mse":
         return nn.MSELoss()
     elif loss_type == "mae":
@@ -109,26 +243,77 @@ def get_loss_function(loss_type, args):
 
 def mse_all(pred, true):
     """
-    Mean Squared Error
+    Compute Mean Squared Error.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions.
+    true : torch.Tensor
+        Ground truth.
+
+    Returns
+    -------
+    tuple
+        (num_elements, mse_value)
     """
     return pred.numel(), torch.mean((pred - true) ** 2)
 
 
 def mbe_all(pred, true):
     """
-    Mean Bias Error
+    Compute Mean Bias Error.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions.
+    true : torch.Tensor
+        Ground truth.
+
+    Returns
+    -------
+    tuple
+        (num_elements, mbe_value)
     """
     return pred.numel(), torch.mean(pred - true)
 
 
 def mae_all(pred, true):
     """
-    Mean Absolute Error
+    Compute Mean Absolute Error.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions.
+    true : torch.Tensor
+        Ground truth.
+
+    Returns
+    -------
+    tuple
+        (num_elements, mae_value)
     """
     return pred.numel(), torch.mean(torch.abs(pred - true))
 
 
 def r2_all(pred, true):
+    """
+    Compute R² (coefficient of determination).
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions.
+    true : torch.Tensor
+        Ground truth.
+
+    Returns
+    -------
+    tuple
+        (num_elements, r2_value)
+    """
     count = pred.numel()
     mse = torch.mean((pred - true) ** 2)
     var = torch.var(true)
@@ -141,7 +326,21 @@ def r2_all(pred, true):
 
 
 def nmae_all(pred, true):
-    """ """
+    """
+    Compute Normalized Mean Absolute Error.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions.
+    true : torch.Tensor
+        Ground truth.
+
+    Returns
+    -------
+    tuple
+        (num_elements, nmae_value)
+    """
     mae = torch.mean(torch.abs(pred - true))
     norm = torch.mean(torch.abs(true)) + 1e-8
     nmae = mae / norm
@@ -150,7 +349,19 @@ def nmae_all(pred, true):
 
 def nmse_all(pred, true):
     """
-    Normalized Mean Squared Error (NMSE)
+    Compute Normalized Mean Squared Error.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions.
+    true : torch.Tensor
+        Ground truth.
+
+    Returns
+    -------
+    tuple
+        (num_elements, nmse_value)
     """
     mse = torch.mean((pred - true) ** 2)
     norm = torch.mean(true**2) + 1e-8
@@ -159,14 +370,42 @@ def nmse_all(pred, true):
 
 
 def mare_all(pred, true):
-    """ """
+    """
+    Compute Mean Absolute Relative Error.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions.
+    true : torch.Tensor
+        Ground truth.
+
+    Returns
+    -------
+    tuple
+        (num_elements, mare_value)
+    """
     relative_error = torch.abs(pred - true) / (torch.abs(true) + 1e-8)
     mare = torch.mean(relative_error)
     return pred.numel(), mare
 
 
 def gmrae_all(pred, true):
-    """ """
+    """
+    Compute Geometric Mean Relative Absolute Error.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions.
+    true : torch.Tensor
+        Ground truth.
+
+    Returns
+    -------
+    tuple
+        (num_elements, gmrae_value)
+    """
     eps = 1e-8
     relative_errors = torch.abs(pred - true) / (torch.abs(true) + eps)
     log_rel_errors = torch.log(relative_errors + eps)
@@ -175,7 +414,42 @@ def gmrae_all(pred, true):
 
 
 def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
-    """ """
+    """
+    Reverse normalization to recover original physical values.
+
+    Applies inverse transformation based on the normalization method used
+    during preprocessing.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Normalized predictions of shape (batch, channels, seq_length).
+    targ : torch.Tensor
+        Normalized targets.
+    norm_mapping : dict
+        Dictionary containing normalization statistics for each variable.
+    normalization_type : dict
+        Dictionary mapping variable names to normalization types.
+    idxmap : dict
+        Dictionary mapping channel indices to variable names.
+
+    Returns
+    -------
+    tuple
+        (unnormalized_predictions, unnormalized_targets)
+
+    Supported normalization types:
+        - minmax: x * (max - min) + min
+        - standard: x * std + mean
+        - robust: x * iqr + median
+        - log1p_*: expm1(x * scale + offset)
+        - sqrt_*: (x * scale + offset) ** 2
+
+    Examples
+    --------
+    >>> idxmap = {0: 'collim_alb', 1: 'collim_tran'}
+    >>> upred, utarg = unnorm_mpas(pred, targ, norm_mapping, norm_type, idxmap)
+    """
     device = pred.device
     upred = torch.zeros_like(pred, device=device)
     utarg = torch.zeros_like(targ, device=device)
@@ -258,7 +532,34 @@ def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
 
 
 def calc_abs(pred, targ, p=None):
-    """ """
+    """
+    Calculate absorption rates from flux predictions.
+
+    Computes net absorption rates for two channel groups (1-2 and 3-4) using
+    the difference between upwelling and downwelling fluxes.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predictions of shape (batch, 4, seq_length) where channels 0-1 are
+        for first group and 2-3 for second group.
+    targ : torch.Tensor
+        Targets of same shape as pred.
+    p : torch.Tensor, optional
+        Pressure levels for atmospheric heating rate calculation.
+        If provided, computes heating rate using pressure gradients.
+
+    Returns
+    -------
+    tuple
+        (abs12_pred, abs12_targ, abs34_pred, abs34_targ) where each is a
+        tensor of shape (batch, 1, seq_length-1).
+
+    Notes
+    -----
+    - If p is None: returns d(net) where net = up - down
+    - If p is provided: returns heating rate using d(net)/dp
+    """
     abs12_pred = calc_hr(pred[:, 0:1, :], pred[:, 1:2, :], p)
     abs12_targ = calc_hr(targ[:, 0:1, :], targ[:, 1:2, :], p)
     abs34_pred = calc_hr(pred[:, 2:3, :], pred[:, 3:4, :], p)
@@ -268,7 +569,56 @@ def calc_abs(pred, targ, p=None):
 
 
 def calc_hr(up, down, p=None):
-    """ """
+    """
+    Calculate heating rate from upwelling and downwelling fluxes.
+
+    Computes the net radiative heating rate by taking the vertical derivative
+    of net flux (upwelling - downwelling). If pressure levels are provided,
+    calculates the actual atmospheric heating rate using pressure gradients.
+
+    Parameters
+    ----------
+    up : torch.Tensor
+        Upwelling flux tensor of shape (batch, channels, seq_length).
+    down : torch.Tensor
+        Downwelling flux tensor of shape (batch, channels, seq_length).
+    p : torch.Tensor, optional
+        Pressure levels of shape (seq_length,) or (batch, seq_length).
+        If provided, computes physical heating rate. If None, returns
+        the derivative of net flux.
+
+    Returns
+    -------
+    torch.Tensor
+        If p is None:
+            Returns the negative derivative of net flux with respect to
+            level index: -d(net)/dz (or d(net)/d(level)) of shape
+            (batch, channels, seq_length - 1)
+        If p is provided:
+            Returns the atmospheric heating rate in K/day using the formula:
+            heating_rate = (g * 8.64e4) / (cp * 100) * d(net)/dp
+            where g = 9.8066 m/s², cp = 1004 J/(kg·K) (calculated as 7*R/2 with R=287)
+
+    Notes
+    -----
+    - The derivative is computed using finite differences: net[i+1] - net[i]
+    - For pressure-based calculation, uses dp = p[i+1] - p[i]
+    - The factor 8.64e4 converts from W/m² to K/day
+    - The factor 100 converts pressure from hPa to Pa
+
+    Examples
+    --------
+    >>> # Calculate net flux derivative
+    >>> hr = calc_hr(up, down)
+    >>> hr.shape
+    torch.Size([32, 4, 9])  # for seq_length=10
+
+    >>> # Calculate actual heating rate with pressure levels
+    >>> pressure = torch.linspace(1000, 100, 10)  # hPa
+    >>> heating_rate = calc_hr(up, down, p=pressure)
+    >>> heating_rate.shape
+    torch.Size([32, 4, 9])
+    """
     net = up - down
     dnet = net - torch.roll(net, 1, 2)
 
@@ -287,6 +637,47 @@ def calc_hr(up, down, p=None):
 def check_accuracy_evaluate_lsm(
     loader, model, norm_mapping, normalization_type, index_mapping, device, args, epoch
 ):
+    """
+    Evaluate model accuracy on LSM dataset.
+
+    Performs comprehensive evaluation including:
+    - Loss computation for main fluxes and absorption rates
+    - Metric calculation (NMAE, NMSE, R²)
+    - Optional plotting of predictions vs targets
+
+    Parameters
+    ----------
+    loader : torch.utils.data.DataLoader
+        Data loader for evaluation dataset.
+    model : torch.nn.Module
+        Trained model to evaluate.
+    norm_mapping : dict
+        Normalization statistics for variables.
+    normalization_type : dict
+        Normalization types per variable.
+    index_mapping : dict
+        Mapping from channel indices to variable names.
+    device : torch.device
+        Device to run evaluation on.
+    args : argparse.Namespace
+        Arguments containing loss type, beta, etc.
+    epoch : int
+        Current epoch number (for plotting).
+
+    Returns
+    -------
+    tuple
+        (valid_loss, valid_metrics) where valid_metrics is a dictionary
+        containing computed metrics for fluxes, abs12, and abs34.
+
+    Examples
+    --------
+    >>> valid_loss, metrics = check_accuracy_evaluate_lsm(
+    ...     test_loader, model, norm_mapping, norm_type, idxmap, device, args, epoch
+    ... )
+    >>> print(f"Validation loss: {valid_loss:.4f}")
+    >>> print(f"NMAE: {metrics['fluxes_NMAE']:.4f}")
+    """
     model.eval()
 
     valid_loss_types = [

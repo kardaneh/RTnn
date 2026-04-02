@@ -4,13 +4,12 @@
 # 1. Basic
 # ======================
 MODE="Debug"  # 'Prod' or 'Debug'
-DATE=$(date +"%Y%m%d")
 TODAY=$(date +"%Y%m%d_%H%M%S")
 
 # ======================
-# 2. Model
+# 2. Model Configuration
 # ======================
-type="transformer"
+type="lstm"
 hidden_size=64
 num_layers=2
 output_channel=4
@@ -22,28 +21,28 @@ forward_expansion=4
 dropout=0.0
 
 # ======================
-# 3. Training
+# 3. Training Configuration
 # ======================
 batch_size=16
 time_batch=1
 num_epochs=2
-learning_rate=0.001
+learning_rate=0.0001
 loss_type="huber"
 beta=0.2
 beta_delta=1.0
 num_workers=16
 
 # ======================
-# 4. Data
+# 4. Data Configuration
 # ======================
 train_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large/"
 test_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large/"
-train_years="1996-1998"
+train_years="1998"
 test_year="1999"
 norm="log1p_standard"
 
 # ======================
-# 5. Output
+# 5. Output Configuration
 # ======================
 save_model="True"
 save_checkpoint_name="model"
@@ -51,47 +50,63 @@ save_per_samples=10000
 load_model="False"
 
 # ======================
-# Script
+# Generate tags
 # ======================
-
 lr_str="${learning_rate//./d}"
 beta_str="${beta//./d}"
-bd_str="${beta_delta//./d}"
-
-if [[ "$loss_type" == "huber" || "$loss_type" == "smoothl1" ]]; then
-  bd_tag="_BetaDelta_${bd_str}"
-else
-  bd_tag=""
-fi
 
 model_parts=("$type" "h${hidden_size}" "l${num_layers}")
-[ -n "${output_channel+x}" ] && model_parts+=("out${output_channel}")
-[ -n "${seq_length+x}" ] && model_parts+=("s${seq_length}")
-[ -n "${feature_channel+x}" ] && model_parts+=("fc${feature_channel}")
-[ -n "${embed_size+x}" ] && model_parts+=("em${embed_size}")
-[ -n "${nhead+x}" ] && model_parts+=("nh${nhead}")
-[ -n "${forward_expansion+x}" ] && model_parts+=("fe${forward_expansion}")
-[ -n "${dropout+x}" ] && model_parts+=("do${dropout}")
-
 model_name=$(IFS=_ ; echo "${model_parts[*]}")
-tag="${model_name}_nrm_${norm}_l_${loss_type}${bd_tag}_sb_${batch_size}_tb_${time_batch}_nw_${num_workers}_ne_${num_epochs}_lr_${lr_str}_beta_${beta_str}"
-main_folder="${MODE}__${model_name}_sb_${batch_size}_tb_${time_batch}_nw_${num_workers}_ne_${num_epochs}"
-sub_folder="nrm_${norm}_lr_${lr_str}_beta_${beta_str}_l_${loss_type}${bd_tag}_date_${TODAY}"
+tag="${model_name}_nrm_${norm}_l_${loss_type}_sb_${batch_size}_ne_${num_epochs}"
+main_folder="${MODE}__${model_name}_sb_${batch_size}_ne_${num_epochs}"
+sub_folder="nrm_${norm}_lr_${lr_str}_beta_${beta_str}_date_${TODAY}"
 prefix="$sub_folder"
 
-run_script="run_lsm_${tag}.sh"
-sbatch_script="sbatch_lsm_${tag}.sh"
+sbatch_script="sbatch_rtnn_${tag}.sh"
 
 # ======================
-# Run Script
+# Create SBATCH script
 # ======================
-cat > $run_script <<EOF
+cat > $sbatch_script <<EOF
 #!/usr/bin/env bash
-echo "Starting training: $TODAY"
-echo "Model: $model_name"
-echo "Config: $tag"
+#SBATCH -A EUHPC_D27_095
+#SBATCH -p boost_usr_prod
+EOF
 
-python src/main_lsm.py \\
+[ "$MODE" == "Debug" ] && echo "#SBATCH --qos=boost_qos_dbg" >> $sbatch_script
+
+cat >> $sbatch_script <<EOF
+#SBATCH --time=$([ "$MODE" == "Debug" ] && echo "00:30:00" || echo "24:00:00")
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=32
+#SBATCH --gpus-per-node=4
+#SBATCH --mem-per-gpu=64G
+#SBATCH --job-name=rtnn_${tag}
+#SBATCH --error=rtnn_${tag}_%j.err
+#SBATCH --output=rtnn_${tag}_%j.out
+
+# Load system modules (these provide PyTorch, CUDA, etc.)
+module load profile/deeplrn
+module load cineca-ai
+
+# Activate virtual environment (only for pure Python packages)
+source .venv/bin/activate
+
+# Print environment info
+echo "=== Environment Info ==="
+echo "PyTorch version: \$(python -c 'import torch; print(torch.__version__)')"
+echo "CUDA available: \$(python -c 'import torch; print(torch.cuda.is_available())')"
+echo "CUDA version: \$(python -c 'import torch; print(torch.version.cuda)')"
+echo "GPU count: \$(python -c 'import torch; print(torch.cuda.device_count())')"
+echo ""
+
+echo "=== RTnn Training ==="
+echo "Version: \$(python -c 'import rtnn; print(rtnn.__version__)')"
+echo "Model: $model_name"
+echo "Start time: \$(date)"
+
+# Run training
+rtnn \\
     --root_dir "./" \\
     --main_folder "$main_folder" \\
     --sub_folder "$sub_folder" \\
@@ -99,17 +114,13 @@ python src/main_lsm.py \\
     --type "$type" \\
     --hidden_size "$hidden_size" \\
     --num_layers "$num_layers" \\
-EOF
-
-[ -n "${output_channel+x}" ] && echo "    --output_channel \"$output_channel\" \\" >> $run_script
-[ -n "${seq_length+x}" ] && echo "    --seq_length \"$seq_length\" \\" >> $run_script
-[ -n "${feature_channel+x}" ] && echo "    --feature_channel \"$feature_channel\" \\" >> $run_script
-[ -n "${embed_size+x}" ] && echo "    --embed_size \"$embed_size\" \\" >> $run_script
-[ -n "${nhead+x}" ] && echo "    --nhead \"$nhead\" \\" >> $run_script
-[ -n "${forward_expansion+x}" ] && echo "    --forward_expansion \"$forward_expansion\" \\" >> $run_script
-[ -n "${dropout+x}" ] && echo "    --dropout \"$dropout\" \\" >> $run_script
-
-cat >> $run_script <<EOF
+    --output_channel "$output_channel" \\
+    --seq_length "$seq_length" \\
+    --feature_channel "$feature_channel" \\
+    --embed_size "$embed_size" \\
+    --nhead "$nhead" \\
+    --forward_expansion "$forward_expansion" \\
+    --dropout "$dropout" \\
     --model_name "$model_name" \\
     --batch_size "$batch_size" \\
     --tbatch "$time_batch" \\
@@ -128,52 +139,11 @@ cat >> $run_script <<EOF
     --save_checkpoint_name "$save_checkpoint_name" \\
     --save_per_samples "$save_per_samples" \\
     --load_model "$load_model"
-EOF
 
-chmod +x $run_script
-
-# ======================
-# SBATCH Script
-# ======================
-cat > $sbatch_script <<EOF
-#!/usr/bin/env bash
-#SBATCH -A EUHPC_D17_070
-#SBATCH -p boost_usr_prod
-EOF
-
-[ "$MODE" == "Debug" ] && echo "#SBATCH --qos=boost_qos_dbg" >> $sbatch_script
-
-cat >> $sbatch_script <<EOF
-#SBATCH --time=$([ "$MODE" == "Debug" ] && echo "00:30:00" || echo "24:00:00")
-#SBATCH -N 1
-#SBATCH --ntasks-per-node=32
-#SBATCH --gpus-per-node=4
-#SBATCH --mem-per-gpu=64G
-#SBATCH --job-name=lsm_${tag}
-#SBATCH --error=lsm_${tag}_%j.err
-#SBATCH --output=lsm_${tag}_%j.out
-
-module load profile/deeplrn
-module load cineca-ai
-source /leonardo/home/userexternal/kardaneh/RTnn/python-venv/bin/activate
-
-./$run_script
+echo "End time: \$(date)"
 EOF
 
 chmod +x $sbatch_script
 
-# ======================
-# Output
-# ======================
-echo "=== Setup Complete ==="
-echo "Model: $model_name"
-echo "Tag: $tag"
-echo "Main folder: $main_folder"
-echo "Sub folder: $sub_folder"
-echo "Prefix: $prefix"
-echo ""
-echo "Run script: ./$run_script"
-echo "SBATCH script: ./$sbatch_script"
-echo ""
-echo "To start training:"
-echo "  sbatch ./$sbatch_script"
+echo "Created: $sbatch_script"
+echo "Run with: sbatch $sbatch_script"

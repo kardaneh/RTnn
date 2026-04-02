@@ -1,0 +1,57 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install ONLY documentation packages
+        run: |
+          # Install ONLY what's needed for Sphinx
+          pip install sphinx sphinx-rtd-theme myst-parser sphinx-copybutton
+
+      - name: Build documentation
+        run: |
+          cd docs
+          make clean
+          make html
+          echo "✅ Documentation built successfully!"
+
+      - name: Upload docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/build/html/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-docs
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation
+          path: public
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GH_PAGES_TOKEN }}
+          publish_dir: public
+          publish_branch: gh-pages
+          force_orphan: true  # Clean history for private repo

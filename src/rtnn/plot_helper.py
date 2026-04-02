@@ -1,3 +1,25 @@
+"""
+Plotting utilities for RTnn model visualization.
+
+This module provides functions for visualizing model predictions, training metrics,
+and data statistics. It includes tools for creating line plots, hexbin plots,
+histograms, and metric history plots using matplotlib.
+
+The module supports:
+- Visualization of radiative transfer model predictions vs targets
+- Absorption rate plotting for different channels
+- Training and validation metric histories
+- Statistical distributions of input variables
+- Various normalization scheme visualizations
+
+Dependencies
+------------
+matplotlib : For plotting
+mpltex : For line styles
+scikit-learn : For R² score calculation
+xarray : For NetCDF data handling
+"""
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
@@ -36,7 +58,74 @@ mpl.update(params)
 
 
 def stats(file_list, logger, output_dir, norm_mapping=None):
-    """ """
+    """
+    Compute statistics and generate histograms for variables in NetCDF files.
+
+    Reads a collection of NetCDF files, computes descriptive statistics for each
+    variable, and generates histogram plots saved to disk. In addition to raw
+    statistics, transformed statistics using logarithmic (log1p) and square-root
+    transformations are also computed.
+
+    Parameters
+    ----------
+    file_list : list of str
+        Paths to the NetCDF files to process.
+    logger : logging.Logger
+        Logger used to report progress and informational messages.
+    output_dir : str
+        Directory where histogram plots will be saved.
+    norm_mapping : dict, optional
+        Dictionary to update with computed statistics. If None, a new dictionary
+        is created. Default is None.
+
+    Returns
+    -------
+    dict
+        Dictionary mapping variable names to their computed statistics. Each
+        variable contains the following entries:
+
+        Raw statistics:
+            - vmin : float
+            - vmax : float
+            - vmean : float
+            - vstd : float
+
+        Robust statistics:
+            - q1 : float
+            - q3 : float
+            - iqr : float
+            - median : float
+
+        Log-transformed statistics (log1p):
+            - log_min : float
+            - log_max : float
+            - log_mean : float
+            - log_std : float
+            - log_q1 : float
+            - log_q3 : float
+            - log_iqr : float
+            - log_median : float
+
+        Square-root-transformed statistics:
+            - sqrt_min : float
+            - sqrt_max : float
+            - sqrt_mean : float
+            - sqrt_std : float
+            - sqrt_q1 : float
+            - sqrt_q3 : float
+            - sqrt_iqr : float
+            - sqrt_median : float
+
+    Examples
+    --------
+    >>> norm_mapping = stats(
+    ...     file_list=["data_1995.nc", "data_1996.nc"],
+    ...     logger=logger,
+    ...     output_dir="./stats"
+    ... )
+    >>> norm_mapping["coszang"]["vmean"]
+    0.5
+    """
     variable_data = collections.defaultdict(list)
 
     if norm_mapping is None:
@@ -135,6 +224,28 @@ def stats(file_list, logger, output_dir, norm_mapping=None):
 
 
 def plot_RTM(predicts, targets, filename):
+    """
+    Plot radiative transfer model predictions against targets.
+
+    Creates a 2x2 grid of line plots showing predicted vs true values for
+    four different flux channels. Plots random samples from the batch.
+
+    Parameters
+    ----------
+    predicts : torch.Tensor
+        Model predictions of shape (batch_size, 4, seq_length).
+    targets : torch.Tensor
+        Ground truth targets of shape (batch_size, 4, seq_length).
+    filename : str
+        Path where the plot will be saved.
+
+    Notes
+    -----
+    - Plots up to 7 random samples from the batch
+    - Uses mpltex for line styles
+    - Y-axis range: 0-1
+    - X-axis: level indices
+    """
     predicts = predicts.cpu().detach().numpy()
     targets = targets.cpu().detach().numpy()
     num_samples = predicts.shape[0]
@@ -191,6 +302,30 @@ def plot_RTM(predicts, targets, filename):
 
 
 def plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, filename):
+    """
+    Plot absorption rates for two channel groups.
+
+    Creates a 2-panel figure showing absorption rates for channels 1-2 and 3-4.
+
+    Parameters
+    ----------
+    abs12_predict : torch.Tensor
+        Predicted absorption for channels 1-2 of shape (batch_size, 1, seq_length).
+    abs12_target : torch.Tensor
+        True absorption for channels 1-2.
+    abs34_predict : torch.Tensor
+        Predicted absorption for channels 3-4.
+    abs34_target : torch.Tensor
+        True absorption for channels 3-4.
+    filename : str
+        Path where the plot will be saved.
+
+    Notes
+    -----
+    - Upper panel: channels 1-2
+    - Lower panel: channels 3-4
+    - Plots random samples from the batch
+    """
     abs12_predict = abs12_predict.cpu().detach().numpy()
     abs12_target = abs12_target.cpu().detach().numpy()
     abs34_predict = abs34_predict.cpu().detach().numpy()
@@ -265,6 +400,35 @@ def plot_flux_and_abs_lines(
     abs34_target=None,
     filename="output_lines.png",
 ):
+    """
+    Create line plots for fluxes and absorption rates.
+
+    Generates a multi-panel figure with line plots for four flux channels and
+    optionally two absorption panels. Each panel shows predictions vs targets.
+
+    Parameters
+    ----------
+    predicts : torch.Tensor
+        Model predictions for fluxes of shape (batch_size, 4, seq_length).
+    targets : torch.Tensor
+        Ground truth fluxes.
+    abs12_predict : torch.Tensor, optional
+        Predicted absorption for channels 1-2.
+    abs12_target : torch.Tensor, optional
+        True absorption for channels 1-2.
+    abs34_predict : torch.Tensor, optional
+        Predicted absorption for channels 3-4.
+    abs34_target : torch.Tensor, optional
+        True absorption for channels 3-4.
+    filename : str, optional
+        Output filename. Default is "output_lines.png".
+
+    Notes
+    -----
+    Figure layout:
+        - 2x2 grid for fluxes (upwelling/downwelling for two channels)
+        - Optional 1x2 grid for absorption rates (if provided)
+    """
     predicts = predicts.cpu().detach().numpy()
     targets = targets.cpu().detach().numpy()
     include_abs12 = abs12_predict is not None and abs12_target is not None
@@ -384,6 +548,38 @@ def plot_flux_and_abs(
     abs34_target=None,
     filename="output.png",
 ):
+    """
+    Create hexbin plots for fluxes and absorption rates.
+
+    Generates a multi-panel figure with hexbin density plots showing the
+    relationship between predicted and true values. Useful for assessing
+    prediction accuracy across the entire dataset.
+
+    Parameters
+    ----------
+    predicts : torch.Tensor
+        Model predictions for fluxes of shape (batch_size, 4, seq_length).
+    targets : torch.Tensor
+        Ground truth fluxes.
+    abs12_predict : torch.Tensor, optional
+        Predicted absorption for channels 1-2.
+    abs12_target : torch.Tensor, optional
+        True absorption for channels 1-2.
+    abs34_predict : torch.Tensor, optional
+        Predicted absorption for channels 3-4.
+    abs34_target : torch.Tensor, optional
+        True absorption for channels 3-4.
+    filename : str, optional
+        Output filename. Default is "output.png".
+
+    Notes
+    -----
+    - Hexbin plots use logarithmic color scale
+    - Includes diagonal reference line (y=x)
+    - Displays R² score in the top-left corner of each panel
+    - Shared colorbar on the right
+    """
+
     include_abs12 = abs12_predict is not None and abs12_target is not None
     include_abs34 = abs34_predict is not None and abs34_target is not None
     include_abs = include_abs12 and include_abs34
@@ -506,16 +702,26 @@ def plot_metric_histories(
     train_history, valid_history, filename="training_validation_metrics.png"
 ):
     """
-    Plots training and validation histories for all tracked metrics.
+    Plot training and validation metrics over epochs.
 
-    Parameters:
-    -----------
+    Creates a multi-panel figure showing the evolution of various metrics
+    (e.g., NMAE, NMSE, R2) over training epochs.
+
+    Parameters
+    ----------
     train_history : dict
-        Dictionary containing training metrics history.
+        Dictionary with metric names as keys and lists of training values.
     valid_history : dict
-        Dictionary containing validation metrics history.
-    filename : str
-        Output image file name for the plot.
+        Dictionary with metric names as keys and lists of validation values.
+    filename : str, optional
+        Output filename. Default is "training_validation_metrics.png".
+
+    Notes
+    -----
+    - Metrics are plotted on a logarithmic scale
+    - Each metric gets its own panel
+    - Panels are arranged in a grid (3 columns)
+    - Blue lines: training, Orange lines: validation
     """
     num_metrics = len(train_history)
     cols = 3
@@ -546,16 +752,25 @@ def plot_loss_histories(
     train_loss, valid_loss, filename="training_validation_loss.png"
 ):
     """
-    Plots training and validation loss in a single panel.
+    Plot training and validation loss over epochs.
 
-    Parameters:
-    -----------
+    Creates a single-panel figure showing the loss evolution during training.
+
+    Parameters
+    ----------
     train_loss : list or array
-        History of training loss values.
+        Training loss values over epochs.
     valid_loss : list or array
-        History of validation loss values.
-    filename : str
-        Output image file name for the plot.
+        Validation loss values over epochs.
+    filename : str, optional
+        Output filename. Default is "training_validation_loss.png".
+
+    Notes
+    -----
+    - Uses logarithmic scale for y-axis
+    - Blue line: training loss
+    - Orange line: validation loss
+    - Includes grid for better readability
     """
     fig = plt.figure(figsize=(8, 5))
     ax = fig.add_subplot(111)

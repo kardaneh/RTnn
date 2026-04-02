@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: |
+          # Install all dependencies including torch for GitHub Actions
+          uv pip install torch numpy matplotlib scipy pandas xarray netcdf4 h5netcdf tqdm tensorboard scikit-learn seaborn rich mpltex
+          uv pip install -e ".[dev]"
+
+      - name: Run pre-commit
+        run: uv run pre-commit run --all-files
+
+      - name: Run unit tests
+        run: |
+          uv run python -m unittest tests.test_rnn
+          uv run python -m unittest tests.test_fcn
+          uv run python -m unittest tests.test_transformer
+
+      - name: Check package builds
+        run: uv build
+
+      - name: Basic import test
+        run: |
+          uv run python -c "
+          import sys
+
+          # Mock torch for basic import test if needed
+          class Mock:
+              def __getattr__(self, name): return Mock()
+              def __call__(self, *args, **kwargs): return Mock()
+
+          # Only mock if torch not available
+          try:
+              import torch
+              print('✅ PyTorch available')
+          except ImportError:
+              sys.modules['torch'] = Mock()
+              print('⚠️ PyTorch mocked for import test')
+
+          import rtnn
+          print(f'✅ RTnn version: {rtnn.__version__}')
+          print('✅ Basic imports work')
+          "
+
+      - name: CLI version test
+        run: |
+          uv run rtnn --version

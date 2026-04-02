@@ -1,17 +1,137 @@
+# Copyright 2026 IPSL / CNRS / Sorbonne University
+# Authors: Kazem Ardaneh
+#
+# This work is licensed under the Creative Commons
+# Attribution-NonCommercial-ShareAlike 4.0 International License.
+# To view a copy of this license, visit
+# http://creativecommons.org/licenses/by-nc-sa/4.0/
+
 import torch
 from torch.utils.data import Dataset
 import numpy as np
 import xarray as xr
 from collections import defaultdict
 import re
+from typing import Dict, List, Tuple, Any
 
 
 class DataPreprocessor(Dataset):
-    """ """
+    """
+    Dataset class for preprocessing LSM (Land Surface Model) data.
+
+    This class handles loading and preprocessing of NetCDF files containing
+    climate data, with support for multiple years, spatial and temporal batching,
+    and various normalization techniques.
+
+    Parameters
+    ----------
+    logger : object
+        Logger instance for logging messages.
+    dfs : List[str]
+        List of file paths to NetCDF files.
+    stime : int
+        Start time index.
+    tstep : int
+        Number of time steps per file.
+    tbatch : int
+        Temporal batch size.
+    norm_mapping : Dict, optional
+        Dictionary containing normalization statistics for each variable.
+        Default is empty dict.
+    normalization_type : Dict, optional
+        Dictionary specifying normalization type for each variable.
+        Default is empty dict.
+
+    Attributes
+    ----------
+    logger : object
+        Logger instance.
+    stime : int
+        Start time index.
+    tstep : int
+        Time steps per file.
+    tbatch : int
+        Temporal batch size.
+    norm_mapping : Dict
+        Normalization statistics.
+    normalization_type : Dict
+        Normalization types per variable.
+    sbatch : int
+        Number of spatial batches.
+    years : List[int]
+        Sorted list of years in the dataset.
+    etime : int
+        End time index.
+    dfs : List[Tuple[int, int, str]]
+        List of (year, spatial_index, file_path) tuples.
+    time_blocks : np.ndarray
+        Shuffled time blocks.
+    min_dims : Dict[str, int]
+        Minimum dimensions across files.
+    cosz : List[str]
+        Cosine of solar zenith angle variable names.
+    lai : List[str]
+        Leaf area index variable names.
+    ssa : List[str]
+        Single scattering albedo variable names.
+    rs : List[str]
+        Surface reflectance variable names.
+    ov : List[str]
+        Output variable names.
+
+    Examples
+    --------
+    >>> from rtnn.logger import Logger
+    >>> logger = Logger()
+    >>> files = ["data_1995.nc", "data_1996.nc"]
+    >>> dataset = DataPreprocessor(
+    ...     logger=logger,
+    ...     dfs=files,
+    ...     stime=0,
+    ...     tstep=100,
+    ...     tbatch=24,
+    ...     norm_mapping={},
+    ...     normalization_type={}
+    ... )
+    >>> len(dataset)
+    100
+    >>> features, targets = dataset[0]
+    >>> features.shape
+    torch.Size([schunk, feature_channels, seq_length])
+    >>> targets.shape
+    torch.Size([schunk, output_channels, seq_length])
+    """
 
     def __init__(
-        self, logger, dfs, stime, tstep, tbatch, norm_mapping={}, normalization_type={}
-    ):
+        self,
+        logger: Any,
+        dfs: List[str],
+        stime: int,
+        tstep: int,
+        tbatch: int,
+        norm_mapping: Dict = {},
+        normalization_type: Dict = {},
+    ) -> None:
+        """
+        Initialize the DataPreprocessor.
+
+        Parameters
+        ----------
+        logger : Any
+            Logger instance for logging messages.
+        dfs : List[str]
+            List of file paths to NetCDF files.
+        stime : int
+            Start time index.
+        tstep : int
+            Number of time steps per file.
+        tbatch : int
+            Temporal batch size.
+        norm_mapping : Dict, optional
+            Dictionary containing normalization statistics for each variable.
+        normalization_type : Dict, optional
+            Dictionary specifying normalization type for each variable.
+        """
         self.logger = logger
         self.stime = stime
         self.tstep = tstep
@@ -19,6 +139,7 @@ class DataPreprocessor(Dataset):
         self.norm_mapping = norm_mapping
         self.normalization_type = normalization_type
 
+        # Group files by year
         self.train_sbatch_files_by_year = defaultdict(list)
         for f in dfs:
             match = re.search(r"_(\d{4})\.nc$", f)
@@ -26,18 +147,21 @@ class DataPreprocessor(Dataset):
                 year = int(match.group(1))
                 self.train_sbatch_files_by_year[year].append(f)
 
+        # Determine number of spatial batches
         first_key = list(self.train_sbatch_files_by_year.keys())[0]
         self.sbatch = len(self.train_sbatch_files_by_year[first_key])
         self.years = sorted(self.train_sbatch_files_by_year.keys())
         self.year_to_index = {y: i for i, y in enumerate(self.years)}
         self.etime = self.tstep * len(self.years)
 
+        # Create list of (year, spatial_index, path) for all files
         self.dfs = [
             (year, sindex, path)
             for year in self.years
             for sindex, path in enumerate(sorted(self.train_sbatch_files_by_year[year]))
         ]
 
+        # Create and shuffle time blocks
         self.time_blocks = np.arange((self.etime - self.stime) // self.tbatch)
         np.random.shuffle(self.time_blocks)
 
@@ -45,6 +169,7 @@ class DataPreprocessor(Dataset):
         self.logger.info(f"Spatial batches: {self.sbatch}")
         self.logger.info(f"Temporal batches: {self.tbatch}")
 
+        # Find minimum dimensions across all files
         self.min_dims = {
             "time": np.inf,
             "dim_1": np.inf,
@@ -60,17 +185,61 @@ class DataPreprocessor(Dataset):
                     self.min_dims[dim] = min(self.min_dims[dim], ds.sizes[dim])
             ds.close()
 
-        self.cosz = ["coszang"]
-        self.lai = ["laieff_collim", "laieff_isotrop"]
-        self.ssa = ["leaf_ssa", "leaf_psd"]
-        self.rs = ["rs_surface_emu"]
+        # Define variable groups
+        self.cosz = ["coszang"]  # Cosine of solar zenith angle
+        self.lai = ["laieff_collim", "laieff_isotrop"]  # Leaf area index
+        self.ssa = ["leaf_ssa", "leaf_psd"]  # Single scattering albedo
+        self.rs = ["rs_surface_emu"]  # Surface reflectance
+        self.ov = [
+            "collim_alb",
+            "collim_tran",
+            "isotrop_alb",
+            "isotrop_tran",
+        ]  # Output variables
 
-        self.ov = ["collim_alb", "collim_tran", "isotrop_alb", "isotrop_tran"]
+    def shuffle_time_blocks(self) -> None:
+        """
+        Shuffle the time blocks for randomized sampling.
 
-    def shuffle_time_blocks(self):
+        This method should be called at the beginning of each epoch to ensure
+        different temporal sampling patterns.
+        """
         np.random.shuffle(self.time_blocks)
 
-    def normalize(self, data, var_name):
+    def normalize(self, data: np.ndarray, var_name: str) -> np.ndarray:
+        """
+        Normalize data using the specified normalization method.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            Input data array to normalize.
+        var_name : str
+            Name of the variable for which to retrieve normalization statistics.
+
+        Returns
+        -------
+        np.ndarray
+            Normalized data array.
+
+        Raises
+        ------
+        ValueError
+            If the normalization type is not supported.
+
+        Notes
+        -----
+        Supported normalization types:
+        - minmax: (x - min) / (max - min)
+        - standard: (x - mean) / std
+        - robust: (x - median) / IQR
+        - log1p_minmax: log1p(x) normalized
+        - log1p_standard: log1p(x) standardized
+        - log1p_robust: log1p(x) robust normalized
+        - sqrt_minmax: sqrt(x) normalized
+        - sqrt_standard: sqrt(x) standardized
+        - sqrt_robust: sqrt(x) robust normalized
+        """
         norm_type = self.normalization_type.get(var_name, "log1p_minmax")
         stats = self.norm_mapping[var_name]
 
@@ -130,18 +299,39 @@ class DataPreprocessor(Dataset):
                 f"Unsupported normalization type '{norm_type}' for variable '{var_name}'"
             )
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+        Get the total number of samples in the dataset.
+
+        Returns
+        -------
+        int
+            Total number of samples (time blocks * spatial batches).
+        """
         return (self.etime - self.stime) // self.tbatch * self.sbatch
 
-    def __getitem__(self, index):
-        """ """
-        # tindex = (index // self.sbatch) * self.tbatch + self.stime + np.random.randint(self.tbatch)
-        # sindex =  index % self.sbatch
-        # tblock_index = index // self.sbatch
-        # tblock = self.time_blocks[tblock_index]
-        # tindex = tblock * self.tbatch + self.stime + np.random.randint(self.tbatch)
-        # self.df = self.df = xr.open_dataset(self.dfs[sindex], engine="netcdf4") #self.loaded_dfs[sindex]
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Get a sample from the dataset.
 
+        Parameters
+        ----------
+        index : int
+            Index of the sample to retrieve.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            A tuple containing:
+            - features: Input features tensor of shape (schunk, feature_channels, seq_length)
+            - targets: Target variables tensor of shape (schunk, output_channels, seq_length)
+
+        Notes
+        -----
+        The method loads data from the appropriate file based on the index,
+        applies normalization, and returns the processed features and targets.
+        """
+        # Calculate spatial and temporal indices
         sindex = index % self.sbatch
         tblock_index = index // self.sbatch
         tblock = self.time_blocks[tblock_index]
@@ -152,37 +342,28 @@ class DataPreprocessor(Dataset):
             local_tblock * self.tbatch + self.stime + np.random.randint(self.tbatch)
         )
 
-        # year = self.years[year_index]
+        # Get the file path
         dfs_index = year_index * self.sbatch + sindex
         _, _, path = self.dfs[dfs_index]
 
+        # Open the dataset
         self.df = xr.open_dataset(path, engine="netcdf4")
 
-        """self.logger.info(
-                f"Torch batch index: {index}\n"
-                f"  → Time block index: {tblock_index}\n"
-                f"  → Selected time block (tblock): {tblock}\n"
-                f"  → Year index: {year_index} → Year: {year}\n"
-                f"  → Local tblock: {local_tblock}\n"
-                f"  → Final time index (tindex): {tindex}\n"
-                f"  → Spatial batch index (sindex): {sindex}\n"
-                f"  → dfs index: {dfs_index}\n"
-                f"  → File used: {path}"
-                )
-
-        """
+        # Get dimensions
         sequence_length_dim = self.min_dims["dim_2"]
         dim_1 = self.min_dims["dim_1"]
         dim_3 = self.min_dims["dim_3"]
         dim_4 = self.min_dims["dim_4"]
         self.schunk = dim_1 * dim_3 * dim_4
 
+        # Initialize arrays for each variable group
         npcosz = np.zeros([self.schunk, len(self.cosz), sequence_length_dim])
         nplai = np.zeros([self.schunk, len(self.lai), sequence_length_dim])
         npssa = np.zeros([self.schunk, len(self.ssa), sequence_length_dim])
         npov = np.zeros([self.schunk, len(self.ov), sequence_length_dim])
         nprs = np.zeros([self.schunk, len(self.rs), sequence_length_dim])
 
+        # Process cosz (cosine of solar zenith angle)
         for variable_index, variable_name in enumerate(self.cosz):
             da = self.df[variable_name]
             temp = da.isel(time=tindex, dim_1=slice(0, dim_1)).values
@@ -192,6 +373,7 @@ class DataPreprocessor(Dataset):
             npcosz[:, variable_index, :] = temp
         tcosz = torch.tensor(npcosz, dtype=torch.float32)
 
+        # Process LAI (leaf area index)
         for variable_index, variable_name in enumerate(self.lai):
             da = self.df[variable_name]
             temp = da.isel(time=tindex, dim_1=slice(0, dim_1)).values
@@ -202,6 +384,7 @@ class DataPreprocessor(Dataset):
             nplai[:, variable_index, :] = temp
         tlai = torch.tensor(nplai, dtype=torch.float32)
 
+        # Process SSA (single scattering albedo)
         for variable_index, variable_name in enumerate(self.ssa):
             da = self.df[variable_name]
             temp = da.isel(time=tindex).values
@@ -212,6 +395,7 @@ class DataPreprocessor(Dataset):
             npssa[:, variable_index, :] = temp
         tssa = torch.tensor(npssa, dtype=torch.float32)
 
+        # Process RS (surface reflectance)
         for variable_index, variable_name in enumerate(self.rs):
             da = self.df[variable_name]
             temp = da.isel(time=tindex, dim_1=slice(0, dim_1)).values
@@ -221,6 +405,7 @@ class DataPreprocessor(Dataset):
             nprs[:, variable_index, :] = temp
         trs = torch.tensor(nprs, dtype=torch.float32)
 
+        # Process output variables
         for variable_index, variable_name in enumerate(self.ov):
             da = self.df[variable_name]
             temp = da.isel(time=tindex, dim_1=slice(0, dim_1)).values
@@ -230,5 +415,6 @@ class DataPreprocessor(Dataset):
             npov[:, variable_index, :] = temp
         tov = torch.tensor(npov, dtype=torch.float32)
 
+        # Concatenate features
         feature = torch.cat([tcosz, tlai, tssa, trs], dim=1)
         return (feature, tov)

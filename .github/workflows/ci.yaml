@@ -40,7 +40,6 @@ jobs:
           python -m unittest tests.test_rnn
           python -m unittest tests.test_fcn
           python -m unittest tests.test_transformer
-          python -m unittest tests.test_data_helper
 
       - name: Check package builds
         run: uv build

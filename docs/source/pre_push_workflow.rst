@@ -2,7 +2,9 @@ Pre-Push Workflow
 =================
 
 This section outlines the standardized workflow to follow **before pushing
-changes to the IPSL-AID repository**. Adhering to this workflow ensures that your contributions are clean, tested, and compatible with the latest codebase, facilitating smooth collaboration and maintaining code quality.
+changes to the RTnn repository**. Adhering to this workflow ensures that your
+contributions are clean, tested, and compatible with the latest codebase,
+facilitating smooth collaboration and maintaining code quality.
 
 .. contents:: Table of Contents
    :depth: 2
@@ -13,7 +15,7 @@ Why This Workflow Matters
 
 A disciplined pre-push workflow ensures:
 
-- **Reproducibility** of experiments
+- **Reproducibility** of radiative transfer experiments
 - **Model versioning** and experiment tracking
 - **Code quality** for both ML and data processing components
 - **Smooth collaboration** between researchers with different expertise
@@ -24,7 +26,7 @@ Prerequisites
 Before starting, ensure you have:
 
 - A clean working directory (or stashed changes)
-- Access to the IPSL-AID repository
+- Access to the RTnn repository
 - Required tools installed:
 
   .. code-block:: bash
@@ -32,7 +34,7 @@ Before starting, ensure you have:
       uv --version          # Fast Python package manager
       pre-commit --version  # Git hooks for code quality
       git --version         # Version control
-      python --version      # Python 3.9+ recommended
+      python --version      # Python 3.9+ required
 
 1. Fetch Latest Changes From Remote
 -----------------------------------
@@ -49,8 +51,9 @@ This command:
 - Updates ``origin/*`` references
 - Does **not** merge or rebase your working files
 
-**Why this matters for IPSL-AID:** Multiple researchers may be working on
-different modules, preprocessing pipelines, or evaluation metrics simultaneously.
+**Why this matters for RTnn:** Multiple researchers may be working on different
+model architectures (LSTM, GRU, Transformer, FCN), data preprocessing pipelines,
+or evaluation metrics simultaneously.
 
 2. Check Branch Status
 ----------------------
@@ -84,7 +87,7 @@ If you see:
 
 .. code-block:: text
 
-    Your branch is behind 'origin/main' by X commits
+    Your branch is behind 'origin/master' by X commits
 
 You must update your branch before pushing to avoid integration issues.
 
@@ -95,9 +98,9 @@ Rebase your feature branch onto the latest version of the base branch:
 
 .. code-block:: bash
 
-    git pull --rebase origin main
+    git pull --rebase origin master
 
-(Replace ``main`` with your base branch, e.g., ``develop`` or ``experimental``.)
+(Replace ``master`` with your base branch, e.g., ``develop`` or ``feature/*``.)
 
 **Why rebase instead of merge?**
 
@@ -115,7 +118,7 @@ Rebase your feature branch onto the latest version of the base branch:
      - Linear, clean history
      - For feature branches before PR
 
-For IPSL-AID development, **rebase is preferred** for feature branches to maintain
+For RTnn development, **rebase is preferred** for feature branches to maintain
 a readable project history, especially when tracking model iterations.
 
 Conflict Resolution Guide
@@ -124,17 +127,18 @@ Conflict Resolution Guide
 Conflicts occur when Git cannot automatically reconcile changes. This is common
 in collaborative development, especially when multiple researchers modify:
 
-- **Model architecture definitions** (``networks.py``)
-- **Training Module** (``main.py``)
+- **Model architecture definitions** (``models/rnn.py``, ``models/Transformer.py``)
+- **Training logic** (``main.py``)
 - **Data preprocessing pipelines** (``dataset.py``)
 - **Dependency specifications** (``pyproject.toml``)
+- **Evaluation metrics** (``evaluater.py``)
 
 **When a conflict occurs**, Git will pause and display:
 
 .. code-block:: text
 
-    CONFLICT (content): Merge conflict in networks.py
-    error: could not apply abc1234... feat: add attention mechanism to U-Net
+    CONFLICT (content): Merge conflict in src/rtnn/models/rnn.py
+    error: could not apply abc1234... feat: add bidirectional LSTM
 
 Step 1 — Identify Conflicted Files
 ----------------------------------
@@ -148,8 +152,8 @@ Look for files under:
 .. code-block:: text
 
     Unmerged paths:
-      both modified:   IPSL_AID/networks.py
-      both modified:   IPSL_AID/dataset.py
+      both modified:   src/rtnn/models/rnn.py
+      both modified:   src/rtnn/dataset.py
 
 Step 2 — Examine the Conflict
 -----------------------------
@@ -159,25 +163,23 @@ Open each conflicted file. You'll see conflict markers:
 .. code-block:: python
 
     <<<<<<< HEAD
-    # Your local changes - experimenting with deeper network
-    class DownscalingUNet(nn.Module):
-        def __init__(self, in_channels=3, out_channels=3, hidden_dims=[64, 128, 256, 512]):
-            super().__init__()
-            self.encoder = Encoder(in_channels, hidden_dims)
+    # Your local changes - experimenting with larger hidden size
+    class RNN_LSTM(BaseRNN):
+        def __init__(self, feature_channel, output_channel, hidden_size=256, num_layers=4):
+            super().__init__(feature_channel, output_channel, hidden_size, num_layers, 'lstm')
     =======
-    # Remote changes from origin/main - added residual connections
-    class DownscalingUNet(nn.Module):
-        def __init__(self, in_channels=3, out_channels=3, hidden_dims=[64, 128, 256],
-                     use_residual=True):
-            super().__init__()
-            self.encoder = Encoder(in_channels, hidden_dims, use_residual)
-    >>>>>>> origin/main
+    # Remote changes from origin/master - added dropout
+    class RNN_LSTM(BaseRNN):
+        def __init__(self, feature_channel, output_channel, hidden_size=128, num_layers=3,
+                     dropout=0.1):
+            super().__init__(feature_channel, output_channel, hidden_size, num_layers, 'lstm')
+    >>>>>>> origin/master
 
 **Understanding the markers:**
 
 - ``<<<<<<< HEAD`` → Your current branch's version
 - ``=======`` → Separator between conflicting versions
-- ``>>>>>>> origin/main`` → Remote branch's version
+- ``>>>>>>> origin/master`` → Remote branch's version
 
 Step 3 — Resolve the Conflict
 -----------------------------
@@ -193,12 +195,11 @@ Example resolution combining both approaches:
 
 .. code-block:: python
 
-    # Resolved: deeper network with residual connections
-    class DownscalingUNet(nn.Module):
-        def __init__(self, in_channels=3, out_channels=3, hidden_dims=[64, 128, 256, 512],
-                     use_residual=True):
-            super().__init__()
-            self.encoder = Encoder(in_channels, hidden_dims, use_residual)
+    # Resolved: larger hidden size with dropout
+    class RNN_LSTM(BaseRNN):
+        def __init__(self, feature_channel, output_channel, hidden_size=256, num_layers=4,
+                     dropout=0.1):
+            super().__init__(feature_channel, output_channel, hidden_size, num_layers, 'lstm')
 
 **Critical:** Remove **ALL** conflict markers:
 
@@ -215,8 +216,8 @@ After fixing each file, and passing the pre-commit hooks (see next section), sta
 
 .. code-block:: bash
 
-    git add IPSL_AID/networks.py
-    git add IPSL_AID/dataset.py
+    git add src/rtnn/models/rnn.py
+    git add src/rtnn/dataset.py
 
 **Do not** use ``git add .`` blindly - ensure only resolved files are staged.
 
@@ -248,14 +249,14 @@ This returns your branch to its state before starting the rebase.
 4. Standardize Code with Pre-commit Hooks
 -----------------------------------------
 
-IPSL-AID uses pre-commit hooks to enforce code quality standards. After successful
+RTnn uses pre-commit hooks to enforce code quality standards. After successful
 rebase, run all hooks:
 
 .. code-block:: bash
 
     pre-commit run --all-files
 
-**What these hooks check (Python-focused):**
+**What these hooks check:**
 
 .. list-table::
    :header-rows: 1
@@ -263,26 +264,26 @@ rebase, run all hooks:
 
    * - Hook
      - Purpose
-   * - **black**
-     - Consistent Python code formatting
-   * - **isort**
-     - Sorts imports alphabetically
-   * - **flake8**
-     - PEP 8 compliance and style issues
-   * - **mypy**
-     - Type hint checking (critical for ML code)
-   * - **pylint**
-     - Code quality and best practices
-   * - **pydocstyle**
-     - Docstring conventions for documentation
-   * - **nbqa**
-     - Applies tools to Jupyter notebooks (if present)
-   * - **yaml validators**
-     - Configuration file syntax (for model configs)
+   * - **ruff**
+     - Linting and code style (replaces flake8, isort, pydocstyle)
+   * - **ruff-format**
+     - Automatic code formatting (replaces black)
+   * - **end-of-file-fixer**
+     - Ensures files end with a newline
    * - **trailing-whitespace**
-     - Clean diffs
+     - Removes trailing whitespace
+   * - **mixed-line-ending**
+     - Enforces LF line endings
+   * - **forbid-tabs / remove-tabs**
+     - Ensures spaces instead of tabs
+   * - **check-yaml**
+     - Validates YAML files (GitHub Actions configs)
    * - **check-json**
-     - Validates JSON files (for experiment configs)
+     - Validates JSON files
+   * - **check-added-large-files**
+     - Prevents committing large files
+   * - **check-merge-conflict**
+     - Detects unresolved merge conflicts
 
 **Because the hooks modify files automatically:**
 
@@ -305,17 +306,21 @@ Before pushing, verify your changes don't break existing functionality:
 
 .. code-block:: bash
 
-    # Run the full test suite with pytest
-    python -m tests.test_all
+    # Run all tests
+    python -m unittest discover tests -v
 
-    # For a specific module
-    python -m tests.test_all networks
+    # Run specific model tests
+    python -m unittest tests.test_rnn -v
+    python -m unittest tests.test_fcn -v
+    python -m unittest tests.test_transformer -v
+
+    # Run with test runner (rich output)
+    python tests/test_runner.py
 
 **Success criteria:**
 
 - ✅ All tests pass (0 failures)
-- ✅ Coverage doesn't decrease significantly
-- ✅ No warnings about deprecated functions
+- ✅ No new warnings
 - ✅ Tests complete in reasonable time
 
 **If tests fail:**
@@ -335,7 +340,7 @@ If you made additional fixes (conflict resolution, formatting, test fixes):
     git add .
     git commit -m "fix: resolve merge conflicts and apply formatting"
 
-**Commit message guidelines for IPSL-AID (Conventional Commits):**
+**Commit message guidelines for RTnn (Conventional Commits):**
 
 .. list-table::
    :header-rows: 1
@@ -344,21 +349,19 @@ If you made additional fixes (conflict resolution, formatting, test fixes):
    * - Type
      - Example
    * - ``feat:``
-     - feat: add attention U-Net for precipitation downscaling
+     - feat: add Transformer model for RT emulation
    * - ``fix:``
      - fix: correct normalization in data preprocessing
    * - ``docs:``
-     - docs: update model card for U-Net architecture
+     - docs: update API documentation for RNN models
    * - ``test:``
-     - test: add validation tests for GAN discriminator
+     - test: add unit tests for calc_hr function
    * - ``refactor:``
      - refactor: simplify loss function computation
    * - ``perf:``
-     - perf: optimize dataloading with parallel workers
+     - perf: optimize dataloading with multiprocessing
    * - ``config:``
-     - config: update training hyperparameters for v2
-   * - ``experiment:``
-     - experiment: log results of downscaling ablation
+     - config: update default hyperparameters for LSTM
 
 **If no changes were needed** after rebase and hooks, you may not need a new commit.
 
@@ -401,15 +404,15 @@ For quick daily use, here's the complete workflow in one block:
     git fetch origin
     git status
 
-    # Step 3: Rebase onto latest main
-    git pull --rebase origin main
+    # Step 3: Rebase onto latest master
+    git pull --rebase origin master
     # (Resolve conflicts if needed)
 
     # Step 4: Run pre-commit hooks
     pre-commit run --all-files
 
     # Step 5: Run tests
-    python -m tests.test_all
+    python -m unittest discover tests -v
 
     # Step 6: Commit if needed
     git add .
@@ -428,17 +431,17 @@ Common Pitfalls to Avoid
    * - Pitfall
      - Solution
    * - Committing large model checkpoints
-     - Use DVC or model registry instead
-   * - Notebooks with huge outputs
-     - Clear outputs before commit
+     - Use .gitignore or model registry
+   * - Forgetting to update dependencies
+     - Run ``uv pip list`` and update ``pyproject.toml``
    * - Hardcoded paths
      - Use pathlib and relative paths
    * - Ignoring type hints
-     - Add mypy to pre-commit and fix warnings
+     - Add type hints for better code quality
    * - Changing random seeds
      - Document or make configurable
-   * - Forgetting to update requirements
-     - Run ``uv pip list`` and update ``pyproject.toml``
+   * - Breaking existing APIs
+     - Use deprecation warnings before removing
 
 Important Rules Summary
 -----------------------
@@ -451,7 +454,7 @@ Important Rules Summary
 - Run pre-commit hooks
 - Test thoroughly
 - Use ``--force-with-lease``
-- Document experiments
+- Document model changes
 - Version control configurations
 
 ❌ **DON'T:**
@@ -462,10 +465,9 @@ Important Rules Summary
 - Push without rebasing
 - Use plain ``--force``
 - Commit large data files
-- Commit notebooks with outputs
+- Break existing APIs without deprecation
 - Hardcode model paths or seeds
 
-
-Following this workflow ensures that your contributions to IPSL-AID integrate
+Following this workflow ensures that your contributions to RTnn integrate
 smoothly with the work of other researchers and maintain the high standards
-required for AI-based climate downscaling research.
+required for AI-based radiative transfer modeling.

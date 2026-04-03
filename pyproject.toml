@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.scripts]
-rtnn = "rtnn.main_lsm:main"
+rtnn = "rtnn.main:main"
 
 [project.urls]
 Source = "https://github.com/kardaneh/RTNN"

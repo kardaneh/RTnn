@@ -111,20 +111,19 @@ Project Structure
     │   └── rtnn/                 # Main package
     │       ├── __init__.py
     │       ├── version.py
-    │       ├── cli.py           # Command-line interface
-    │       ├── data_helper_lsm.py   # LSM data preprocessing
-    │       ├── evaluate_helper.py   # Evaluation metrics
-    │       ├── file_helper.py       # File utilities
-    │       ├── model_helper.py      # Model utilities
-    │       ├── model_prepare.py     # Model preparation
-    │       ├── plot_helper.py       # Visualization
+    │       ├── main.py              # Command-line interface
+    │       ├── dataset.py           # LSM data preprocessing
+    │       ├── evaluater.py         # Evaluation metrics
+    │       ├── utils.py             # File utilities
+    │       ├── model_utils.py       # Model utilities
+    │       ├── model_loader.py      # Model preparation
+    │       ├── diagnostics.py       # Visualization
     │       ├── stats.py             # Statistics computation
     │       └── models/              # Model architectures
     │           ├── __init__.py
     │           ├── rnn.py           # LSTM/GRU models
     │           ├── fcn.py           # Fully Connected Network
     │           ├── Transformer.py   # Transformer model
-    │           ├── UNet1D.py        # 1D UNet model
     │           └── DimChangeModule.py
     ├── tests/               # Unit tests (unittest framework)
     ├── docs/                # Documentation

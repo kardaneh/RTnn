@@ -1,17 +1,6 @@
 RTnn: Radiative Transfer Neural Networks
 =========================================
 
-CI, and Documentation Status, License, Python and PyTorch versions
-------------------------------------------------------------------
-
-.. image:: https://github.com/kardaneh/RTNN/workflows/CI/badge.svg
-   :target: https://github.com/kardaneh/RTNN/actions
-   :alt: CI Status
-
-.. image:: https://github.com/kardaneh/RTNN/workflows/Documentation/badge.svg
-   :target: https://github.com/kardaneh/RTNN/actions
-   :alt: Documentation Status
-
 .. image:: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-blue.svg
    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/
    :alt: License
@@ -21,6 +10,14 @@ CI, and Documentation Status, License, Python and PyTorch versions
 
 .. image:: https://img.shields.io/badge/PyTorch-2.0+-red.svg
    :alt: PyTorch
+
+.. image:: https://github.com/kardaneh/RTNN/workflows/CI/badge.svg
+   :target: https://github.com/kardaneh/RTNN/actions
+   :alt: CI Status
+
+.. image:: https://github.com/kardaneh/RTNN/workflows/Documentation/badge.svg
+   :target: https://github.com/kardaneh/RTNN/actions
+   :alt: Documentation Status
 
 RTnn is a PyTorch-based framework for training neural networks to model radiative
 transfer processes in climate science, particularly for Land Surface Models (LSM).

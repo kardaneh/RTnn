@@ -18,13 +18,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install ONLY documentation packages
+      - name: Install uv
+        run: pip install uv
+
+      - name: Create virtual environment and install dependencies
         run: |
-          # Install ONLY what's needed for Sphinx
-          pip install sphinx sphinx-rtd-theme myst-parser sphinx-copybutton
+          uv venv
+          source .venv/bin/activate
+          # Install RTnn with docs dependencies (no heavy deps)
+          uv pip install -e ".[docs]"
 
       - name: Build documentation
         run: |
+          source .venv/bin/activate
           cd docs
           make clean
           make html

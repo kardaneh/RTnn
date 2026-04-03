@@ -1,0 +1,242 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick Start &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Neural Architectures" href="neural_architectures.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-training-an-lstm-model">Example: Training an LSTM Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference_modes.html">Inference Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_handling.html">Data Handling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quick Start</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/quickstart.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="neural_architectures.html" class="btn btn-neutral float-right" title="Neural Architectures" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="quick-start">
+<h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h1>
+<p>This guide will help you get started with RTnn quickly.</p>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rtnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataPreprocessor</span><span class="p">,</span> <span class="n">RNN_LSTM</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+
+<span class="c1"># Initialize logger</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span><span class="n">console_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Load your data</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">DataPreprocessor</span><span class="p">(</span>
+    <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+    <span class="n">dfs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;data_1995.nc&quot;</span><span class="p">,</span> <span class="s2">&quot;data_1996.nc&quot;</span><span class="p">],</span>
+    <span class="n">stime</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">tstep</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tbatch</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
+    <span class="n">norm_mapping</span><span class="o">=</span><span class="n">norm_mapping</span><span class="p">,</span>
+    <span class="n">normalization_type</span><span class="o">=</span><span class="n">normalization_type</span>
+<span class="p">)</span>
+
+<span class="c1"># Create model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">RNN_LSTM</span><span class="p">(</span>
+    <span class="n">feature_channel</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+    <span class="n">output_channel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">hidden_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+    <span class="n">num_layers</span><span class="o">=</span><span class="mi">3</span>
+<span class="p">)</span>
+
+<span class="c1"># Train (simplified)</span>
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">features</span><span class="p">,</span> <span class="n">targets</span> <span class="ow">in</span> <span class="n">dataloader</span><span class="p">:</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="command-line-interface">
+<h2>Command Line Interface<a class="headerlink" href="#command-line-interface" title="Link to this heading"></a></h2>
+<p>Train a model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rtnn<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--type<span class="w"> </span>lstm<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--hidden_size<span class="w"> </span><span class="m">128</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--num_layers<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--batch_size<span class="w"> </span><span class="m">32</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--num_epochs<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--learning_rate<span class="w"> </span><span class="m">0</span>.001<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--train_years<span class="w"> </span><span class="s2">&quot;1995-1999&quot;</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--test_year<span class="w"> </span><span class="m">2000</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--main_folder<span class="w"> </span>results<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--sub_folder<span class="w"> </span>experiment_1
+</pre></div>
+</div>
+<p>Show version:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rtnn<span class="w"> </span>--version
+</pre></div>
+</div>
+<p>Show help:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rtnn<span class="w"> </span>--help
+</pre></div>
+</div>
+</section>
+<section id="example-training-an-lstm-model">
+<h2>Example: Training an LSTM Model<a class="headerlink" href="#example-training-an-lstm-model" title="Link to this heading"></a></h2>
+<p>Here’s a complete example using the SBATCH script:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+<span class="c1">#SBATCH -A your_account</span>
+<span class="c1">#SBATCH -p boost_usr_prod</span>
+<span class="c1">#SBATCH --qos=boost_qos_dbg</span>
+<span class="c1">#SBATCH --time=00:30:00</span>
+<span class="c1">#SBATCH -N 1</span>
+<span class="c1">#SBATCH --gpus-per-node=4</span>
+
+module<span class="w"> </span>load<span class="w"> </span>profile/deeplrn
+module<span class="w"> </span>load<span class="w"> </span>cineca-ai
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+
+rtnn<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--type<span class="w"> </span>lstm<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--hidden_size<span class="w"> </span><span class="m">64</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--num_layers<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--batch_size<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--num_epochs<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--learning_rate<span class="w"> </span><span class="m">0</span>.0001<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--loss_type<span class="w"> </span>huber<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--train_years<span class="w"> </span><span class="m">1998</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--test_year<span class="w"> </span><span class="m">1999</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--main_folder<span class="w"> </span>Debug__lstm_h64_l2_sb_16_ne_2<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--sub_folder<span class="w"> </span>run_<span class="k">$(</span>date<span class="w"> </span>+<span class="s2">&quot;%Y%m%d_%H%M%S&quot;</span><span class="k">)</span>
+</pre></div>
+</div>
+</section>
+<section id="next-steps">
+<h2>Next Steps<a class="headerlink" href="#next-steps" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Explore <a class="reference internal" href="neural_architectures.html"><span class="doc">Neural Architectures</span></a> for different model types</p></li>
+<li><p>Learn about <a class="reference internal" href="training_strategy.html"><span class="doc">Training Strategy</span></a> for optimal training</p></li>
+<li><p>Check <a class="reference internal" href="inference_modes.html"><span class="doc">Inference Modes</span></a> for running predictions</p></li>
+<li><p>See <a class="reference internal" href="api/modules.html"><span class="doc">RTnn API Reference</span></a> for detailed API reference</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="neural_architectures.html" class="btn btn-neutral float-right" title="Neural Architectures" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, IPSL / CNRS / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

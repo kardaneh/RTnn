@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RTnn API Reference &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="rtnn package" href="rtnn.html" />
+    <link rel="prev" title="Data Handling" href="../data_handling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../inference_modes.html">Inference Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_handling.html">Data Handling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">RTnn API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html">rtnn package</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">RTnn API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="../data_handling.html" class="btn btn-neutral float-left" title="Data Handling" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rtnn.html" class="btn btn-neutral float-right" title="rtnn package" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rtnn-api-reference">
+<h1>RTnn API Reference<a class="headerlink" href="#rtnn-api-reference" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="rtnn.html">rtnn package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.models.html">rtnn.models package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.models.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.models.html#module-rtnn.models.rnn">rtnn.models.rnn module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.models.html#module-rtnn.models.fcn">rtnn.models.fcn module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.models.html#module-rtnn.models.Transformer">rtnn.models.Transformer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.models.html#module-rtnn.models.DimChangeModule">rtnn.models.DimChangeModule module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.dataset">rtnn.dataset module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.logger"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.logger</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.stime"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.stime</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.tstep"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.tstep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.tbatch"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.tbatch</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.norm_mapping"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.norm_mapping</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.normalization_type"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.normalization_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.sbatch"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.sbatch</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.years"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.years</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.etime"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.etime</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.dfs"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.dfs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.time_blocks"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.time_blocks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.min_dims"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.min_dims</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.cosz"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.cosz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.lai"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.lai</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.ssa"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.ssa</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.rs"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.rs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.ov"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.ov</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.__init__"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.shuffle_time_blocks"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.shuffle_time_blocks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.dataset.DataPreprocessor.normalize"><code class="docutils literal notranslate"><span class="pre">DataPreprocessor.normalize()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.diagnostics">rtnn.diagnostics module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#dependencies">Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.diagnostics.stats"><code class="docutils literal notranslate"><span class="pre">stats()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.diagnostics.plot_RTM"><code class="docutils literal notranslate"><span class="pre">plot_RTM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.diagnostics.plot_HeatRate"><code class="docutils literal notranslate"><span class="pre">plot_HeatRate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.diagnostics.plot_flux_and_abs_lines"><code class="docutils literal notranslate"><span class="pre">plot_flux_and_abs_lines()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.diagnostics.plot_flux_and_abs"><code class="docutils literal notranslate"><span class="pre">plot_flux_and_abs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.diagnostics.plot_metric_histories"><code class="docutils literal notranslate"><span class="pre">plot_metric_histories()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.diagnostics.plot_loss_histories"><code class="docutils literal notranslate"><span class="pre">plot_loss_histories()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.evaluater">rtnn.evaluater module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#id1">Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.NMSELoss"><code class="docutils literal notranslate"><span class="pre">NMSELoss</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.NMSELoss.__init__"><code class="docutils literal notranslate"><span class="pre">NMSELoss.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.NMSELoss.forward"><code class="docutils literal notranslate"><span class="pre">NMSELoss.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.NMAELoss"><code class="docutils literal notranslate"><span class="pre">NMAELoss</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.NMAELoss.__init__"><code class="docutils literal notranslate"><span class="pre">NMAELoss.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.NMAELoss.forward"><code class="docutils literal notranslate"><span class="pre">NMAELoss.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker"><code class="docutils literal notranslate"><span class="pre">MetricTracker</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker.value"><code class="docutils literal notranslate"><span class="pre">MetricTracker.value</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker.count"><code class="docutils literal notranslate"><span class="pre">MetricTracker.count</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker.__init__"><code class="docutils literal notranslate"><span class="pre">MetricTracker.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker.reset"><code class="docutils literal notranslate"><span class="pre">MetricTracker.reset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker.update"><code class="docutils literal notranslate"><span class="pre">MetricTracker.update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker.getmean"><code class="docutils literal notranslate"><span class="pre">MetricTracker.getmean()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker.getstd"><code class="docutils literal notranslate"><span class="pre">MetricTracker.getstd()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.evaluater.MetricTracker.getsqrtmean"><code class="docutils literal notranslate"><span class="pre">MetricTracker.getsqrtmean()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.get_loss_function"><code class="docutils literal notranslate"><span class="pre">get_loss_function()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.mse_all"><code class="docutils literal notranslate"><span class="pre">mse_all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.mbe_all"><code class="docutils literal notranslate"><span class="pre">mbe_all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.mae_all"><code class="docutils literal notranslate"><span class="pre">mae_all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.r2_all"><code class="docutils literal notranslate"><span class="pre">r2_all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.nmae_all"><code class="docutils literal notranslate"><span class="pre">nmae_all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.nmse_all"><code class="docutils literal notranslate"><span class="pre">nmse_all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.mare_all"><code class="docutils literal notranslate"><span class="pre">mare_all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.gmrae_all"><code class="docutils literal notranslate"><span class="pre">gmrae_all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.unnorm_mpas"><code class="docutils literal notranslate"><span class="pre">unnorm_mpas()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.calc_abs"><code class="docutils literal notranslate"><span class="pre">calc_abs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.calc_hr"><code class="docutils literal notranslate"><span class="pre">calc_hr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.evaluater.run_validation"><code class="docutils literal notranslate"><span class="pre">run_validation()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.logger">rtnn.logger module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger"><code class="docutils literal notranslate"><span class="pre">Logger</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.__init__"><code class="docutils literal notranslate"><span class="pre">Logger.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.clear_logs"><code class="docutils literal notranslate"><span class="pre">Logger.clear_logs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.show_header"><code class="docutils literal notranslate"><span class="pre">Logger.show_header()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.start_task"><code class="docutils literal notranslate"><span class="pre">Logger.start_task()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.log_metrics"><code class="docutils literal notranslate"><span class="pre">Logger.log_metrics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.info"><code class="docutils literal notranslate"><span class="pre">Logger.info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.warning"><code class="docutils literal notranslate"><span class="pre">Logger.warning()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.success"><code class="docutils literal notranslate"><span class="pre">Logger.success()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.step"><code class="docutils literal notranslate"><span class="pre">Logger.step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.exception"><code class="docutils literal notranslate"><span class="pre">Logger.exception()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.logger.Logger.error"><code class="docutils literal notranslate"><span class="pre">Logger.error()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.main">rtnn.main module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.main.print_version"><code class="docutils literal notranslate"><span class="pre">print_version()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.main.parse_years"><code class="docutils literal notranslate"><span class="pre">parse_years()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.main.parse_args"><code class="docutils literal notranslate"><span class="pre">parse_args()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.main.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.model_loader">rtnn.model_loader module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.model_loader.load_model"><code class="docutils literal notranslate"><span class="pre">load_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.model_utils">rtnn.model_utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils"><code class="docutils literal notranslate"><span class="pre">ModelUtils</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.__init__"><code class="docutils literal notranslate"><span class="pre">ModelUtils.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.get_parameter_number"><code class="docutils literal notranslate"><span class="pre">ModelUtils.get_parameter_number()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.print_model_layers"><code class="docutils literal notranslate"><span class="pre">ModelUtils.print_model_layers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.save_checkpoint"><code class="docutils literal notranslate"><span class="pre">ModelUtils.save_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.load_checkpoint"><code class="docutils literal notranslate"><span class="pre">ModelUtils.load_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.load_training_checkpoint"><code class="docutils literal notranslate"><span class="pre">ModelUtils.load_training_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.count_parameters_by_layer"><code class="docutils literal notranslate"><span class="pre">ModelUtils.count_parameters_by_layer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.log_model_summary"><code class="docutils literal notranslate"><span class="pre">ModelUtils.log_model_summary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.save_training_checkpoint"><code class="docutils literal notranslate"><span class="pre">ModelUtils.save_training_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.model_utils.ModelUtils.save_emergency_checkpoint"><code class="docutils literal notranslate"><span class="pre">ModelUtils.save_emergency_checkpoint()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.stats">rtnn.stats module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.utils">rtnn.utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.utils.EasyDict"><code class="docutils literal notranslate"><span class="pre">EasyDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.utils.FileUtils"><code class="docutils literal notranslate"><span class="pre">FileUtils</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.utils.FileUtils.__init__"><code class="docutils literal notranslate"><span class="pre">FileUtils.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.utils.FileUtils.makedir"><code class="docutils literal notranslate"><span class="pre">FileUtils.makedir()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rtnn.html#rtnn.utils.FileUtils.makefile"><code class="docutils literal notranslate"><span class="pre">FileUtils.makefile()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtnn.html#module-rtnn.version">rtnn.version module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtnn.html#rtnn.version.get_version"><code class="docutils literal notranslate"><span class="pre">get_version()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../data_handling.html" class="btn btn-neutral float-left" title="Data Handling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rtnn.html" class="btn btn-neutral float-right" title="rtnn package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, IPSL / CNRS / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

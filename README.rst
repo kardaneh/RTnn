@@ -1,29 +1,42 @@
 RTnn: Radiative Transfer Neural Networks
 =========================================
 
+.. image:: https://github.com/kardaneh/RTNN/actions/workflows/ci.yaml/badge.svg
+   :target: https://github.com/kardaneh/RTNN/actions/workflows/ci.yaml
+   :alt: CI Status
+
+.. image:: https://github.com/kardaneh/RTNN/actions/workflows/docs.yml/badge.svg
+   :target: https://github.com/kardaneh/RTNN/actions/workflows/docs.yml
+   :alt: Documentation Status
+
+.. image:: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-blue.svg
+   :target: https://creativecommons.org/licenses/by-nc-sa/4.0/
+   :alt: License
+
+.. image:: https://img.shields.io/badge/python-3.9+-blue.svg
+   :alt: Python Version
+
+.. image:: https://img.shields.io/badge/PyTorch-2.0+-red.svg
+   :alt: PyTorch
+
 RTnn is a PyTorch-based framework for training neural networks to model radiative
 transfer processes in climate science, particularly for Land Surface Models (LSM).
 
-CI Status
----------
-
-.. image:: https://github.com/kardaneh/RTNN/workflows/CI/badge.svg
-   :target: https://github.com/kardaneh/RTNN/actions
-   :alt: CI Status
-
-.. image:: https://github.com/kardaneh/RTNN/workflows/Documentation/badge.svg
-   :target: https://github.com/kardaneh/RTNN/actions
-   :alt: Documentation Status
 
 Features
 --------
 
-* Multiple neural network architectures (LSTM, GRU, Transformer, FCN, UNet)
-* Comprehensive data preprocessing for climate data
-* Evaluation metrics and visualization tools
-* Support for NetCDF4 data format
-* GPU acceleration support
-* Command-line interface for training and evaluation
+* **Multiple Neural Architectures**: LSTM, GRU, Transformer, FCN
+* **Climate Data Support**: NetCDF4 format with multi-year and multi-processor handling
+* **GPU Acceleration**: CUDA support with multi-GPU training
+* **Comprehensive Metrics**: NMAE, NMSE, R², and custom loss functions
+* **Visualization Tools**: Built-in plotting for predictions, metrics, and absorption rates
+* **CLI Interface**: Easy training and evaluation from command line
+
+Documentation
+-------------
+
+Full documentation is available at: https://kardaneh.github.io/RTnn/
 
 Installation
 ------------
@@ -207,4 +220,3 @@ Project Links
 
 * Source Code: https://github.com/kardaneh/rtnn
 * Issue Tracker: https://github.com/kardaneh/rtnn/issues
-* Documentation: https://github.com/kardaneh/rtnn

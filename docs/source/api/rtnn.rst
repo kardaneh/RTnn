@@ -13,25 +13,25 @@ Submodules
 ----------
 
 rtnn.dataset module
----------------------------
+-------------------
 
 .. automodule:: rtnn.dataset
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.evaluater module
----------------------------
+rtnn.diagnostics module
+-----------------------
 
-.. automodule:: rtnn.evaluater
+.. automodule:: rtnn.diagnostics
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.utils module
------------------------
+rtnn.evaluater module
+---------------------
 
-.. automodule:: rtnn.utils
+.. automodule:: rtnn.evaluater
    :members:
    :undoc-members:
    :show-inheritance:
@@ -45,33 +45,25 @@ rtnn.logger module
    :show-inheritance:
 
 rtnn.main module
---------------------
+----------------
 
 .. automodule:: rtnn.main
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.model_utils module
-------------------------
-
-.. automodule:: rtnn.model_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 rtnn.model_loader module
--------------------------
+------------------------
 
 .. automodule:: rtnn.model_loader
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.diagnostics module
+rtnn.model_utils module
 -----------------------
 
-.. automodule:: rtnn.diagnostics
+.. automodule:: rtnn.model_utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -80,6 +72,14 @@ rtnn.stats module
 -----------------
 
 .. automodule:: rtnn.stats
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+rtnn.utils module
+-----------------
+
+.. automodule:: rtnn.utils
    :members:
    :undoc-members:
    :show-inheritance:

@@ -12,26 +12,26 @@ Subpackages
 Submodules
 ----------
 
-rtnn.data_helper_lsm module
+rtnn.dataset module
 ---------------------------
 
-.. automodule:: rtnn.data_helper_lsm
+.. automodule:: rtnn.dataset
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.evaluate_helper module
+rtnn.evaluater module
 ---------------------------
 
-.. automodule:: rtnn.evaluate_helper
+.. automodule:: rtnn.evaluater
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.file_helper module
+rtnn.utils module
 -----------------------
 
-.. automodule:: rtnn.file_helper
+.. automodule:: rtnn.utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,34 +44,34 @@ rtnn.logger module
    :undoc-members:
    :show-inheritance:
 
-rtnn.main_lsm module
+rtnn.main module
 --------------------
 
-.. automodule:: rtnn.main_lsm
+.. automodule:: rtnn.main
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.model_helper module
+rtnn.model_utils module
 ------------------------
 
-.. automodule:: rtnn.model_helper
+.. automodule:: rtnn.model_utils
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.model_prepare module
+rtnn.model_loader module
 -------------------------
 
-.. automodule:: rtnn.model_prepare
+.. automodule:: rtnn.model_loader
    :members:
    :undoc-members:
    :show-inheritance:
 
-rtnn.plot_helper module
+rtnn.diagnostics module
 -----------------------
 
-.. automodule:: rtnn.plot_helper
+.. automodule:: rtnn.diagnostics
    :members:
    :undoc-members:
    :show-inheritance:

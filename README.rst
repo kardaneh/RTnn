@@ -154,15 +154,50 @@ For full list, see ``pyproject.toml``.
 Testing
 -------
 
-Run the test suite using unittest:
+RTnn uses Python's built-in `unittest` framework for testing.
+
+Running all tests
+~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-    # Run all tests
-    python -m unittest discover tests -v
+   # Run all tests
+   python -m unittest discover tests -v
 
-    # Run specific test file
-    python -m unittest tests.test_models
+   # Run all tests with the test runner
+   python tests/test_runner.py
+
+Running specific model tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   # Run only RNN model tests
+   python -m unittest tests.test_rnn -v
+   python tests/test_runner.py --pattern test_rnn.py
+
+   # Run only FCN model tests
+   python -m unittest tests.test_fcn -v
+   python tests/test_runner.py --pattern test_fcn.py
+
+   # Run only Transformer model tests
+   python -m unittest tests.test_transformer -v
+   python tests/test_runner.py --pattern test_transformer.py
+
+Running specific test classes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   # Run specific test class
+   python -m unittest tests.test_rnn.TestRNN_LSTM
+   python -m unittest tests.test_fcn.TestFCN
+   python -m unittest tests.test_transformer.TestEncoder
+
+   # Run specific test method
+   python -m unittest tests.test_rnn.TestRNN_LSTM.test_forward_shape
+   python -m unittest tests.test_fcn.TestFCN.test_forward_shape_default
+
 
 Development
 -----------

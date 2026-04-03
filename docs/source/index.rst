@@ -1,8 +1,5 @@
-RTnn Documentation
+Documentation
 ==================
-
-Radiative Transfer Neural Networks
--------------------------------------------------------------
 
 RTnn (Radiative Transfer Neural Networks) is a PyTorch-based framework designed to
 emulate radiative transfer processes in climate models, with a primary focus on

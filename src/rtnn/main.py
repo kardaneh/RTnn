@@ -11,21 +11,21 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import xarray as xr
 
-from rtnn.file_helper import FileUtils
-from rtnn.data_helper_lsm import DataPreprocessor
-from rtnn.model_prepare import load_model
-from rtnn.model_helper import ModelUtils
-from rtnn.evaluate_helper import (
+from rtnn.utils import FileUtils
+from rtnn.dataset import DataPreprocessor
+from rtnn.model_loader import load_model
+from rtnn.model_utils import ModelUtils
+from rtnn.evaluater import (
     unnorm_mpas,
     calc_abs,
-    check_accuracy_evaluate_lsm,
+    run_validation,
     get_loss_function,
     MetricTracker,
     r2_all,
     nmae_all,
     nmse_all,
 )
-from rtnn.plot_helper import plot_metric_histories, plot_loss_histories, stats
+from rtnn.diagnostics import plot_metric_histories, plot_loss_histories, stats
 from rtnn import __version__, __version_info__, __author__, __license__, __copyright__
 from torch.utils.tensorboard import SummaryWriter
 
@@ -658,7 +658,7 @@ def main():
                 "In inference mode, --load_model must be set to 'True' to load the model for evaluation."
             )
         logger.info("Inference mode enabled. Skipping training...")
-        valid_loss, valid_metrics = check_accuracy_evaluate_lsm(
+        valid_loss, valid_metrics = run_validation(
             test_loader,
             model,
             norm_mapping,
@@ -808,7 +808,7 @@ def main():
         logger.info(f"Epoch {epoch} elapsed time: {time.time() - previous_time:.2f}s")
         train_loss_history[epoch] = train_loss.getmean()
         if epoch % 1 == 0:
-            valid_loss, valid_metrics = check_accuracy_evaluate_lsm(
+            valid_loss, valid_metrics = run_validation(
                 test_loader,
                 model,
                 norm_mapping,

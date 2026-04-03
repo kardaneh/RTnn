@@ -2,8 +2,8 @@ import os
 import glob
 import logging
 import numpy as np
-from rtnn.file_helper import FileUtils
-from rtnn.plot_helper import stats
+from rtnn.utils import FileUtils
+from rtnn.diagnostics import stats
 
 FileUtils.makedir(os.path.join("stats", "."))
 train_sbatch_files = np.sort(

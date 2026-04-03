@@ -8,7 +8,7 @@
 
 """Main entry point for the rtnn package."""
 
-from rtnn.main_lsm import main
+from rtnn.main import main
 
 if __name__ == "__main__":
     main()

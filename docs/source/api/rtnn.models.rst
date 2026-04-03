@@ -28,14 +28,6 @@ rtnn.models.Transformer module
    :undoc-members:
    :show-inheritance:
 
-rtnn.models.UNet1D module
--------------------------
-
-.. automodule:: rtnn.models.UNet1D
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 rtnn.models.DimChangeModule module
 ----------------------------------
 

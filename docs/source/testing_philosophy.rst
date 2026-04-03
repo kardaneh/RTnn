@@ -21,7 +21,6 @@ Test Structure
 - `test_rnn.py`: Tests for RNN models
 - `test_fcn.py`: Tests for FCN models
 - `test_transformer.py`: Tests for Transformer models
-- `test_data_helper.py`: Tests for data loading
 
 Test Data
 ---------

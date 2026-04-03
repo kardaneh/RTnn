@@ -26,7 +26,7 @@ import sys
 import os
 
 sys.path.append("..")
-from rtnn.plot_helper import plot_flux_and_abs, plot_flux_and_abs_lines
+from rtnn.diagnostics import plot_flux_and_abs, plot_flux_and_abs_lines
 
 
 class NMSELoss(nn.Module):
@@ -82,104 +82,121 @@ class NMAELoss(nn.Module):
         return mae / norm
 
 
-class CombinedMSEMAELoss(nn.Module):
+class MetricTracker:
     """
-    Combined MSE and MAE loss with adjustable weighting.
+    A utility class for tracking and computing statistics of metric values.
 
-    Allows balancing between MSE (sensitive to outliers) and MAE (robust).
+    This class maintains a running average of metric values and provides
+    methods to compute mean and root mean squared values.
 
-    Parameters
+    Attributes
     ----------
-    alpha : float, optional
-        Weight for MSE component. MAE weight is (1 - alpha). Default is 0.5.
-    """
-
-    def __init__(self, alpha=0.5):
-        super(CombinedMSEMAELoss, self).__init__()
-        self.alpha = alpha
-        self.mse = nn.MSELoss()
-        self.mae = nn.L1Loss()
-
-    def forward(self, pred, target):
-        loss_mse = self.mse(pred, target)
-        loss_mae = self.mae(pred, target)
-        combined_loss = self.alpha * loss_mse + (1.0 - self.alpha) * loss_mae
-        return combined_loss
-
-
-class LogCoshLoss(nn.Module):
-    """
-    Log-Cosh loss function.
-
-    Smooth approximation of MAE that is differentiable everywhere and less
-    sensitive to outliers than MSE.
-
-    Formula: L = mean(log(cosh(pred - target)))
-    """
-
-    def forward(self, pred, target):
-        return torch.mean(torch.log(torch.cosh(pred - target + 1e-8)))
-
-
-class WMSELoss(nn.Module):
-    """
-    Weighted Mean Squared Error Loss.
-
-    Applies higher weight to smaller target values, useful for variables
-    where small values are important.
-
-    Parameters
-    ----------
-    epsilon : float, optional
-        Small constant for numerical stability. Default is 1e-4.
-    gamma : float, optional
-        Exponent for weight calculation. Default is 2.
-    """
-
-    def __init__(self, epsilon=1e-4, gamma=2):
-        super().__init__()
-        self.eps = epsilon
-        self.gamma = gamma
-
-    def forward(self, pred, target):
-        weight = torch.log1p((1 / (target + self.eps)) ** self.gamma)
-        loss = weight * (pred - target) ** 2
-        return torch.mean(loss)
-
-
-class MetricTracker(object):
-    """
-    Tracks and aggregates metric values across batches.
-
-    Provides functionality to update metrics with batch values and compute
-    mean statistics over the entire dataset.
+    value : float
+        Cumulative weighted sum of metric values
+    count : int
+        Total number of samples processed
 
     Examples
     --------
     >>> tracker = MetricTracker()
-    >>> tracker.update(0.5, 32)  # value=0.5, count=32
-    >>> tracker.update(0.6, 32)
-    >>> tracker.getmean()
-    0.55
-    >>> tracker.getsqrtmean()
-    0.7416
+    >>> tracker.update(10.0, 5)  # value=10.0, count=5 samples
+    >>> tracker.update(20.0, 3)  # value=20.0, count=3 samples
+    >>> print(tracker.getmean())  # (10*5 + 20*3) / (5+3) = 110/8 = 13.75
+    13.75
+    >>> print(tracker.getsqrtmean())  # sqrt(13.75)
+    3.7080992435478315
     """
 
     def __init__(self):
+        """
+        Initialize MetricTracker with zero values.
+        """
         self.reset()
 
     def reset(self):
+        """
+        Reset all tracked values to zero.
+
+        Returns
+        -------
+        None
+        """
         self.value = 0.0
         self.count = 0
+        self.value_sq = 0.0
 
     def update(self, value, count):
+        """
+        Update the tracker with new metric values.
+
+        Parameters
+        ----------
+        value : float
+            The metric value to add
+        count : int
+            Number of samples this value represents (weight)
+
+        Returns
+        -------
+        None
+        """
         self.count += count
         self.value += value * count
+        self.value_sq += (value**2) * count
 
     def getmean(self):
+        """
+        Calculate the mean of all tracked values.
+
+        Returns
+        -------
+        float
+            Weighted mean of all values: total_value / total_count
+
+        Raises
+        ------
+        ZeroDivisionError
+            If no values have been added (count == 0)
+        """
+        if self.count == 0:
+            raise ZeroDivisionError("Cannot compute mean with zero samples")
         return self.value / self.count
 
+    def getstd(self):
+        """
+        Calculate the standard deviation of all tracked values.
+
+        Returns
+        -------
+        float
+            Weighted standard deviation of all values:
+            sqrt(E(x^2) - (E(x))^2)
+
+        Raises
+        ------
+        ZeroDivisionError
+            If no values have been added (count == 0)
+        """
+        if self.count == 0:
+            raise ZeroDivisionError("Cannot compute std with zero samples")
+        mean = self.getmean()
+        variance = self.value_sq / self.count - mean**2
+        return np.sqrt(max(variance, 0.0))  # numerical safety
+
     def getsqrtmean(self):
+        """
+        Calculate the square root of the mean of all tracked values.
+
+        Returns
+        -------
+        float
+            Square root of the weighted mean: sqrt(total_value / total_count)
+
+        Raises
+        ------
+        ZeroDivisionError
+            If no values have been added (count == 0)
+        """
         return np.sqrt(self.getmean())
 
 
@@ -225,10 +242,6 @@ def get_loss_function(loss_type, args):
         return NMAELoss()
     elif loss_type == "nmse":
         return NMSELoss()
-    elif loss_type == "wmse":
-        return WMSELoss()
-    elif loss_type == "logcosh":
-        return LogCoshLoss()
     elif loss_type in ["smoothl1", "huber"]:
         if not hasattr(args, "beta_delta"):
             raise ValueError(f"{loss_type.capitalize()}Loss requires --beta_delta")
@@ -634,7 +647,7 @@ def calc_hr(up, down, p=None):
         return -dnet[:, :, 1:]
 
 
-def check_accuracy_evaluate_lsm(
+def run_validation(
     loader, model, norm_mapping, normalization_type, index_mapping, device, args, epoch
 ):
     """
@@ -672,7 +685,7 @@ def check_accuracy_evaluate_lsm(
 
     Examples
     --------
-    >>> valid_loss, metrics = check_accuracy_evaluate_lsm(
+    >>> valid_loss, metrics = run_validation(
     ...     test_loader, model, norm_mapping, norm_type, idxmap, device, args, epoch
     ... )
     >>> print(f"Validation loss: {valid_loss:.4f}")

@@ -40,7 +40,11 @@ jobs:
           python -m unittest tests.test_rnn
           python -m unittest tests.test_fcn
           python -m unittest tests.test_transformer
-          python -m unittest tests.test_data_helper
+          python -m unittest tests.test_evaluater
+          python -m unittest tests.test_model_loader
+          python -m unittest tests.test_model_utils
+          python -m unittest tests.test_utils
+          python -m unittest tests.test_logger
 
       - name: Check package builds
         run: uv build

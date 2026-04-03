@@ -1,12 +1,15 @@
 RTnn: Radiative Transfer Neural Networks
 =========================================
 
-.. image:: https://github.com/kardaneh/RTNN/actions/workflows/ci.yaml/badge.svg
-   :target: https://github.com/kardaneh/RTNN/actions/workflows/ci.yaml
+CI, and Documentation Status, License, Python and PyTorch versions
+------------------------------------------------------------------
+
+.. image:: https://github.com/kardaneh/RTNN/workflows/CI/badge.svg
+   :target: https://github.com/kardaneh/RTNN/actions
    :alt: CI Status
 
-.. image:: https://github.com/kardaneh/RTNN/actions/workflows/docs.yml/badge.svg
-   :target: https://github.com/kardaneh/RTNN/actions/workflows/docs.yml
+.. image:: https://github.com/kardaneh/RTNN/workflows/Documentation/badge.svg
+   :target: https://github.com/kardaneh/RTNN/actions
    :alt: Documentation Status
 
 .. image:: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-blue.svg

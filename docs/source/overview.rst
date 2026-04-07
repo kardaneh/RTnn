@@ -47,18 +47,3 @@ RTnn is designed for:
 2. **Atmospheric Science**: Model radiation in atmospheric columns
 3. **Climate Downscaling**: Learn relationships between coarse and fine resolutions
 4. **Data Assimilation**: Fast forward operators for ensemble methods
-
-Citation
---------
-
-If you use RTnn in your research, please cite:
-
-.. code-block:: bibtex
-
-   @software{ardaneh2026rtnn,
-       author = {Kazem Ardaneh},
-       title = {RTnn: Radiative Transfer Neural Networks for Climate Science},
-       year = {2026},
-       publisher = {GitHub},
-       url = {https://github.com/kardaneh/rtnn}
-   }

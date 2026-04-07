@@ -1,5 +1,5 @@
-Documentation
-==================
+RTnn
+====
 
 RTnn (Radiative Transfer Neural Networks) is a PyTorch-based framework designed to
 emulate radiative transfer processes in climate models, with a primary focus on
@@ -28,20 +28,6 @@ accuracy.
 - Up to YYYx faster than physical RT models
 - Minimal accuracy loss (typically >0.95 R²)
 - Scalable to large datasets with distributed training
-
-**Citation:**
-
-If you use RTnn in your research, please cite:
-
-.. code-block:: bibtex
-
-   @software{ardaneh2026rtnn,
-       author = {Kazem Ardaneh},
-       title = {RTnn: Radiative Transfer Neural Networks for Land Surface Models},
-       year = {2026},
-       publisher = {GitHub},
-       url = {https://github.com/kardaneh/RTnn}
-   }
 
 .. toctree::
    :maxdepth: 2

@@ -45,6 +45,7 @@ jobs:
           python -m unittest tests.test_model_utils
           python -m unittest tests.test_utils
           python -m unittest tests.test_logger
+          python -m unittest tests.test_dataset
 
       - name: Check package builds
         run: uv build

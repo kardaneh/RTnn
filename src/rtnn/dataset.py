@@ -109,8 +109,10 @@ class DataPreprocessor(Dataset):
         stime: int,
         tstep: int,
         tbatch: int,
+        training: bool = True,
         norm_mapping: Dict = {},
         normalization_type: Dict = {},
+        debug: bool = False,
     ) -> None:
         """
         Initialize the DataPreprocessor.
@@ -136,8 +138,10 @@ class DataPreprocessor(Dataset):
         self.stime = stime
         self.tstep = tstep
         self.tbatch = tbatch
+        self.training = training
         self.norm_mapping = norm_mapping
         self.normalization_type = normalization_type
+        self.debug = debug
 
         # Group files by year
         self.train_sbatch_files_by_year = defaultdict(list)
@@ -163,11 +167,6 @@ class DataPreprocessor(Dataset):
 
         # Create and shuffle time blocks
         self.time_blocks = np.arange((self.etime - self.stime) // self.tbatch)
-        np.random.shuffle(self.time_blocks)
-
-        self.logger.info(f"Time range: {self.stime} ... {self.etime}")
-        self.logger.info(f"Spatial batches: {self.sbatch}")
-        self.logger.info(f"Temporal batches: {self.tbatch}")
 
         # Find minimum dimensions across all files
         self.min_dims = {
@@ -197,14 +196,23 @@ class DataPreprocessor(Dataset):
             "isotrop_tran",
         ]  # Output variables
 
-    def shuffle_time_blocks(self) -> None:
-        """
-        Shuffle the time blocks for randomized sampling.
-
-        This method should be called at the beginning of each epoch to ensure
-        different temporal sampling patterns.
-        """
-        np.random.shuffle(self.time_blocks)
+        if self.debug:
+            self.logger.info(f"Time range: {self.stime} ... {self.etime}")
+            self.logger.info(f"Time steps per file: {self.tstep}")
+            self.logger.info(f"Temporal batch size: {self.tbatch}")
+            self.logger.info(f"Spatial batche size: {self.sbatch}")
+            self.logger.info(f"Time blocks: {self.time_blocks}")
+            self.logger.info(f"Years: {self.years}")
+            self.logger.info(f"Year to index: {self.year_to_index}")
+            self.logger.info(
+                f"Variable groups: {self.cosz}, {self.lai}, {self.ssa}, {self.rs}, {self.ov}"
+            )
+            self.logger.info(
+                "The list of file info:\n"
+                + "\n".join(
+                    f"{year}, {sindex}, {path}" for year, sindex, path in self.dfs
+                )
+            )
 
     def normalize(self, data: np.ndarray, var_name: str) -> np.ndarray:
         """
@@ -331,21 +339,51 @@ class DataPreprocessor(Dataset):
         The method loads data from the appropriate file based on the index,
         applies normalization, and returns the processed features and targets.
         """
+        if index >= len(self):
+            raise IndexError(f"Index {index} out of range [0, {len(self)})")
+
         # Calculate spatial and temporal indices
         sindex = index % self.sbatch
-        tblock_index = index // self.sbatch
-        tblock = self.time_blocks[tblock_index]
+        tblock = index // self.sbatch
 
-        year_index = tblock // (self.tstep // self.tbatch)
-        local_tblock = tblock % (self.tstep // self.tbatch)
-        tindex = (
-            local_tblock * self.tbatch + self.stime + np.random.randint(self.tbatch)
-        )
+        # Calculate which year this block belongs to
+        blocks_per_year = self.tstep // self.tbatch
+        if blocks_per_year <= 0:
+            raise ValueError(
+                f"Invalid blocks_per_year: {blocks_per_year}. "
+                f"tstep={self.tstep}, tbatch={self.tbatch}"
+            )
+
+        year_index = tblock // blocks_per_year
+        # Validate year_index
+        if year_index >= len(self.years):
+            raise IndexError(
+                f"Year index {year_index} out of range [0, {len(self.years)})"
+            )
+
+        local_tblock = tblock % blocks_per_year
+
+        # Calculate time index (with random offset for training)
+        tindex = local_tblock * self.tbatch + self.stime
+
+        if self.training:
+            tindex += np.random.randint(self.tbatch)
 
         # Get the file path
         dfs_index = year_index * self.sbatch + sindex
         _, _, path = self.dfs[dfs_index]
 
+        if self.debug:
+            self.logger.info("------------------- GET ITEM INFO -------------------")
+            self.logger.info(
+                f"\nTorch batch index: {index}\n"
+                f"Spatial index: {sindex}\n"
+                f"Temporal block index: {tblock}\n"
+                f"Year index: {year_index}\n"
+                f"Local time block: {local_tblock}\n"
+                f"Time index: {tindex}\n"
+                f"Loading file: {path}"
+            )
         # Open the dataset
         self.df = xr.open_dataset(path, engine="netcdf4")
 

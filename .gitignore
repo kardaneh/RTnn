@@ -180,5 +180,6 @@ runs/*
 stats/*
 !stats/.gitkeep
 
+tests_plots/
 # Ignore all __pycache__ folders recursively
 __pycache__/

@@ -91,26 +91,6 @@ Deep fully connected network with batch normalization.
 - FCBlock: Linear → BatchNorm → ReLU
 - Optional sequence length expansion
 
-UNet1D
-------
-
-1D U-Net architecture for sequence-to-sequence tasks.
-
-.. code-block:: python
-
-   from rtnn import UNET
-
-   model = UNET(
-       feature_channel=6,
-       output_channel=4,
-       features=[32, 64, 128]  # Channel progression
-   )
-
-**Features:**
-- Encoder-decoder with skip connections
-- Max pooling for downsampling
-- Transposed convolutions for upsampling
-- Preserves sequence length
 
 Model Comparison
 ----------------
@@ -135,10 +115,6 @@ Model Comparison
      - Moderate
      - Simple relationships
      - Fast, no temporal modeling
-   * - UNet
-     - Moderate
-     - Local patterns
-     - Good for spatial features
 
 Choosing an Architecture
 ------------------------
@@ -146,6 +122,5 @@ Choosing an Architecture
 1. **LSTM/GRU**: Default choice for temporal sequences
 2. **Transformer**: For long sequences or when attention is important
 3. **FCN**: For simple regression tasks without temporal structure
-4. **UNet**: For local pattern recognition
 
 See :doc:`training_strategy` for hyperparameter recommendations.

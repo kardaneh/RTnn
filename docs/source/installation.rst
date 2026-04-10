@@ -54,7 +54,7 @@ Installation on Leonardo (CINECA)
 Installation on other systems
 -----------------------------
 
-If you're not on Leonardo, you can install all dependencies via pip:
+If you're not on Leonardo, you can install all dependencies via pip (remember to uncomment the dependencies in ``pyproject.toml``):
 
 .. code-block:: bash
 

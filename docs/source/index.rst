@@ -7,6 +7,8 @@ Land Surface Models (LSM). It provides efficient neural network surrogates that
 can replace expensive physical radiative transfer calculations while maintaining
 accuracy.
 
+**GitHub Repository:** https://github.com/kardaneh/RTNN
+
 **Key Features:**
 
 - **Multiple neural architectures**: LSTM, GRU, Transformer, and FCN

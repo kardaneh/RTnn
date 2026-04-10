@@ -13,6 +13,7 @@ import xarray as xr
 from collections import defaultdict
 import re
 from typing import Dict, List, Tuple, Any
+import random
 
 
 class DataPreprocessor(Dataset):
@@ -107,9 +108,9 @@ class DataPreprocessor(Dataset):
         logger: Any,
         dfs: List[str],
         stime: int,
-        tstep: int,
         tbatch: int,
         training: bool = True,
+        sblock_perc: float = 0.6,
         norm_mapping: Dict = {},
         normalization_type: Dict = {},
         debug: bool = False,
@@ -125,23 +126,26 @@ class DataPreprocessor(Dataset):
             List of file paths to NetCDF files.
         stime : int
             Start time index.
-        tstep : int
-            Number of time steps per file.
         tbatch : int
             Temporal batch size.
+        training : bool, optional
+            If True, use 60% of spatial batches (data augmentation).
+            If False, use 100% of spatial batches (full evaluation).
         norm_mapping : Dict, optional
             Dictionary containing normalization statistics for each variable.
         normalization_type : Dict, optional
             Dictionary specifying normalization type for each variable.
+        debug : bool, optional
+            If True, print debug information.
         """
         self.logger = logger
         self.stime = stime
-        self.tstep = tstep
         self.tbatch = tbatch
         self.training = training
         self.norm_mapping = norm_mapping
         self.normalization_type = normalization_type
         self.debug = debug
+        self.sblock_perc = sblock_perc
 
         # Group files by year
         self.train_sbatch_files_by_year = defaultdict(list)
@@ -153,10 +157,21 @@ class DataPreprocessor(Dataset):
 
         # Determine number of spatial batches
         first_key = list(self.train_sbatch_files_by_year.keys())[0]
-        self.sbatch = len(self.train_sbatch_files_by_year[first_key])
+        self.total_sbatch = len(self.train_sbatch_files_by_year[first_key])
+
+        # Set spatial batch size based on training mode
+        if self.training:
+            # Training: use 60% of spatial batches
+            self.sbatch = max(1, int(self.total_sbatch * self.sblock_perc))
+            # Initialize tracking for random spatial mapping
+            self.last_tindex = -1
+            self.current_spatial_mapping = None
+        else:
+            # Validation/Testing: use 100% of spatial batches
+            self.sbatch = self.total_sbatch
+
         self.years = sorted(self.train_sbatch_files_by_year.keys())
         self.year_to_index = {y: i for i, y in enumerate(self.years)}
-        self.etime = self.tstep * len(self.years)
 
         # Create list of (year, spatial_index, path) for all files
         self.dfs = [
@@ -164,9 +179,6 @@ class DataPreprocessor(Dataset):
             for year in self.years
             for sindex, path in enumerate(sorted(self.train_sbatch_files_by_year[year]))
         ]
-
-        # Create and shuffle time blocks
-        self.time_blocks = np.arange((self.etime - self.stime) // self.tbatch)
 
         # Find minimum dimensions across all files
         self.min_dims = {
@@ -184,6 +196,15 @@ class DataPreprocessor(Dataset):
                     self.min_dims[dim] = min(self.min_dims[dim], ds.sizes[dim])
             ds.close()
 
+        for dim, size in self.min_dims.items():
+            self.logger.info(f"Minimum {dim} across files: {size}")
+
+        self.tstep = self.min_dims["time"]
+        self.etime = self.tstep * len(self.years)
+
+        # Create and shuffle time blocks
+        self.time_blocks = np.arange((self.etime - self.stime) // self.tbatch)
+
         # Define variable groups
         self.cosz = ["coszang"]  # Cosine of solar zenith angle
         self.lai = ["laieff_collim", "laieff_isotrop"]  # Leaf area index
@@ -196,23 +217,35 @@ class DataPreprocessor(Dataset):
             "isotrop_tran",
         ]  # Output variables
 
-        if self.debug:
-            self.logger.info(f"Time range: {self.stime} ... {self.etime}")
-            self.logger.info(f"Time steps per file: {self.tstep}")
-            self.logger.info(f"Temporal batch size: {self.tbatch}")
-            self.logger.info(f"Spatial batche size: {self.sbatch}")
-            self.logger.info(f"Time blocks: {self.time_blocks}")
-            self.logger.info(f"Years: {self.years}")
-            self.logger.info(f"Year to index: {self.year_to_index}")
-            self.logger.info(
-                f"Variable groups: {self.cosz}, {self.lai}, {self.ssa}, {self.rs}, {self.ov}"
-            )
-            self.logger.info(
-                "The list of file info:\n"
-                + "\n".join(
-                    f"{year}, {sindex}, {path}" for year, sindex, path in self.dfs
-                )
-            )
+        self.sindex_tracker = []  # Will store spatial indices
+        self.tindex_tracker = []  # Will store temporal indices
+
+        self.logger.info(f"Time range: {self.stime} ... {self.etime}")
+        self.logger.info(f"Time steps per file: {self.tstep}")
+        self.logger.info(f"Temporal batch size: {self.tbatch}")
+        self.logger.info(f"Spatial batche size: {self.sbatch}")
+        self.logger.info(f"Time blocks: {self.time_blocks}")
+        self.logger.info(f"Years: {self.years}")
+        self.logger.info(f"Year to index: {self.year_to_index}")
+        self.logger.info(
+            f"Variable groups: {self.cosz}, {self.lai}, {self.ssa}, {self.rs}, {self.ov}"
+        )
+        self.logger.info(
+            "The list of file info:\n"
+            + "\n".join(f"{year}, {sindex}, {path}" for year, sindex, path in self.dfs)
+        )
+        random.seed(42)  # Set a fixed seed for reproducibility
+
+    def _get_random_spatial_mapping(self) -> List[int]:
+        """
+        Generate a random spatial mapping for training.
+
+        Returns
+        -------
+        List[int]
+            List of randomly selected processor ranks (size = self.sbatch).
+        """
+        return random.sample(range(self.total_sbatch), self.sbatch)
 
     def normalize(self, data: np.ndarray, var_name: str) -> np.ndarray:
         """
@@ -250,6 +283,10 @@ class DataPreprocessor(Dataset):
         """
         norm_type = self.normalization_type.get(var_name, "log1p_minmax")
         stats = self.norm_mapping[var_name]
+        if self.debug:
+            self.logger.info(
+                f"Normalizing variable '{var_name}' using method '{norm_type}' with stats: {stats}"
+            )
 
         if norm_type == "minmax":
             vmin = stats["vmin"]
@@ -343,7 +380,7 @@ class DataPreprocessor(Dataset):
             raise IndexError(f"Index {index} out of range [0, {len(self)})")
 
         # Calculate spatial and temporal indices
-        sindex = index % self.sbatch
+        index_spatial_mapping = index % self.sbatch
         tblock = index // self.sbatch
 
         # Calculate which year this block belongs to
@@ -366,8 +403,27 @@ class DataPreprocessor(Dataset):
         # Calculate time index (with random offset for training)
         tindex = local_tblock * self.tbatch + self.stime
 
+        # For training: regenerate spatial mapping when time index changes
+        if self.training:
+            if self.last_tindex != tindex:
+                self.current_spatial_mapping = self._get_random_spatial_mapping()
+                self.last_tindex = tindex
+                if self.debug:
+                    self.logger.info(
+                        f"New spatial mapping for tindex {tindex}: {self.current_spatial_mapping}"
+                    )
+
+            # Map the spatial index to an actual processor rank
+            sindex = self.current_spatial_mapping[index_spatial_mapping]
+        else:
+            # For validation/testing: use direct mapping (sindex = index_spatial_mapping)
+            sindex = index_spatial_mapping
+
         if self.training:
             tindex += np.random.randint(self.tbatch)
+
+        self.tindex_tracker.append(tblock)
+        self.sindex_tracker.append(sindex)
 
         # Get the file path
         dfs_index = year_index * self.sbatch + sindex
@@ -377,7 +433,7 @@ class DataPreprocessor(Dataset):
             self.logger.info("------------------- GET ITEM INFO -------------------")
             self.logger.info(
                 f"\nTorch batch index: {index}\n"
-                f"Spatial index: {sindex}\n"
+                f"Spatial index before mapping: {index_spatial_mapping}, and Spatial index after mapping: {sindex}\n"
                 f"Temporal block index: {tblock}\n"
                 f"Year index: {year_index}\n"
                 f"Local time block: {local_tblock}\n"
@@ -400,6 +456,24 @@ class DataPreprocessor(Dataset):
         npssa = np.zeros([self.schunk, len(self.ssa), sequence_length_dim])
         npov = np.zeros([self.schunk, len(self.ov), sequence_length_dim])
         nprs = np.zeros([self.schunk, len(self.rs), sequence_length_dim])
+
+        if self.debug:
+            self.logger.info(
+                f"Dimensions for processing:\n"
+                f"  |- sequence_length_dim: {sequence_length_dim}\n"
+                f"  |- dim_1: {dim_1}\n"
+                f"  |- dim_3: {dim_3}\n"
+                f"  |- dim_4: {dim_4}\n"
+                f"  |- schunk (total spatial chunk size): {self.schunk}"
+            )
+            self.logger.info(
+                f"Initialized numpy arrays for variable groups with shapes:\n"
+                f"  |- npcosz: {npcosz.shape}\n"
+                f"  |- nplai: {nplai.shape}\n"
+                f"  |- npssa: {npssa.shape}\n"
+                f"  |- npov: {npov.shape}\n"
+                f"  |- nprs: {nprs.shape}"
+            )
 
         # Process cosz (cosine of solar zenith angle)
         for variable_index, variable_name in enumerate(self.cosz):

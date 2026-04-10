@@ -58,6 +58,7 @@ cover/
 *.sh
 *.err
 *.out
+*.lock
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -178,9 +179,6 @@ runs/*
 
 stats/*
 !stats/.gitkeep
-
-python-venv/*
-!python-venv/.gitkeep
 
 # Ignore all __pycache__ folders recursively
 __pycache__/

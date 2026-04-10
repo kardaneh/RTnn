@@ -57,7 +57,7 @@ params = {
 mpl.update(params)
 
 
-def stats(file_list, logger, output_dir, norm_mapping=None):
+def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
     """
     Compute statistics and generate histograms for variables in NetCDF files.
 
@@ -131,7 +131,7 @@ def stats(file_list, logger, output_dir, norm_mapping=None):
     if norm_mapping is None:
         norm_mapping = {}
 
-    logger.info("Reading and collecting variables across files...")
+    logger.info("Starting statistics computation for normalization")
     for fpath in file_list:
         try:
             ds = xr.open_dataset(fpath, engine="netcdf4")
@@ -205,20 +205,22 @@ def stats(file_list, logger, output_dir, norm_mapping=None):
             "sqrt_iqr": sqrt_iqr,
             "sqrt_median": sqrt_median,
         }
-        norm_label = ""
-        file_suffix = "_histogram.png"
 
-        fig = plt.figure(figsize=(8, 5))
-        ax = fig.add_subplot(111)
-        ax.hist(full_data, bins=200)
-        ax.set_yscale("log")
-        ax.set_title(f"Histogram of {var_name}{norm_label}")
-        ax.set_xlabel(var_name + norm_label)
-        ax.set_ylabel("Log Count")
-        ax.grid(True)
-        out_path = os.path.join(output_dir, f"{var_name}{file_suffix}")
-        plt.savefig(out_path, bbox_inches="tight")
-        plt.close(fig)
+        if plots:
+            norm_label = ""
+            file_suffix = "_histogram.png"
+
+            fig = plt.figure(figsize=(8, 5))
+            ax = fig.add_subplot(111)
+            ax.hist(full_data, bins=200)
+            ax.set_yscale("log")
+            ax.set_title(f"Histogram of {var_name}{norm_label}")
+            ax.set_xlabel(var_name + norm_label)
+            ax.set_ylabel("Log Count")
+            ax.grid(True)
+            out_path = os.path.join(output_dir, f"{var_name}{file_suffix}")
+            plt.savefig(out_path, bbox_inches="tight")
+            plt.close(fig)
 
     return norm_mapping
 
@@ -785,3 +787,156 @@ def plot_loss_histories(
     ax.grid(True)
     plt.savefig(filename, bbox_inches="tight")
     plt.close(fig)
+
+
+def plot_spatial_temporal_density(
+    sindex_tracker,
+    tindex_tracker,
+    mode="train",
+    save_dir="./tests_plots",
+    filename="density_scatter",
+    figsize=(10, 10),
+):
+    """
+    Plot a density scatter plot of spatial index vs temporal index with marginal histograms.
+
+    This function creates a 2D density scatter plot (hexbin) showing the
+    distribution of spatial indices (processor ranks) across temporal indices,
+    with:
+    - Right plot: Histogram of temporal index distribution
+    - Top plot: Histogram of spatial index distribution
+
+    Parameters
+    ----------
+    sindex_tracker : list or array-like
+        List of spatial indices (processor ranks) for each data sample.
+    tindex_tracker : list or array-like
+        List of temporal indices for each data sample.
+    mode : str, optional
+        Dataset mode identifier ("train", "validation", "test").
+    save_dir : str, optional
+        Directory path where the plot will be saved.
+    filename : str, optional
+        Base name for the output file.
+    figsize : tuple, optional
+        Figure size as (width, height) in inches.
+
+    Returns
+    -------
+    str
+        Path to the saved plot file.
+    """
+
+    if not sindex_tracker or not tindex_tracker:
+        print(f"No data to plot for {mode} mode")
+        return None
+
+    # Convert to numpy arrays
+    sindex_tracker = np.array(sindex_tracker)
+    tindex_tracker = np.array(tindex_tracker)
+
+    # Get limits
+    min_sindex = int(sindex_tracker.min())
+    max_sindex = int(sindex_tracker.max())
+    min_time = int(tindex_tracker.min())
+    max_time = int(tindex_tracker.max())
+
+    # Create figure with GridSpec for custom layout
+    fig = plt.figure(figsize=figsize)
+
+    # Define grid:
+    # - Top histogram takes 20% height
+    # - Main hexbin takes 80% height
+    # - Right histogram takes 20% width
+    # - Left main takes 80% width
+    # Add space between panels
+    gs = gridspec.GridSpec(
+        2,
+        2,
+        figure=fig,
+        height_ratios=[0.2, 0.8],
+        width_ratios=[0.8, 0.2],
+        hspace=0.2,
+        wspace=0.2,
+    )
+
+    # Main hexbin plot (bottom-left)
+    ax_main = fig.add_subplot(gs[1, 0])
+
+    # Right histogram (bottom-right) - temporal index distribution
+    ax_right = fig.add_subplot(gs[1, 1])
+
+    # Top histogram (top-left) - spatial index distribution
+    ax_top = fig.add_subplot(gs[0, 0])
+
+    # Top-right corner is empty
+    ax_empty = fig.add_subplot(gs[0, 1])
+    ax_empty.axis("off")
+
+    # Create density scatter plot (hexbin) in main axis
+    hb = ax_main.hexbin(
+        sindex_tracker,
+        tindex_tracker,
+        gridsize=100,
+        extent=[min_sindex - 0.5, max_sindex + 0.5, min_time, max_time],
+        cmap="jet",
+        bins="log",
+        mincnt=1,
+        edgecolors="none",
+    )
+
+    ax_main.set_xlabel("Spatial Index (Processor Rank)")
+    ax_main.set_ylabel("Temporal Index")
+    ax_main.set_xlim(min_sindex - 0.5, max_sindex + 0.5)
+    ax_main.set_ylim(min_time, max_time)
+    ax_main.grid(True, alpha=0.3, linestyle="--")
+
+    # Right plot: Histogram of temporal index distribution (horizontal bars)
+    unique_tindices = np.arange(min_time, max_time + 1)
+    temporal_counts = [np.sum(tindex_tracker == t) for t in unique_tindices]
+
+    ax_right.barh(
+        unique_tindices,
+        temporal_counts,
+        height=0.8,
+        color="coral",
+        alpha=0.7,
+        edgecolor="black",
+    )
+    ax_right.set_xlabel("Frequency")
+    ax_right.set_ylim(min_time, max_time)
+    ax_right.grid(True, alpha=0.3, linestyle="--", axis="x")
+    ax_right.tick_params(axis="both")
+
+    # Top plot: Histogram of spatial index distribution (vertical bars)
+    unique_sindices = np.arange(min_sindex, max_sindex + 1)
+    spatial_counts = [np.sum(sindex_tracker == s) for s in unique_sindices]
+
+    ax_top.bar(
+        unique_sindices,
+        spatial_counts,
+        width=0.8,
+        color="steelblue",
+        alpha=0.7,
+        edgecolor="black",
+    )
+    ax_top.set_ylabel("Frequency")
+    ax_top.set_xlim(min_sindex - 0.5, max_sindex + 0.5)
+    ax_top.grid(True, alpha=0.3, linestyle="--", axis="y")
+    ax_top.tick_params(axis="both")
+
+    # Add colorbar at the bottom, spanning the width of the main plot
+    # Get the position of the main plot
+    main_pos = ax_main.get_position()
+    # Create colorbar axes below the main plot, with same width
+    cbar_ax = fig.add_axes([main_pos.x0, main_pos.y0 - 0.1, main_pos.width, 0.02])
+    cbar = fig.colorbar(hb, cax=cbar_ax, orientation="horizontal")
+    cbar.set_label(r"$\log_{10}[\mathrm{Count}]$")
+
+    # Save figure
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"{filename}_{mode}.png")
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"Saved density scatter plot with marginal histograms to: {save_path}")

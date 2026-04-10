@@ -26,6 +26,7 @@ dependencies = [
     # "seaborn>=0.13.2",      # Commented out - provided by modules
     # "rich>=13.0.0",         # Commented out - provided by modules
     "mpltex>=0.7",            # Not in modules - needed
+    "ipython>=8.18.1",
 ]
 
 [project.scripts]

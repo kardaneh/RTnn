@@ -24,6 +24,7 @@ import torch.nn as nn
 import numpy as np
 import sys
 import os
+from tqdm import tqdm
 
 sys.path.append("..")
 from rtnn.diagnostics import plot_flux_and_abs, plot_flux_and_abs_lines
@@ -200,7 +201,7 @@ class MetricTracker:
         return np.sqrt(self.getmean())
 
 
-def get_loss_function(loss_type, args):
+def get_loss_function(loss_type, args, logger=None):
     """
     Factory function to instantiate the requested loss function.
 
@@ -235,16 +236,28 @@ def get_loss_function(loss_type, args):
     >>> criterion = get_loss_function('huber', args)
     """
     if loss_type == "mse":
+        if logger:
+            logger.info("Using Mean Squared Error (MSE) loss")
         return nn.MSELoss()
     elif loss_type == "mae":
+        if logger:
+            logger.info("Using Mean Absolute Error (MAE) loss")
         return nn.L1Loss()
     elif loss_type == "nmae":
+        if logger:
+            logger.info("Using Normalized Mean Absolute Error (NMAE) loss")
         return NMAELoss()
     elif loss_type == "nmse":
+        if logger:
+            logger.info("Using Normalized Mean Squared Error (NMSE) loss")
         return NMSELoss()
     elif loss_type in ["smoothl1", "huber"]:
         if not hasattr(args, "beta_delta"):
             raise ValueError(f"{loss_type.capitalize()}Loss requires --beta_delta")
+        if logger:
+            logger.info(
+                f"Using {loss_type.capitalize()} loss with delta={args.beta_delta}"
+            )
         return (
             nn.SmoothL1Loss(beta=args.beta_delta)
             if loss_type == "smoothl1"
@@ -313,29 +326,55 @@ def mae_all(pred, true):
 
 def r2_all(pred, true):
     """
-    Compute R² (coefficient of determination).
+    Calculate R2 (coefficient of determination) between predicted and true values.
+
+    Computes the R2 metric and returns both the number of elements and
+    the R2 value.
 
     Parameters
     ----------
     pred : torch.Tensor
-        Predictions.
+        Predicted values from the model
     true : torch.Tensor
-        Ground truth.
+        Ground truth values
 
     Returns
     -------
     tuple
-        (num_elements, r2_value)
-    """
-    count = pred.numel()
-    mse = torch.mean((pred - true) ** 2)
-    var = torch.var(true)
+        (num_elements, r2_value) where:
+        - num_elements (int): Total number of elements in the tensors
+        - r2_value (torch.Tensor): R2 score
 
-    if var == 0:
-        r2 = torch.tensor(1.0 if mse == 0 else 0.0, device=pred.device)
-    else:
-        r2 = 1 - mse / var
-    return count, r2
+    Notes
+    -----
+    R2 is calculated as:
+
+        R2 = 1 - sum((true - pred)^2) / sum((true - mean(true))^2)
+
+    This implementation is fully torch-based and works on CPU and GPU.
+    """
+
+    if pred.shape != true.shape:
+        raise RuntimeError(f"Shape mismatch: pred {pred.shape} vs true {true.shape}")
+
+    eps = 1e-12  # Small value to avoid division by zero when variance is zero
+    num_elements = pred.numel()
+
+    # Flatten
+    pred_flat = pred.reshape(-1)
+    true_flat = true.reshape(-1)
+
+    # Residual sum of squares
+    ss_res = torch.sum((true_flat - pred_flat) ** 2)
+
+    # Total sum of squares
+    true_mean = torch.mean(true_flat)
+    ss_tot = torch.sum((true_flat - true_mean) ** 2)
+
+    # R2 score
+    r2_value = 1.0 - ss_res / (ss_tot + eps)
+
+    return num_elements, r2_value
 
 
 def nmae_all(pred, true):
@@ -718,8 +757,16 @@ def run_validation(
 
     valid_loss = MetricTracker()
 
+    # Progress bar for validation
+    loop = tqdm(
+        enumerate(loader),
+        total=len(loader),
+        desc=f"Validation Epoch {epoch}",
+        leave=False,
+    )
+
     with torch.no_grad():
-        for batch_idx, (feature, targets) in enumerate(loader):
+        for batch_idx, (feature, targets) in loop:
             feature_shape = feature.shape
             target_shape = targets.shape
             inner_batch_size = feature_shape[0] * feature_shape[1]
@@ -775,6 +822,7 @@ def run_validation(
             total_loss = weighted_loss / total_count
 
             valid_loss.update(total_loss.item(), 1)
+            loop.set_postfix(loss=total_loss.item())
 
             if epoch == args.num_epochs - 1:
                 print("making plot", batch_idx)

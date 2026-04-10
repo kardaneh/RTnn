@@ -10,8 +10,8 @@ TODAY=$(date +"%Y%m%d_%H%M%S")
 # 2. Model Configuration
 # ======================
 type="lstm"
-hidden_size=64
-num_layers=2
+hidden_size=96
+num_layers=3
 output_channel=4
 seq_length=10
 feature_channel=6
@@ -23,23 +23,25 @@ dropout=0.0
 # ======================
 # 3. Training Configuration
 # ======================
-batch_size=16
-time_batch=1
+batch_size=32
 num_epochs=2
 learning_rate=0.0001
 loss_type="huber"
 beta=0.2
 beta_delta=1.0
 num_workers=16
+run_type="train"  # Options: train, resume_train, inference
+seed=42
 
 # ======================
 # 4. Data Configuration
 # ======================
 train_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large/"
 test_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large/"
-train_years="1998"
-test_year="1999"
+train_years="1998-1999"
+test_year="2000"
 norm="log1p_standard"
+dataset_type="LSM"  # Options: LSM, RTM
 
 # ======================
 # 5. Output Configuration
@@ -47,7 +49,8 @@ norm="log1p_standard"
 save_model="True"
 save_checkpoint_name="model"
 save_per_samples=10000
-load_model="False"
+load_checkpoint_name="model.pth.tar"  # For resume_train or inference
+debug="True"  # Set to True for additional logging and checks
 
 # ======================
 # Generate tags
@@ -79,7 +82,7 @@ cat >> $sbatch_script <<EOF
 #SBATCH --time=$([ "$MODE" == "Debug" ] && echo "00:30:00" || echo "24:00:00")
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=32
-#SBATCH --gpus-per-node=4
+#SBATCH --gpus-per-node=2
 #SBATCH --mem-per-gpu=64G
 #SBATCH --job-name=rtnn_${tag}
 #SBATCH --error=rtnn_${tag}_%j.err
@@ -103,6 +106,7 @@ echo ""
 echo "=== RTnn Training ==="
 echo "Version: \$(python -c 'import rtnn; print(rtnn.__version__)')"
 echo "Model: $model_name"
+echo "Run type: $run_type"
 echo "Start time: \$(date)"
 
 # Run training
@@ -111,6 +115,7 @@ rtnn \\
     --main_folder "$main_folder" \\
     --sub_folder "$sub_folder" \\
     --prefix "$prefix" \\
+    --dataset_type "$dataset_type" \\
     --type "$type" \\
     --hidden_size "$hidden_size" \\
     --num_layers "$num_layers" \\
@@ -123,7 +128,6 @@ rtnn \\
     --dropout "$dropout" \\
     --model_name "$model_name" \\
     --batch_size "$batch_size" \\
-    --tbatch "$time_batch" \\
     --num_epochs "$num_epochs" \\
     --learning_rate "$learning_rate" \\
     --loss_type "$loss_type" \\
@@ -138,7 +142,10 @@ rtnn \\
     --save_model "$save_model" \\
     --save_checkpoint_name "$save_checkpoint_name" \\
     --save_per_samples "$save_per_samples" \\
-    --load_model "$load_model"
+    --load_checkpoint_name "$load_checkpoint_name" \\
+    --run_type "$run_type" \\
+    --seed "$seed" \\
+    --debug "$debug"
 
 echo "End time: \$(date)"
 EOF

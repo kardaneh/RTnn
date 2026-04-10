@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from rtnn.dataset import DataPreprocessor
 from rtnn.logger import Logger
+from rtnn.diagnostics import plot_spatial_temporal_density
 
 
 def create_dummy_lsm_netcdf(
@@ -246,8 +247,8 @@ class TestDataPreprocessor(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp()
 
         # Create dummy NetCDF files for years 1995-1997
-        self.years = [1995, 1996]
-        self.processor_ranks = [0, 1, 2]  # Simulate 3 processors
+        self.years = [1995, 1996, 1997]
+        self.processor_ranks = [0, 1, 2, 3, 4]  # Simulate 5 processors
         self.time_steps = 25
         self.dim_1 = 12
         self.dim_2 = 10
@@ -297,7 +298,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=self.files,
             stime=0,
-            tstep=self.time_steps,
             tbatch=25,
             norm_mapping=self.norm_mapping,
             normalization_type=self.normalization_type,
@@ -392,7 +392,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=self.files[:1],
             stime=0,
-            tstep=self.time_steps,
             tbatch=25,
             norm_mapping={"test_var": {"vmin": 0, "vmax": 10}},
             normalization_type={"test_var": "minmax"},
@@ -413,7 +412,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=self.files[:1],
             stime=0,
-            tstep=self.time_steps,
             tbatch=25,
             norm_mapping={"test_var": {"vmean": 5, "vstd": 2}},
             normalization_type={"test_var": "standard"},
@@ -434,7 +432,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=self.files[:1],
             stime=0,
-            tstep=self.time_steps,
             tbatch=25,
             norm_mapping={"test_var": {"log_min": 0, "log_max": 1}},
             normalization_type={"test_var": "log1p_minmax"},
@@ -454,7 +451,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=self.files[:1],
             stime=0,
-            tstep=self.time_steps,
             tbatch=25,
             norm_mapping={"test_var": {"vmin": 0, "vmax": 1}},
             normalization_type={"test_var": "invalid_type"},
@@ -548,7 +544,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=single_file,
             stime=0,
-            tstep=self.time_steps,
             tbatch=25,
             norm_mapping=self.norm_mapping,
             normalization_type=self.normalization_type,
@@ -580,7 +575,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=single_rank_files,
             stime=0,
-            tstep=self.time_steps,
             tbatch=25,
             norm_mapping=self.norm_mapping,
             normalization_type=self.normalization_type,
@@ -605,7 +599,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=self.files,
             stime=0,
-            tstep=self.time_steps,
             tbatch=1,
             norm_mapping=self.norm_mapping,
             normalization_type=self.normalization_type,
@@ -624,6 +617,14 @@ class TestDataPreprocessor(unittest.TestCase):
             self.assertIsInstance(targets, torch.Tensor)
             self.assertEqual(features.dim(), 4)
             self.assertEqual(targets.dim(), 4)
+
+        plot_spatial_temporal_density(
+            sindex_tracker=self.dataset.sindex_tracker,
+            tindex_tracker=self.dataset.tindex_tracker,
+            mode="train",
+            save_dir="./tests_plots",
+            filename="density_scatter_test",
+        )
         self.logger.success("Train DataLoader integration test passed")
 
     def test_valid_dataloader_integration(self):
@@ -633,7 +634,6 @@ class TestDataPreprocessor(unittest.TestCase):
             logger=self.logger,
             dfs=self.files,
             stime=0,
-            tstep=self.time_steps,
             tbatch=25,
             training=False,
             norm_mapping=self.norm_mapping,

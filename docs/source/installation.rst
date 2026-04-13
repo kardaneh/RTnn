@@ -13,6 +13,8 @@ Installation on Leonardo (CINECA)
 
 1. **Load required modules**:
 
+This step might need to be ignored in the case that conflict of the environment modules arises. In that case, you can install the dependencies uv via pip (see next section).
+
    .. code-block:: bash
 
       module load profile/deeplrn
@@ -29,7 +31,7 @@ Installation on Leonardo (CINECA)
 
    .. code-block:: bash
 
-      uv venv
+      uv venv --python 3.8 # python version must be compatible with PyTorch
       source .venv/bin/activate
 
 4. **Install missing dependencies**:

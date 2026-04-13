@@ -134,7 +134,7 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
     logger.info("Starting statistics computation for normalization")
     for fpath in file_list:
         try:
-            ds = xr.open_dataset(fpath, engine="netcdf4")
+            ds = xr.open_dataset(fpath)
             logger.info(f"Processing file: {fpath}")
             for var_name in ds.data_vars:
                 data = ds[var_name].values

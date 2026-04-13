@@ -190,7 +190,7 @@ class DataPreprocessor(Dataset):
         }
 
         for _, _, file_path in self.dfs:
-            ds = xr.open_dataset(file_path, engine="netcdf4")
+            ds = xr.open_dataset(file_path)
             for dim in self.min_dims:
                 if dim in ds.sizes:
                     self.min_dims[dim] = min(self.min_dims[dim], ds.sizes[dim])
@@ -441,7 +441,7 @@ class DataPreprocessor(Dataset):
                 f"Loading file: {path}"
             )
         # Open the dataset
-        self.df = xr.open_dataset(path, engine="netcdf4")
+        self.df = xr.open_dataset(path)
 
         # Get dimensions
         sequence_length_dim = self.min_dims["dim_2"]

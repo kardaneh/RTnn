@@ -749,7 +749,7 @@ def create_datasets_and_loaders(args, train_files, test_files, norm_mapping, log
     logger.success("Training dataset created successfully.")
 
     # Create test dataset
-    test_tbatch = 1 if args.run_type == "inference" else args.batch_size
+    test_tbatch = 1 if args.run_type == "inference" else 48
     logger.start_task("Creating test dataset", f"Files: {len(test_files)}")
     test_dataset = DataPreprocessor(
         logger=logger,

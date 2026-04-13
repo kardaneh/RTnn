@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 
 # ======================
-# 1. Basic
+# 0. Machine + Runtime
 # ======================
-MODE="Debug"  # 'Prod' or 'Debug'
-TODAY=$(date +"%Y%m%d_%H%M%S")
+Machine="HAL"   # options: LEONARDO, HAL
+debug="False"         # True or False
+
+DATA_PATH="/data/kardaneh/RTDataBase/Data_LSM_1990-2000_Large/Data_LSM_1995-2000_Large" # Path to the dataset on HAL. Adjust if needed.
 
 # ======================
-# 2. Model Configuration
+# 1. Model Configuration
 # ======================
 type="lstm"
 hidden_size=96
@@ -21,95 +23,151 @@ forward_expansion=4
 dropout=0.0
 
 # ======================
-# 3. Training Configuration
+# 2. Training Configuration
 # ======================
-batch_size=32
+batch_size=4
 num_epochs=2
 learning_rate=0.0001
 loss_type="huber"
 beta=0.2
 beta_delta=1.0
-num_workers=16
-run_type="train"  # Options: train, resume_train, inference
+num_workers=4
+run_type="train"
 seed=42
 
 # ======================
-# 4. Data Configuration
+# 3. Data Configuration
 # ======================
-train_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large/"
-test_data_files="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large/"
-train_years="1998-1999"
+train_data_files=$DATA_PATH
+test_data_files=$DATA_PATH
+train_years="1999"
 test_year="2000"
 norm="log1p_standard"
-dataset_type="LSM"  # Options: LSM, RTM
+dataset_type="LSM"
 
 # ======================
-# 5. Output Configuration
+# 4. Output Configuration
 # ======================
 save_model="True"
 save_checkpoint_name="model"
 save_per_samples=10000
-load_checkpoint_name="model.pth.tar"  # For resume_train or inference
-debug="True"  # Set to True for additional logging and checks
+load_checkpoint_name="model.pth.tar"
 
 # ======================
-# Generate tags
+# 5. Tags
 # ======================
 lr_str="${learning_rate//./d}"
 beta_str="${beta//./d}"
 
 model_parts=("$type" "h${hidden_size}" "l${num_layers}")
 model_name=$(IFS=_ ; echo "${model_parts[*]}")
+
 tag="${model_name}_nrm_${norm}_l_${loss_type}_sb_${batch_size}_ne_${num_epochs}"
-main_folder="${MODE}__${model_name}_sb_${batch_size}_ne_${num_epochs}"
-sub_folder="nrm_${norm}_lr_${lr_str}_beta_${beta_str}_date_${TODAY}"
+
+main_folder=$([ "$debug" == "True" ] && echo "Debug" || echo "Prod")"__${model_name}_sb_${batch_size}_ne_${num_epochs}"
+
+sub_folder="nrm_${norm}_lr_${lr_str}_beta_${beta_str}"
 prefix="$sub_folder"
 
-sbatch_script="sbatch_rtnn_${tag}.sh"
+# ======================
+# Generate SBATCH Script Only (removed run script)
+# ======================
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+JOB_DIR="$PROJECT_ROOT/slurm/${main_folder}/${sub_folder}"
+SLURM_IO_DIR="$PROJECT_ROOT/slurm_io/${main_folder}/${sub_folder}"
+mkdir -p "$JOB_DIR"
+mkdir -p "$SLURM_IO_DIR"
+sbatch_script="$JOB_DIR/sbatch_rtnn_${tag}.sh"
+
+# Create slurm_io directory if it doesn't exist
+
 
 # ======================
-# Create SBATCH script
+# 6. Create SBATCH file
 # ======================
+
 cat > $sbatch_script <<EOF
-#!/usr/bin/env bash
-#SBATCH -A EUHPC_D27_095
-#SBATCH -p boost_usr_prod
+#!/bin/bash
+# SBATCH always at the beginning of the script!
+#SBATCH --job-name=rtnn_${main_folder}_${sub_folder}_${tag}
+#SBATCH --error=$SLURM_IO_DIR/rtnn_${tag}.err
+#SBATCH --output=$SLURM_IO_DIR/rtnn_${tag}.out
+#SBATCH --chdir=$(pwd)
 EOF
 
-[ "$MODE" == "Debug" ] && echo "#SBATCH --qos=boost_qos_dbg" >> $sbatch_script
+# ======================
+# 7. Machine-specific SBATCH config
+# ======================
+
+if [ "$Machine" == "LEONARDO" ]; then
 
 cat >> $sbatch_script <<EOF
-#SBATCH --time=$([ "$MODE" == "Debug" ] && echo "00:30:00" || echo "24:00:00")
+#SBATCH -A EUHPC_D27_095
+#SBATCH -p boost_usr_prod
+#SBATCH --time=$([ "$debug" == "True" ] && echo "00:30:00" || echo "24:00:00")
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=32
 #SBATCH --gpus-per-node=2
 #SBATCH --mem-per-gpu=64G
-#SBATCH --job-name=rtnn_${tag}
-#SBATCH --error=rtnn_${tag}_%j.err
-#SBATCH --output=rtnn_${tag}_%j.out
+EOF
 
-# Load system modules (these provide PyTorch, CUDA, etc.)
+[ "$debug" == "True" ] && echo "#SBATCH --qos=boost_qos_dbg" >> $sbatch_script
+
+elif [ "$Machine" == "HAL" ]; then
+
+cat >> $sbatch_script <<EOF
+#SBATCH --partition=batch
+#SBATCH --gpus=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --mem=48G
+#SBATCH --time=1:00:00
+#SBATCH --nodelist=hal10
+EOF
+
+fi
+
+# ======================
+# 8. Environment setup
+# ======================
+
+if [ "$Machine" == "LEONARDO" ]; then
+
+cat >> $sbatch_script <<EOF
+
 module load profile/deeplrn
 module load cineca-ai
-
-# Activate virtual environment (only for pure Python packages)
 source .venv/bin/activate
+EOF
 
-# Print environment info
+elif [ "$Machine" == "HAL" ]; then
+
+cat >> $sbatch_script <<EOF
+
+source "$PROJECT_ROOT/.venv/bin/activate"
+ulimit -s unlimited
+EOF
+
+fi
+
+# ======================
+# 9. Runtime diagnostics + training
+# ======================
+
+cat >> $sbatch_script <<EOF
+
 echo "=== Environment Info ==="
 echo "PyTorch version: \$(python -c 'import torch; print(torch.__version__)')"
 echo "CUDA available: \$(python -c 'import torch; print(torch.cuda.is_available())')"
 echo "CUDA version: \$(python -c 'import torch; print(torch.version.cuda)')"
 echo "GPU count: \$(python -c 'import torch; print(torch.cuda.device_count())')"
-echo ""
 
 echo "=== RTnn Training ==="
 echo "Version: \$(python -c 'import rtnn; print(rtnn.__version__)')"
 echo "Model: $model_name"
 echo "Run type: $run_type"
+echo "Debug: $debug"
 echo "Start time: \$(date)"
 
-# Run training
 rtnn \\
     --root_dir "./" \\
     --main_folder "$main_folder" \\

@@ -180,6 +180,12 @@ runs/*
 stats/*
 !stats/.gitkeep
 
+slurm/*
+!slurm/.gitkeep
+
+slurm_io/*
+!slurm_io/.gitkeep
+
 tests_plots/
 # Ignore all __pycache__ folders recursively
 __pycache__/

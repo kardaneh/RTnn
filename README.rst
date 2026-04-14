@@ -19,7 +19,7 @@ transfer processes in climate science, particularly for Land Surface Models (LSM
    :alt: Documentation Status
 
 .. |Documentation| image:: https://img.shields.io/badge/docs-GitHub%20Pages-blue
-   :target: https://kardaneh.github.io/RTnn/
+   :target: https://rtnn.readthedocs.io/
    :alt: Documentation
 
 Features
@@ -35,7 +35,7 @@ Features
 Documentation
 -------------
 
-Full documentation is available at: https://kardaneh.github.io/RTnn/
+Full documentation is available at: https://rtnn.readthedocs.io/
 
 Installation
 ------------

@@ -1257,6 +1257,8 @@ def main():
                 device,
                 args,
                 args.num_epochs - 1,
+                logger,
+                paths.results,
             )
 
             logger.info("Inference results:")
@@ -1331,6 +1333,8 @@ def main():
                     device,
                     args,
                     epoch,
+                    logger,
+                    paths.results,
                 )
                 valid_loss_history[epoch] = valid_loss
 

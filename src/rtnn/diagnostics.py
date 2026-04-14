@@ -401,6 +401,7 @@ def plot_flux_and_abs_lines(
     abs34_predict=None,
     abs34_target=None,
     filename="output_lines.png",
+    logger=None,
 ):
     """
     Create line plots for fluxes and absorption rates.
@@ -424,6 +425,8 @@ def plot_flux_and_abs_lines(
         True absorption for channels 3-4.
     filename : str, optional
         Output filename. Default is "output_lines.png".
+    logger : logging.Logger, optional
+        Logger instance for logging messages. If None, no logging is performed.
 
     Notes
     -----
@@ -539,6 +542,10 @@ def plot_flux_and_abs_lines(
 
     plt.savefig(filename, bbox_inches="tight")
     plt.close(fig)
+    if logger:
+        logger.info(f"Saved line plot to {filename}")
+    else:
+        print(f"Saved line plot to {filename}")
 
 
 def plot_flux_and_abs(
@@ -549,6 +556,7 @@ def plot_flux_and_abs(
     abs34_predict=None,
     abs34_target=None,
     filename="output.png",
+    logger=None,
 ):
     """
     Create hexbin plots for fluxes and absorption rates.
@@ -573,6 +581,8 @@ def plot_flux_and_abs(
         True absorption for channels 3-4.
     filename : str, optional
         Output filename. Default is "output.png".
+    logger : logging.Logger, optional
+        Logger instance for logging messages. If None, no logging is performed.
 
     Notes
     -----
@@ -698,10 +708,17 @@ def plot_flux_and_abs(
     fig.colorbar(hb, cax=cbar_ax, label=r"$\mathrm{\log_{10}[Count]}$")
     plt.savefig(filename, bbox_inches="tight")
     plt.close(fig)
+    if logger:
+        logger.info(f"Saved hexbin plot to {filename}")
+    else:
+        print(f"Saved hexbin plot to {filename}")
 
 
 def plot_metric_histories(
-    train_history, valid_history, filename="training_validation_metrics.png"
+    train_history,
+    valid_history,
+    filename="training_validation_metrics.png",
+    logger=None,
 ):
     """
     Plot training and validation metrics over epochs.
@@ -717,6 +734,8 @@ def plot_metric_histories(
         Dictionary with metric names as keys and lists of validation values.
     filename : str, optional
         Output filename. Default is "training_validation_metrics.png".
+    logger : logging.Logger, optional
+        Logger instance for logging messages. If None, no logging is performed.
 
     Notes
     -----
@@ -748,10 +767,14 @@ def plot_metric_histories(
 
     plt.savefig(filename, bbox_inches="tight")
     plt.close(fig)
+    if logger:
+        logger.info(f"Saved metric history plot to {filename}")
+    else:
+        print(f"Saved metric history plot to {filename}")
 
 
 def plot_loss_histories(
-    train_loss, valid_loss, filename="training_validation_loss.png"
+    train_loss, valid_loss, filename="training_validation_loss.png", logger=None
 ):
     """
     Plot training and validation loss over epochs.
@@ -766,6 +789,8 @@ def plot_loss_histories(
         Validation loss values over epochs.
     filename : str, optional
         Output filename. Default is "training_validation_loss.png".
+    logger : logging.Logger, optional
+        Logger instance for logging messages. If None, no logging is performed.
 
     Notes
     -----
@@ -787,6 +812,10 @@ def plot_loss_histories(
     ax.grid(True)
     plt.savefig(filename, bbox_inches="tight")
     plt.close(fig)
+    if logger:
+        logger.info(f"Saved loss history plot to {filename}")
+    else:
+        print(f"Saved loss history plot to {filename}")
 
 
 def plot_spatial_temporal_density(
@@ -796,6 +825,7 @@ def plot_spatial_temporal_density(
     save_dir="./tests_plots",
     filename="density_scatter",
     figsize=(10, 10),
+    logger=None,
 ):
     """
     Plot a density scatter plot of spatial index vs temporal index with marginal histograms.
@@ -820,6 +850,8 @@ def plot_spatial_temporal_density(
         Base name for the output file.
     figsize : tuple, optional
         Figure size as (width, height) in inches.
+    logger : logging.Logger, optional
+        Logger instance for logging messages. If None, no logging is performed.
 
     Returns
     -------
@@ -938,5 +970,9 @@ def plot_spatial_temporal_density(
     save_path = os.path.join(save_dir, f"{filename}_{mode}.png")
     plt.savefig(save_path, bbox_inches="tight")
     plt.close(fig)
-
-    print(f"Saved density scatter plot with marginal histograms to: {save_path}")
+    if logger:
+        logger.info(
+            f"Saved density scatter plot with marginal histograms to: {save_path}"
+        )
+    else:
+        print(f"Saved density scatter plot with marginal histograms to: {save_path}")

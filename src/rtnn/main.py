@@ -778,7 +778,7 @@ def create_datasets_and_loaders(args, train_files, test_files, norm_mapping, log
         dataset=test_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=args.num_workers,
+        num_workers=0,  # Use single worker for test loader to avoid potential issues
         pin_memory=True,
     )
 

@@ -23,11 +23,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import sys
-import os
 from tqdm import tqdm
 
 sys.path.append("..")
-from rtnn.diagnostics import plot_flux_and_abs, plot_flux_and_abs_lines
 
 
 class NMSELoss(nn.Module):
@@ -826,31 +824,31 @@ def run_validation(
 
             if epoch == args.num_epochs - 1:
                 print("making plot", batch_idx)
-                base_dir = os.path.join("results", args.main_folder, args.sub_folder)
+                # base_dir = os.path.join("results", args.main_folder, args.sub_folder)
                 # plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}_{args.test_year}.png"))
                 # plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, os.path.join(base_dir, f"Abs{batch_idx}_{args.test_year}.png"))
-                plot_flux_and_abs_lines(
-                    predicts_unnorm,
-                    targets_unnorm,
-                    abs12_predict=abs12_predict,
-                    abs12_target=abs12_target,
-                    abs34_predict=abs34_predict,
-                    abs34_target=abs34_target,
-                    filename=os.path.join(
-                        base_dir, f"Lineplot_Flux_Abs{batch_idx}_{args.test_year}.png"
-                    ),
-                )
-                plot_flux_and_abs(
-                    predicts_unnorm,
-                    targets_unnorm,
-                    abs12_predict=abs12_predict,
-                    abs12_target=abs12_target,
-                    abs34_predict=abs34_predict,
-                    abs34_target=abs34_target,
-                    filename=os.path.join(
-                        base_dir, f"flux_abs_hexbin_{batch_idx}_{args.test_year}.png"
-                    ),
-                )
+                # plot_flux_and_abs_lines(
+                #    predicts_unnorm,
+                #    targets_unnorm,
+                #    abs12_predict=abs12_predict,
+                #    abs12_target=abs12_target,
+                #    abs34_predict=abs34_predict,
+                #    abs34_target=abs34_target,
+                #    filename=os.path.join(
+                #        base_dir, f"Lineplot_Flux_Abs{batch_idx}_{args.test_year}.png"
+                #    ),
+                # )
+                # plot_flux_and_abs(
+                #    predicts_unnorm,
+                #    targets_unnorm,
+                #    abs12_predict=abs12_predict,
+                #    abs12_target=abs12_target,
+                #    abs34_predict=abs34_predict,
+                #    abs34_target=abs34_target,
+                #    filename=os.path.join(
+                #        base_dir, f"flux_abs_hexbin_{batch_idx}_{args.test_year}.png"
+                #    ),
+                # )
 
     return valid_loss.getmean(), {
         k: (tracker.getsqrtmean() if k.lower().endswith("mse") else tracker.getmean())

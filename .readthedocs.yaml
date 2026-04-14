@@ -9,28 +9,33 @@ version: 2
 build:
   os: ubuntu-22.04
   tools:
-    python: "3.12"
-   # You can also specify other tool versions:
-    # nodejs: "19"
-    # rust: "1.64"
-    # golang: "1.19"
+    python: "3.11"  # Compatible with your Python 3.8+ requirement
+  # You can also specify other tool versions:
+  # nodejs: "19"
+  # rust: "1.64"
+  # golang: "1.19"
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
-  configuration: doc/conf.py
+  configuration: docs/source/conf.py
+  # Fail on all warnings to ensure documentation quality
+  fail_on_warning: false  # Set to true for stricter builds
+
+# Python configuration
 python:
+  # Install your package and dependencies
   install:
     - method: pip
       path: .
-    - requirements: doc/requirements.txt
+      extra_requirements:
+        - docs
+    - requirements: docs/requirements.txt  # Optional: if you have a requirements file
 
-# Optionally build your docs in additional formats such as PDF and ePub
+# Optional: Build your docs in additional formats such as PDF and ePub
 formats:
-    - pdf
-    - epub
-# Optional but recommended, declare the Python requirements required
-# to build your documentation
-# See https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
-# python:
-#    install:
-#    - requirements: docs/requirements.txt
+  - pdf
+  - epub
+
+# Optional: Set a specific environment variable for your build
+# env:
+#   SPHINXOPTS: "-W"  # Treat warnings as errors

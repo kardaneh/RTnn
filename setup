@@ -4,6 +4,9 @@
 # 0. Machine + Runtime
 # ======================
 Machine="HAL"   # options: LEONARDO, HAL
+current_ntasks=2      # Change to: 0 or 4
+current_cpus=2        # Change to: 0 or 4
+current_workers=0     # Change to: 0 or 4
 debug="False"         # True or False
 
 DATA_PATH="/data/kardaneh/RTDataBase/Data_LSM_1990-2000_Large/Data_LSM_1995-2000_Large" # Path to the dataset on HAL. Adjust if needed.
@@ -31,7 +34,7 @@ learning_rate=0.0001
 loss_type="huber"
 beta=0.2
 beta_delta=1.0
-num_workers=4
+num_workers=$current_workers
 run_type="train"
 seed=42
 
@@ -77,7 +80,7 @@ JOB_DIR="$PROJECT_ROOT/slurm/${main_folder}/${sub_folder}"
 SLURM_IO_DIR="$PROJECT_ROOT/slurm_io/${main_folder}/${sub_folder}"
 mkdir -p "$JOB_DIR"
 mkdir -p "$SLURM_IO_DIR"
-sbatch_script="$JOB_DIR/sbatch_rtnn_${tag}.sh"
+sbatch_script="$JOB_DIR/sbatch_${current_ntasks}_${current_cpus}_${current_workers}_rtnn_${tag}.sh"
 
 # Create slurm_io directory if it doesn't exist
 
@@ -90,8 +93,8 @@ cat > $sbatch_script <<EOF
 #!/bin/bash
 # SBATCH always at the beginning of the script!
 #SBATCH --job-name=rtnn_${main_folder}_${sub_folder}_${tag}
-#SBATCH --error=$SLURM_IO_DIR/rtnn_${tag}.err
-#SBATCH --output=$SLURM_IO_DIR/rtnn_${tag}.out
+#SBATCH --error=$SLURM_IO_DIR/rtnn_${current_ntasks}_${current_cpus}_${current_workers}_${tag}_%j.err
+#SBATCH --output=$SLURM_IO_DIR/rtnn_${current_ntasks}_${current_cpus}_${current_workers}_${tag}_%j.out
 #SBATCH --chdir=$(pwd)
 EOF
 
@@ -118,11 +121,20 @@ elif [ "$Machine" == "HAL" ]; then
 cat >> $sbatch_script <<EOF
 #SBATCH --partition=batch
 #SBATCH --gpus=1
-#SBATCH --ntasks-per-node=4
 #SBATCH --mem=48G
 #SBATCH --time=1:00:00
 #SBATCH --nodelist=hal10
 EOF
+
+# Only add ntasks-per-node if not empty
+if [ -n "$current_ntasks" ]; then
+    echo "#SBATCH --ntasks-per-node=$current_ntasks" >> $sbatch_script
+fi
+
+# Only add cpus-per-task if not empty
+if [ -n "$current_cpus" ]; then
+    echo "#SBATCH --cpus-per-task=$current_cpus" >> $sbatch_script
+fi
 
 fi
 
@@ -154,6 +166,22 @@ fi
 # ======================
 
 cat >> $sbatch_script <<EOF
+
+echo "=========================================="
+echo "CONFIGURATION TEST VALUES"
+echo "=========================================="
+echo "ntasks-per-node: ${current_ntasks:-default (1)}"
+echo "cpus-per-task: ${current_cpus:-default}"
+echo "num_workers: $num_workers"
+echo "=========================================="
+echo ""
+echo "=== Job Info ==="
+echo "Job ID: \$SLURM_JOB_ID"
+echo "Node: \$SLURM_NODELIST"
+echo "N tasks: \$SLURM_NTASKS"
+echo "CPUs per task: \${SLURM_CPUS_PER_TASK:-default}"
+echo "GPUs: \$SLURM_GPUS"
+echo ""
 
 echo "=== Environment Info ==="
 echo "PyTorch version: \$(python -c 'import torch; print(torch.__version__)')"

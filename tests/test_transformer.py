@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from rtnn.models.Transformer import SelfAttention, TransformerBlock, Encoder
 from rtnn.models.Transformer import EncoderTorch
+from rtnn.model_utils import ModelUtils
 
 
 class TestSelfAttention(unittest.TestCase):
@@ -255,9 +256,9 @@ class TestEncoderTorch(unittest.TestCase):
         self.batch_size = 32
         self.feature_channel = 6
         self.output_channel = 4
-        self.embed_size = 64
-        self.num_layers = 2
-        self.heads = 4
+        self.embed_size = 128
+        self.num_layers = 3
+        self.heads = 8
         self.forward_expansion = 4
         self.seq_length = 10
         self.dropout = 0.1
@@ -271,6 +272,10 @@ class TestEncoderTorch(unittest.TestCase):
             forward_expansion=self.forward_expansion,
             seq_length=self.seq_length,
             dropout=self.dropout,
+        )
+        self.param_count = ModelUtils.get_parameter_number(self.encoder, None)
+        print(
+            f"Model Parameters - Total: {self.param_count['Total']:,}, Trainable: {self.param_count['Trainable']:,}"
         )
 
     def test_initialization(self):

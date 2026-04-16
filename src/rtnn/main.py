@@ -312,7 +312,15 @@ def parse_args():
         "--type",
         type=str,
         default="lstm",
-        choices=["lstm", "gru", "fcn", "fullyconnected", "transformer", "cnn", "mlp"],
+        choices=[
+            "lstm",
+            "gru",
+            "fcn",
+            "fullyconnected",
+            "transformer",
+            "encodertorch",
+            "vrtn",
+        ],
         help="Model architecture type",
     )
 
@@ -749,7 +757,7 @@ def create_datasets_and_loaders(args, train_files, test_files, norm_mapping, log
     logger.success("Training dataset created successfully.")
 
     # Create test dataset
-    test_tbatch = 1 if args.run_type == "inference" else 48
+    test_tbatch = 4 if args.run_type == "inference" else 48
     logger.start_task("Creating test dataset", f"Files: {len(test_files)}")
     test_dataset = DataPreprocessor(
         logger=logger,
@@ -926,9 +934,9 @@ def load_checkpoint_if_requested(args, model, optimizer, paths, device, logger):
                 logger.info(f" |- {key}: {checkpoint[key]}")
 
     # Determine starting epoch (resume training or continue from checkpoint)
-    start_epoch = epoch + 1 if args.resume_training else epoch
+    start_epoch = epoch + 1 if args.run_type == "resume_train" else epoch
 
-    if args.resume_training:
+    if args.run_type == "resume_train":
         logger.info(f"Resuming training from epoch {start_epoch}")
         if args.debug:
             logger.info(f"Current train_loss_history length: {len(train_loss_history)}")
@@ -948,74 +956,6 @@ def load_checkpoint_if_requested(args, model, optimizer, paths, device, logger):
         train_loss_history,
         valid_loss_history,
         valid_metrics_history,
-    )
-
-
-def save_checkpoint(
-    model,
-    optimizer,
-    epoch,
-    samples_processed,
-    batches_processed,
-    train_loss,
-    valid_loss,
-    args,
-    paths,
-    logger,
-    checkpoint_type="epoch",
-):
-    """
-    Save model checkpoint using ModelUtils.
-
-    Parameters
-    ----------
-    model : torch.nn.Module
-        Model to save.
-    optimizer : torch.optim.Optimizer
-        Optimizer state to save.
-    epoch : int
-        Current epoch.
-    samples_processed : int
-        Total samples processed.
-    batches_processed : int
-        Total batches processed.
-    train_loss : float
-        Current training loss.
-    valid_loss : float
-        Current validation loss.
-    args : argparse.Namespace
-        Command-line arguments.
-    paths : EasyDict
-        Directory paths.
-    logger : Logger
-        Logger instance.
-    checkpoint_type : str
-        Type of checkpoint ("epoch", "best", "final", "samples").
-    """
-    # Prepare history data (simplified for this example)
-    train_loss_history = [0.0] * (epoch + 1)
-    train_loss_history[epoch] = train_loss
-    valid_loss_history = [0.0] * (epoch + 1)
-    valid_loss_history[epoch] = valid_loss
-
-    ModelUtils.save_training_checkpoint(
-        model=model,
-        optimizer=optimizer,
-        epoch=epoch,
-        samples_processed=samples_processed,
-        batches_processed=batches_processed,
-        train_loss_history=train_loss_history,
-        valid_loss_history=valid_loss_history,
-        valid_metrics_history={},  # Will be populated in full implementation
-        best_val_loss=valid_loss,
-        best_epoch=epoch,
-        avg_val_loss=valid_loss,
-        avg_epoch_loss=train_loss,
-        args=args,
-        paths=paths,
-        logger=logger,
-        checkpoint_type=checkpoint_type,
-        save_full_model=True,
     )
 
 
@@ -1088,9 +1028,13 @@ def train_epoch(
         )
 
         # Calculate absorption
-        abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(
-            predicts_unnorm, targets_unnorm
-        )
+        (
+            abs12_predict,
+            abs12_target,
+            abs34_predict,
+            abs34_target,
+            conservation_penalty,
+        ) = calc_abs(predicts_unnorm, targets_unnorm)
 
         # Compute metrics
         output_dict = {
@@ -1131,6 +1075,8 @@ def train_epoch(
             abs12_count + abs34_count
         )
         total_loss = weighted_loss / total_count
+
+        # total_loss = physics_loss(predicts, targets, conservation_penalty, lambda_phys=args.beta, delta=args.beta_delta)
 
         # Backward pass
         optimizer.zero_grad()
@@ -1291,6 +1237,9 @@ def main():
             valid_metrics_history = {key: [] for key in train_metrics}
 
         train_metrics_history = {key: [] for key in train_metrics}
+        valid_loss = (
+            valid_loss_history[start_epoch - 1] if start_epoch > 0 else float("inf")
+        )
 
         # Training loop
         logger.start_task("Starting training", f"Epochs: {args.num_epochs}")

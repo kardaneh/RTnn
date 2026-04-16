@@ -15,6 +15,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from rtnn.models.fcn import FCN, FCBlock
+from rtnn.models.fcn import VerticalRTColumnNet
 
 
 class TestFCBlock(unittest.TestCase):
@@ -378,6 +379,240 @@ class TestFCN(unittest.TestCase):
             self.assertTrue(y.is_cuda)
 
 
+class TestVerticalRTColumnNet(unittest.TestCase):
+    """Unit tests for VerticalRTColumnNet."""
+
+    def setUp(self):
+        self.batch_size = 32
+        self.feature_channel = 6
+        self.output_channel = 4
+        self.seq_length = 10
+        self.hidden_size = 64
+
+    # ------------------------------------------------------------------------
+    # Initialization
+    # ------------------------------------------------------------------------
+
+    def test_initialization(self):
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        self.assertIsInstance(model, VerticalRTColumnNet)
+        self.assertIsNotNone(model.encoder)
+        self.assertIsNotNone(model.T_net)
+        self.assertIsNotNone(model.S_net)
+
+    # ------------------------------------------------------------------------
+    # Forward pass
+    # ------------------------------------------------------------------------
+
+    def test_forward_shape(self):
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        x = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
+        y = model(x)
+
+        # Expected: (B, seq, out) OR (B, out, seq) depending on your final choice
+        self.assertEqual(
+            y.shape, (self.batch_size, self.seq_length, self.output_channel)
+        )
+
+    def test_forward_values(self):
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        x = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
+        y = model(x)
+
+        self.assertGreater(y.abs().sum(), 0)
+
+    def test_forward_different_batch_sizes(self):
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        for bs in [1, 4, 16, 64]:
+            x = torch.randn(bs, self.feature_channel, self.seq_length)
+            y = model(x)
+            self.assertEqual(y.shape, (bs, self.seq_length, self.output_channel))
+
+    # ------------------------------------------------------------------------
+    # Physical constraints tests
+    # ------------------------------------------------------------------------
+
+    def test_transmission_bounds(self):
+        """Transmission should be in [0,1] due to sigmoid."""
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        x = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
+
+        x_perm = x.permute(0, 2, 1)
+        h = model.encoder(x_perm)
+
+        T = model.T_net(h)
+
+        self.assertTrue(torch.all(T >= 0))
+        self.assertTrue(torch.all(T <= 1))
+
+    # ------------------------------------------------------------------------
+    # Gradient tests
+    # ------------------------------------------------------------------------
+
+    def test_gradient_flow(self):
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        x = torch.randn(
+            self.batch_size, self.feature_channel, self.seq_length, requires_grad=True
+        )
+
+        y = model(x)
+        loss = y.sum()
+        loss.backward()
+
+        self.assertIsNotNone(x.grad)
+
+        for param in model.parameters():
+            if param.requires_grad:
+                self.assertIsNotNone(param.grad)
+
+    def test_gradient_accumulation(self):
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        x1 = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
+        y1 = model(x1)
+        loss1 = y1.sum()
+        loss1.backward()
+
+        grad1 = {
+            name: param.grad.clone()
+            for name, param in model.named_parameters()
+            if param.grad is not None
+        }
+
+        x2 = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
+        y2 = model(x2)
+        loss2 = y2.sum()
+        loss2.backward()
+
+        for name, param in model.named_parameters():
+            if param.grad is not None:
+                self.assertIsNotNone(grad1.get(name))
+                self.assertNotEqual(param.grad.sum(), grad1[name].sum())
+
+    # ------------------------------------------------------------------------
+    # Parameter tests
+    # ------------------------------------------------------------------------
+
+    def test_model_parameters_count(self):
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        total_params = sum(p.numel() for p in model.parameters())
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+        print(
+            f"total params is {total_params} and trainable params are {total_params}!"
+        )
+
+        self.assertGreater(total_params, 0)
+        self.assertEqual(total_params, trainable_params)
+
+    # ------------------------------------------------------------------------
+    # Serialization
+    # ------------------------------------------------------------------------
+
+    def test_model_serialization(self):
+        import tempfile
+        import os
+
+        model1 = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pth") as f:
+            torch.save(model1.state_dict(), f.name)
+            temp_file = f.name
+
+        model2 = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+        model2.load_state_dict(torch.load(temp_file))
+
+        x = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
+
+        model1.eval()
+        model2.eval()
+
+        with torch.no_grad():
+            y1 = model1(x)
+            y2 = model2(x)
+
+        torch.testing.assert_close(y1, y2)
+
+        os.unlink(temp_file)
+
+    # ------------------------------------------------------------------------
+    # Device test
+    # ------------------------------------------------------------------------
+
+    def test_device_transfer(self):
+        model = VerticalRTColumnNet(
+            feature_channel=self.feature_channel,
+            hidden=self.hidden_size,
+            out_channel=self.output_channel,
+            layers=self.seq_length,
+        )
+
+        if torch.cuda.is_available():
+            model = model.cuda()
+            x = torch.randn(
+                self.batch_size, self.feature_channel, self.seq_length
+            ).cuda()
+            y = model(x)
+            self.assertTrue(y.is_cuda)
+
+
 class TestFCNIntegration(unittest.TestCase):
     """Integration tests for FCN model."""
 
@@ -443,6 +678,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestFCBlock))
     suite.addTests(loader.loadTestsFromTestCase(TestFCN))
     suite.addTests(loader.loadTestsFromTestCase(TestFCNIntegration))
+    suite.addTests(loader.loadTestsFromTestCase(TestVerticalRTColumnNet))
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)

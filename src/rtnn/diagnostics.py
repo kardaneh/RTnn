@@ -450,7 +450,7 @@ def plot_flux_and_abs_lines(
     )
 
     num_samples = predicts.shape[0]
-    sample_indices = random.sample(range(num_samples), 7)
+    sample_indices = random.sample(range(num_samples), 10)
 
     index_map = {(0, 0): 0, (0, 1): 1, (1, 0): 2, (1, 1): 3}
 

@@ -238,3 +238,132 @@ class FCN(nn.Module):
             x = self.dim_change(x.transpose(1, 2)).transpose(1, 2)
 
         return x
+
+
+class LayerPositionalEmbedding(nn.Module):
+    def __init__(self, n_layers=10, embed_dim=16):
+        super().__init__()
+        self.embedding = nn.Embedding(n_layers, embed_dim)
+
+    def forward(self, x):
+        # x: (B, L, C)
+        B, L, _ = x.shape
+        idx = torch.arange(L, device=x.device)
+        emb = self.embedding(idx)  # (L, E)
+        emb = emb.unsqueeze(0).expand(B, -1, -1)
+        return torch.cat([x, emb], dim=-1)  # (B, L, C+E)
+
+
+class VerticalRTColumnNet(nn.Module):
+    def __init__(
+        self,
+        feature_channel=6,
+        hidden=64,
+        out_channel=4,
+        n_layers=10,
+        layer_embed_dim=16,
+        dropout=0.1,
+    ):
+        super().__init__()
+
+        self.out_channel = out_channel
+
+        # --- Layer embedding (depth awareness) ---
+        self.layer_embed = LayerPositionalEmbedding(
+            n_layers=n_layers,
+            embed_dim=layer_embed_dim,
+        )
+
+        encoder_in = feature_channel + layer_embed_dim
+
+        # --- Encoder ---
+        self.encoder = nn.Sequential(
+            nn.Linear(encoder_in, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, hidden),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+        )
+
+        # --- Downward stream ---
+        self.T_down = nn.Sequential(
+            nn.Linear(hidden, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, out_channel),
+            nn.Sigmoid(),
+        )
+        self.S_down = nn.Linear(hidden, out_channel)
+
+        # --- Surface boundary ---
+        self.surface_bc = nn.Sequential(
+            nn.Linear(out_channel, hidden // 2),
+            nn.ReLU(),
+            nn.Linear(hidden // 2, out_channel),
+        )
+
+        # --- Upward stream ---
+        self.T_up = nn.Sequential(
+            nn.Linear(hidden, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, out_channel),
+            nn.Sigmoid(),
+        )
+        self.S_up = nn.Linear(hidden, out_channel)
+
+        # --- Residual skip ---
+        self.skip_proj = nn.Linear(hidden, out_channel)
+
+        # --- Output head ---
+        self.head = nn.Sequential(
+            nn.Linear(out_channel, hidden // 2),
+            nn.ReLU(),
+            nn.Linear(hidden // 2, out_channel),
+        )
+
+    def forward(self, x):
+        """
+        x: (B, C, L)
+        """
+
+        # → (B, L, C)
+        x = x.permute(0, 2, 1)
+
+        # Add depth info
+        x = self.layer_embed(x)
+
+        # Encode
+        h = self.encoder(x)
+
+        B, L, _ = h.shape
+
+        # --- Downward ---
+        D = []
+        d = torch.zeros(B, self.out_channel, device=x.device)
+
+        for nl in range(L):
+            hl = h[:, nl]
+            T = self.T_down(hl)
+            S = self.S_down(hl)
+            d = T * d + S
+            D.append(d)
+
+        # --- Surface ---
+        u = self.surface_bc(D[-1])
+
+        # --- Upward ---
+        U = [None] * L
+        for nl in reversed(range(L)):
+            hl = h[:, nl]
+            T = self.T_up(hl)
+            S = self.S_up(hl)
+            u = T * u + S
+            U[nl] = u
+
+        # --- Merge ---
+        out = []
+        for nl in range(L):
+            merged = D[nl] + U[nl]  # stable coupling
+            merged = merged + self.skip_proj(h[:, nl])
+            out.append(self.head(merged))
+
+        return torch.stack(out, dim=2)  # (B, out_channel, L)

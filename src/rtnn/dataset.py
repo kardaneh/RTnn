@@ -444,37 +444,159 @@ class DataPreprocessor(Dataset):
         self.df = xr.open_dataset(path)
 
         # Get dimensions
-        sequence_length_dim = self.min_dims["dim_2"]
-        dim_1 = self.min_dims["dim_1"]
-        dim_3 = self.min_dims["dim_3"]
-        dim_4 = self.min_dims["dim_4"]
-        self.schunk = dim_1 * dim_3 * dim_4
+        # sequence_length_dim = self.min_dims["dim_2"]
+        # dim_1 = self.min_dims["dim_1"]
+        # dim_3 = self.min_dims["dim_3"]
+        # dim_4 = self.min_dims["dim_4"]
+
+        # Get dimensions
+        seq_len = self.min_dims["dim_2"]  # 10 (vertical levels)
+        dim_1 = self.min_dims["dim_1"]  # 263 (spatial points)
+        n_pft = self.min_dims["dim_3"]  # 15
+        n_bands = self.min_dims["dim_4"]  # 2
+
+        # self.schunk = dim_1 * dim_3 * dim_4
 
         # Initialize arrays for each variable group
-        npcosz = np.zeros([self.schunk, len(self.cosz), sequence_length_dim])
-        nplai = np.zeros([self.schunk, len(self.lai), sequence_length_dim])
-        npssa = np.zeros([self.schunk, len(self.ssa), sequence_length_dim])
-        npov = np.zeros([self.schunk, len(self.ov), sequence_length_dim])
-        nprs = np.zeros([self.schunk, len(self.rs), sequence_length_dim])
+        # npcosz = np.zeros([self.schunk, len(self.cosz), sequence_length_dim])
+        # nplai = np.zeros([self.schunk, len(self.lai), sequence_length_dim])
+        # npssa = np.zeros([self.schunk, len(self.ssa), sequence_length_dim])
+        # npov = np.zeros([self.schunk, len(self.ov), sequence_length_dim])
+        # nprs = np.zeros([self.schunk, len(self.rs), sequence_length_dim])
 
-        if self.debug:
-            self.logger.info(
-                f"Dimensions for processing:\n"
-                f"  |- sequence_length_dim: {sequence_length_dim}\n"
-                f"  |- dim_1: {dim_1}\n"
-                f"  |- dim_3: {dim_3}\n"
-                f"  |- dim_4: {dim_4}\n"
-                f"  |- schunk (total spatial chunk size): {self.schunk}"
-            )
-            self.logger.info(
-                f"Initialized numpy arrays for variable groups with shapes:\n"
-                f"  |- npcosz: {npcosz.shape}\n"
-                f"  |- nplai: {nplai.shape}\n"
-                f"  |- npssa: {npssa.shape}\n"
-                f"  |- npov: {npov.shape}\n"
-                f"  |- nprs: {nprs.shape}"
-            )
+        # if self.debug:
+        #    self.logger.info(
+        #        f"Dimensions for processing:\n"
+        #        f"  |- sequence_length_dim: {sequence_length_dim}\n"
+        #        f"  |- dim_1: {dim_1}\n"
+        #        f"  |- dim_3: {dim_3}\n"
+        #        f"  |- dim_4: {dim_4}\n"
+        #        f"  |- schunk (total spatial chunk size): {self.schunk}"
+        #    )
+        #    self.logger.info(
+        #        f"Initialized numpy arrays for variable groups with shapes:\n"
+        #        f"  |- npcosz: {npcosz.shape}\n"
+        #        f"  |- nplai: {nplai.shape}\n"
+        #        f"  |- npssa: {npssa.shape}\n"
+        #        f"  |- npov: {npov.shape}\n"
+        #        f"  |- nprs: {nprs.shape}"
+        #    )
 
+        # ================================================================
+        # FEATURES
+        # ================================================================
+        # Feature channels:
+        # - cosz: 1
+        # - lai: 2 vars × n_pft = 30
+        # - ssa: 2 vars × n_bands × n_pft = 60
+        # - rs: 1 var ×  n_bands × n_pft = 2
+        # Total: 93
+
+        n_lai_features = 2 * n_pft  # 30
+        n_ssa_features = 2 * n_bands * n_pft  # 60
+        n_rs_features = 1 * n_bands * n_pft  # 30
+        n_features = 1 + n_lai_features + n_ssa_features + n_rs_features  # 121
+
+        features = np.zeros([dim_1, n_features, seq_len], dtype=np.float32)
+        f_idx = 0
+
+        # 1. COSZ - shape: (time, dim_1) -> (dim_1, 1, seq_len)
+        for var_name in self.cosz:
+            da = self.df[var_name]
+            temp = da.isel(time=tindex, dim_1=slice(0, dim_1)).values  # (dim_1,)
+            temp = self.normalize(temp, var_name)
+            # Tile to (dim_1, 1, seq_len) - same value for all vertical levels
+            temp = temp[:, np.newaxis, np.newaxis]  # (dim_1, 1, 1)
+            temp = np.tile(temp, (1, 1, seq_len))  # (dim_1, 1, seq_len)
+            features[:, f_idx : f_idx + 1, :] = temp
+            f_idx += 1
+
+        # 2. LAI - shape: (time, dim_3, dim_2, dim_1) -> (dim_1, n_pft, seq_len)
+        # dim_2 is vertical level, we need ALL levels, so we loop over dim_2
+        for var_name in self.lai:
+            da = self.df[var_name]
+            # Get all data for this time step
+            temp = da.isel(
+                time=tindex, dim_1=slice(0, dim_1)
+            ).values  # (dim_3, dim_2, dim_1)
+            temp = self.normalize(temp, var_name)
+            # For each vertical level (seq_len), we have a (dim_3, dim_1) matrix
+            # We want: (dim_1, dim_3, seq_len)
+            # Transpose to (dim_1, dim_3, dim_2)
+            temp = temp.transpose(2, 0, 1)  # (dim_1, dim_3, dim_2)
+            # Now temp has shape (dim_1, n_pft, seq_len) - perfect!
+            features[:, f_idx : f_idx + n_pft, :] = temp
+            f_idx += n_pft
+
+        # 3. SSA (leaf_ssa, leaf_psd) - shape: (time, dim_4, dim_3) -> (dim_1, n_bands, n_pft, seq_len)
+        # Note: SSA does NOT depend on dim_2 (vertical level), so same for all levels
+        for var_name in self.ssa:
+            da = self.df[var_name]
+            temp = da.isel(time=tindex).values  # (dim_4, dim_3)
+            temp = self.normalize(temp, var_name)
+            # Expand to (dim_1, dim_4, dim_3, seq_len) by tiling
+            temp = temp[np.newaxis, :, :, np.newaxis]  # (1, dim_4, dim_3, 1)
+            temp = np.tile(
+                temp, (dim_1, 1, 1, seq_len)
+            )  # (dim_1, dim_4, dim_3, seq_len)
+            # Reshape to (dim_1, dim_4 * dim_3, seq_len)
+            temp = temp.reshape(dim_1, n_bands * n_pft, seq_len)
+            features[:, f_idx : f_idx + n_bands * n_pft, :] = temp
+            f_idx += n_bands * n_pft
+
+        # 4. RS (rs_surface_emu) - shape: (time, dim_4, dim_3, dim_1) -> (dim_1, n_bands, n_pft, seq_len)
+        # Note: RS has dim_3 (PFT) dimension, we need all PFTs
+        for var_name in self.rs:
+            da = self.df[var_name]
+            temp = da.isel(
+                time=tindex, dim_1=slice(0, dim_1)
+            ).values  # (dim_4, dim_3, dim_1)
+            temp = self.normalize(temp, var_name)
+            # Transpose to (dim_1, dim_4, dim_3)
+            temp = temp.transpose(2, 0, 1)  # (dim_1, dim_4, dim_3)
+            # Expand to (dim_1, dim_4, dim_3, seq_len) by tiling (same for all vertical levels)
+            temp = temp[:, :, :, np.newaxis]  # (dim_1, dim_4, dim_3, 1)
+            temp = np.tile(temp, (1, 1, 1, seq_len))  # (dim_1, dim_4, dim_3, seq_len)
+            # Reshape to (dim_1, dim_4 * dim_3, seq_len)
+            temp = temp.reshape(dim_1, n_bands * n_pft, seq_len)
+            features[:, f_idx : f_idx + n_bands * n_pft, :] = temp
+            f_idx += n_bands * n_pft
+
+        assert f_idx == n_features, f"Feature mismatch: {f_idx} vs {n_features}"
+
+        # ================================================================
+        # OUTPUTS - shape: (dim_1, n_outputs, seq_len)
+        # n_outputs = 4 vars × n_bands × n_pft = 120
+        # ================================================================
+        n_outputs = len(self.ov) * n_bands * n_pft  # 120
+        outputs = np.zeros([dim_1, n_outputs, seq_len], dtype=np.float32)
+        o_idx = 0
+
+        for var_name in self.ov:
+            da = self.df[var_name]
+            # Shape: (time, dim_4, dim_2, dim_3, dim_1)
+            temp = da.isel(
+                time=tindex, dim_1=slice(0, dim_1)
+            ).values  # (dim_4, dim_2, dim_3, dim_1)
+            temp = self.normalize(temp, var_name)
+            # We want: (dim_1, dim_4, dim_3, dim_2) - output per vertical level
+            # Transpose to (dim_1, dim_4, dim_3, dim_2)
+            temp = temp.transpose(3, 0, 2, 1)  # (dim_1, dim_4, dim_3, dim_2)
+            # Now temp has shape (dim_1, n_bands, n_pft, seq_len) - perfect!
+            # Reshape to (dim_1, n_bands * n_pft, seq_len)
+            temp = temp.reshape(dim_1, n_bands * n_pft, seq_len)
+            outputs[:, o_idx : o_idx + n_bands * n_pft, :] = temp
+            o_idx += n_bands * n_pft
+
+        assert o_idx == n_outputs, f"Output mismatch: {o_idx} vs {n_outputs}"
+
+        # Convert to torch tensors
+        features_tensor = torch.tensor(features, dtype=torch.float32)
+        outputs_tensor = torch.tensor(outputs, dtype=torch.float32)
+
+        return features_tensor, outputs_tensor
+
+        """
         # Process cosz (cosine of solar zenith angle)
         for variable_index, variable_name in enumerate(self.cosz):
             da = self.df[variable_name]
@@ -530,3 +652,4 @@ class DataPreprocessor(Dataset):
         # Concatenate features
         feature = torch.cat([tcosz, tlai, tssa, trs], dim=1)
         return (feature, tov)
+        """

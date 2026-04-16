@@ -21,14 +21,15 @@ plot_helper : For visualization utilities
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 import sys
 from tqdm import tqdm
 import os
 from rtnn.diagnostics import (
     plot_flux_and_abs_lines,
-    plot_flux_and_abs,
 )
+from typing import Optional
 
 sys.path.append("..")
 
@@ -84,6 +85,54 @@ class NMAELoss(nn.Module):
         mae = self.l1(pred, target)
         norm = torch.mean(torch.abs(target)) + self.eps
         return mae / norm
+
+
+# =============================================================================
+# E  Physics-informed loss (energy conservation)
+# =============================================================================
+def physics_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    conservation_penalty: Optional[torch.Tensor] = None,
+    lambda_phys: float = 0.1,
+    delta: float = 1.0,
+) -> torch.Tensor:
+    """
+    Combined Huber loss + energy conservation penalty (improvement E).
+
+    The four output variables satisfy:
+        albedo + transmittance + absorptance = 1
+
+    For collimated:   collim_alb  + collim_tran  + collim_abs  = 1
+    For isotropic:    isotrop_alb + isotrop_tran + isotrop_abs = 1
+
+    This function enforces the constraint as a soft penalty.  You can pass
+    ``pred_abs`` if your model also predicts absorptance; otherwise the
+    penalty is computed implicitly as (1 - alb - tran).
+
+    Parameters
+    ----------
+    pred : torch.Tensor  shape (B, 4, L)
+        Model predictions: [collim_alb, collim_tran, isotrop_alb, isotrop_tran]
+        (channel order matches your ``ov`` list in DataPreprocessor).
+    target : torch.Tensor  shape (B, 4, L)
+        Ground-truth targets.
+    pred_abs : torch.Tensor or None  shape (B, 2, L)
+        If provided, predicted absorptance for [collimated, isotropic].
+        If None, absorptance is inferred as (1 - alb - tran).
+    lambda_phys : float
+        Weight of the energy conservation penalty relative to Huber loss.
+    delta : float
+        Huber loss delta parameter.
+
+    Returns
+    -------
+    torch.Tensor  scalar loss value.
+    """
+    # --- Primary Huber loss ---
+    huber = F.huber_loss(pred, target, delta=delta, reduction="mean")
+
+    return huber + lambda_phys * conservation_penalty
 
 
 class MetricTracker:
@@ -586,6 +635,19 @@ def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
     return upred, utarg
 
 
+def conservation_residual(alb, tran, abs_flux):
+    """
+    alb, tran: shape (batch, 1, N) - fluxes at levels
+    abs_flux: shape (batch, 1, N-1) - absorption at layer centers
+    Returns residual of shape (batch, 1, N-1)
+    """
+    # Average fluxes to layer centers (N-1 layers)
+    alb_center = (alb[:, :, :-1] + alb[:, :, 1:]) / 2.0
+    tran_center = (tran[:, :, :-1] + tran[:, :, 1:]) / 2.0
+    # Conservation: alb + tran + abs = 1
+    return (alb_center + tran_center + abs_flux - 1.0) ** 2
+
+
 def calc_abs(pred, targ, p=None):
     """
     Calculate absorption rates from flux predictions.
@@ -620,7 +682,12 @@ def calc_abs(pred, targ, p=None):
     abs34_pred = calc_hr(pred[:, 2:3, :], pred[:, 3:4, :], p)
     abs34_targ = calc_hr(targ[:, 2:3, :], targ[:, 3:4, :], p)
 
-    return abs12_pred, abs12_targ, abs34_pred, abs34_targ
+    # Collimated (channels 0, 1) and Isotropic (channels 2, 3)
+    collim_resid = conservation_residual(pred[:, 0:1, :], pred[:, 1:2, :], abs12_pred)
+    isotrop_resid = conservation_residual(pred[:, 2:3, :], pred[:, 3:4, :], abs34_pred)
+    conservation_penalty = (collim_resid + isotrop_resid).mean()
+
+    return abs12_pred, abs12_targ, abs34_pred, abs34_targ, conservation_penalty
 
 
 def calc_hr(up, down, p=None):
@@ -771,6 +838,19 @@ def run_validation(
 
     valid_loss = MetricTracker()
 
+    if epoch == args.num_epochs - 1:
+        if logger:
+            logger.info("Collecting data for final epoch")
+        else:
+            print("Collecting data for final epoch")
+
+        all_predicts_unnorm = []
+        all_targets_unnorm = []
+        all_abs12_predict = []
+        all_abs12_target = []
+        all_abs34_predict = []
+        all_abs34_target = []
+
     # Progress bar for validation
     loop = tqdm(
         enumerate(loader),
@@ -796,9 +876,22 @@ def run_validation(
             predicts_unnorm, targets_unnorm = unnorm_mpas(
                 predicts, targets, norm_mapping, normalization_type, index_mapping
             )
-            abs12_predict, abs12_target, abs34_predict, abs34_target = calc_abs(
-                predicts_unnorm, targets_unnorm
-            )
+
+            (
+                abs12_predict,
+                abs12_target,
+                abs34_predict,
+                abs34_target,
+                conservation_penalty,
+            ) = calc_abs(predicts_unnorm, targets_unnorm)
+
+            if epoch == args.num_epochs - 1:
+                all_predicts_unnorm.append(predicts_unnorm.cpu())
+                all_targets_unnorm.append(targets_unnorm.cpu())
+                all_abs12_predict.append(abs12_predict.cpu())
+                all_abs12_target.append(abs12_target.cpu())
+                all_abs34_predict.append(abs34_predict.cpu())
+                all_abs34_target.append(abs34_target.cpu())
 
             output_dict = {
                 "fluxes": (predicts, targets),
@@ -834,40 +927,70 @@ def run_validation(
                 abs12_count + abs34_count
             )
             total_loss = weighted_loss / total_count
+            # total_loss = physics_loss(predicts, targets, conservation_penalty, lambda_phys=args.beta, delta=args.beta_delta)
 
             valid_loss.update(total_loss.item(), 1)
             loop.set_postfix(loss=total_loss.item())
 
-            if epoch == args.num_epochs - 1:
-                if logger:
-                    logger.info(f"Doing plot for batch {batch_idx} in final epoch")
-                else:
-                    print(f"Doing plot for batch {batch_idx} in final epoch")
+        if epoch == args.num_epochs - 1:
+            if logger:
+                logger.info(f"Doing plot for batch {batch_idx} in final epoch")
+            else:
+                print(f"Doing plot for batch {batch_idx} in final epoch")
 
-                # plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}_{args.test_year}.png"))
-                # plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, os.path.join(base_dir, f"Abs{batch_idx}_{args.test_year}.png"))
-                plot_flux_and_abs_lines(
-                    predicts_unnorm,
-                    targets_unnorm,
-                    abs12_predict=abs12_predict,
-                    abs12_target=abs12_target,
-                    abs34_predict=abs34_predict,
-                    abs34_target=abs34_target,
-                    filename=os.path.join(
-                        base_dir, f"Lineplot_Flux_Abs{batch_idx}_{args.test_year}.png"
-                    ),
-                )
-                plot_flux_and_abs(
-                    predicts_unnorm,
-                    targets_unnorm,
-                    abs12_predict=abs12_predict,
-                    abs12_target=abs12_target,
-                    abs34_predict=abs34_predict,
-                    abs34_target=abs34_target,
-                    filename=os.path.join(
-                        base_dir, f"flux_abs_hexbin_{batch_idx}_{args.test_year}.png"
-                    ),
-                )
+            os.makedirs(base_dir, exist_ok=True)
+
+            assert len(all_predicts_unnorm) != 0, "No data collected for final epoch"
+            assert (
+                len(all_targets_unnorm) != 0
+            ), "No target data collected for final epoch"
+            assert (
+                len(all_abs12_predict) != 0
+            ), "No abs12 data collected for final epoch"
+            assert (
+                len(all_abs34_predict) != 0
+            ), "No abs34 data collected for final epoch"
+            assert len(all_predicts_unnorm) == len(
+                all_targets_unnorm
+            ), "Mismatch in collected data lengths"
+            assert len(all_abs12_predict) == len(
+                all_abs12_target
+            ), "Mismatch in collected data lengths"
+            assert len(all_abs34_predict) == len(
+                all_abs34_target
+            ), "Mismatch in collected data lengths"
+
+            all_predicts_unnorm = torch.cat(all_predicts_unnorm, dim=0)
+            all_targets_unnorm = torch.cat(all_targets_unnorm, dim=0)
+            all_abs12_predict = torch.cat(all_abs12_predict, dim=0)
+            all_abs12_target = torch.cat(all_abs12_target, dim=0)
+            all_abs34_predict = torch.cat(all_abs34_predict, dim=0)
+            all_abs34_target = torch.cat(all_abs34_target, dim=0)
+
+            # plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}_{args.test_year}.png"))
+            # plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, os.path.join(base_dir, f"Abs{batch_idx}_{args.test_year}.png"))
+            plot_flux_and_abs_lines(
+                all_predicts_unnorm,
+                all_targets_unnorm,
+                abs12_predict=all_abs12_predict,
+                abs12_target=all_abs12_target,
+                abs34_predict=all_abs34_predict,
+                abs34_target=all_abs34_target,
+                filename=os.path.join(
+                    base_dir, f"Lineplot_Flux_Abs_{args.test_year}.png"
+                ),
+            )
+            # plot_flux_and_abs(
+            #    all_predicts_unnorm,
+            #    all_targets_unnorm,
+            #    abs12_predict=all_abs12_predict,
+            #    abs12_target=all_abs12_target,
+            #    abs34_predict=all_abs34_predict,
+            #    abs34_target=all_abs34_target,
+            #    filename=os.path.join(
+            #        base_dir, f"flux_abs_hexbin_{args.test_year}.png"
+            #        ),
+            #    )
 
     return valid_loss.getmean(), {
         k: (tracker.getsqrtmean() if k.lower().endswith("mse") else tracker.getmean())

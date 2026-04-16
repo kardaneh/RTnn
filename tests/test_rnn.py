@@ -15,6 +15,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.rtnn.models.rnn import BaseRNN, RNN_LSTM, RNN_GRU
+from src.rtnn.model_utils import ModelUtils
 
 
 class TestBaseRNN(unittest.TestCase):
@@ -30,8 +31,8 @@ class TestBaseRNN(unittest.TestCase):
         self.feature_channel = 6
         self.output_channel = 4
         self.seq_length = 10
-        self.hidden_size = 64
-        self.num_layers = 2
+        self.hidden_size = 96
+        self.num_layers = 3
 
         if self.logger:
             self.logger.info("📋 Test setup - BaseRNN tests")
@@ -366,8 +367,8 @@ class TestRNN_LSTM(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.batch_size = 32
-        self.feature_channel = 6
-        self.output_channel = 4
+        self.feature_channel = 121
+        self.output_channel = 120
         self.seq_length = 10
         self.hidden_size = 64
         self.num_layers = 2
@@ -385,6 +386,10 @@ class TestRNN_LSTM(unittest.TestCase):
             output_channel=self.output_channel,
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
+        )
+        param_count = ModelUtils.get_parameter_number(model, self.logger)
+        print(
+            f"Model Parameters - Total: {param_count['Total']:,}, Trainable: {param_count['Trainable']:,}"
         )
 
         self.assertIsInstance(model, RNN_LSTM)

@@ -1,6 +1,8 @@
 from rtnn.models.rnn import RNN_LSTM, RNN_GRU
 from rtnn.models.Transformer import Encoder
+from rtnn.models.Transformer import EncoderTorch
 from rtnn.models.fcn import FCN
+from rtnn.models.fcn import VerticalRTColumnNet
 
 
 def load_model(args):
@@ -120,6 +122,29 @@ def load_model(args):
             else 1,
             seq_length=args.seq_length,
             dropout=args.dropout,
+        )
+
+    elif model_type == "encodertorch":
+        # New EncoderTorch implementation (PyTorch native transformer)
+        model = EncoderTorch(
+            feature_channel=args.feature_channel,
+            output_channel=args.output_channel,
+            embed_size=args.embed_size,
+            num_layers=args.num_layers,
+            heads=args.nhead,
+            forward_expansion=args.forward_expansion
+            if args.forward_expansion is not None
+            else 4,  # Default expansion factor
+            seq_length=args.seq_length,
+            dropout=args.dropout,
+        )
+
+    elif model_type in ["vrtn", "verticalrt", "vertical"]:
+        model = VerticalRTColumnNet(
+            feature_channel=args.feature_channel,
+            hidden=args.hidden_size,
+            out_channel=args.output_channel,
+            n_layers=args.seq_length,
         )
 
     elif model_type in ["fcn", "fullyconnected"]:

@@ -15,27 +15,27 @@ DATA_PATH="/data/kardaneh/RTDataBase/Data_LSM_1990-2000_Large/Data_LSM_1995-2000
 # 1. Model Configuration
 # ======================
 type="lstm"
-hidden_size=96
-num_layers=3
+hidden_size=64
+num_layers=2
 output_channel=4
 seq_length=10
 feature_channel=6
-embed_size=64
-nhead=4
+embed_size=128
+nhead=8
 forward_expansion=4
-dropout=0.0
+dropout=0.1
 
 # ======================
 # 2. Training Configuration
 # ======================
 batch_size=4
-num_epochs=25
+num_epochs=2
 learning_rate=0.0001
 loss_type="huber"
 beta=0.2
 beta_delta=1.0
 num_workers=$current_workers
-run_type="train"
+run_type="train" # options: "train", "resume_train", "inference".
 seed=42
 
 # ======================
@@ -43,7 +43,7 @@ seed=42
 # ======================
 train_data_files=$DATA_PATH
 test_data_files=$DATA_PATH
-train_years="1995-1999"
+train_years="1998-1999"
 test_year="2000"
 norm="log1p_standard"
 dataset_type="LSM"
@@ -54,7 +54,7 @@ dataset_type="LSM"
 save_model="True"
 save_checkpoint_name="model"
 save_per_samples=10000
-load_checkpoint_name="model.pth.tar"
+load_checkpoint_name="nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.tar"
 
 # ======================
 # 5. Tags

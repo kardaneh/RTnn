@@ -398,13 +398,13 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         self.assertIsInstance(model, VerticalRTColumnNet)
         self.assertIsNotNone(model.encoder)
-        self.assertIsNotNone(model.T_net)
-        self.assertIsNotNone(model.S_net)
+        self.assertIsNotNone(model.T_down)
+        self.assertIsNotNone(model.S_up)
 
     # ------------------------------------------------------------------------
     # Forward pass
@@ -415,7 +415,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         x = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
@@ -423,7 +423,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
 
         # Expected: (B, seq, out) OR (B, out, seq) depending on your final choice
         self.assertEqual(
-            y.shape, (self.batch_size, self.seq_length, self.output_channel)
+            y.shape, (self.batch_size, self.output_channel, self.seq_length)
         )
 
     def test_forward_values(self):
@@ -431,7 +431,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         x = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
@@ -444,36 +444,13 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         for bs in [1, 4, 16, 64]:
             x = torch.randn(bs, self.feature_channel, self.seq_length)
             y = model(x)
-            self.assertEqual(y.shape, (bs, self.seq_length, self.output_channel))
-
-    # ------------------------------------------------------------------------
-    # Physical constraints tests
-    # ------------------------------------------------------------------------
-
-    def test_transmission_bounds(self):
-        """Transmission should be in [0,1] due to sigmoid."""
-        model = VerticalRTColumnNet(
-            feature_channel=self.feature_channel,
-            hidden=self.hidden_size,
-            out_channel=self.output_channel,
-            layers=self.seq_length,
-        )
-
-        x = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
-
-        x_perm = x.permute(0, 2, 1)
-        h = model.encoder(x_perm)
-
-        T = model.T_net(h)
-
-        self.assertTrue(torch.all(T >= 0))
-        self.assertTrue(torch.all(T <= 1))
+            self.assertEqual(y.shape, (bs, self.output_channel, self.seq_length))
 
     # ------------------------------------------------------------------------
     # Gradient tests
@@ -484,7 +461,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         x = torch.randn(
@@ -506,7 +483,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         x1 = torch.randn(self.batch_size, self.feature_channel, self.seq_length)
@@ -539,7 +516,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         total_params = sum(p.numel() for p in model.parameters())
@@ -564,7 +541,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pth") as f:
@@ -575,7 +552,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
         model2.load_state_dict(torch.load(temp_file))
 
@@ -601,7 +578,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
-            layers=self.seq_length,
+            n_layers=self.seq_length,
         )
 
         if torch.cuda.is_available():

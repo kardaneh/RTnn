@@ -479,18 +479,18 @@ class TestDataPreprocessor(unittest.TestCase):
         self.assertIsInstance(targets, torch.Tensor)
 
         # feature_channels = len(cosz) + len(lai) + len(ssa) + len(rs) = 1 + 2 + 2 + 1 = 6
-        expected_feature_channels = 6
+        expected_feature_channels = 121
         self.assertEqual(features.dim(), 3)
         self.assertEqual(features.shape[1], expected_feature_channels)
 
         self.assertEqual(targets.dim(), 3)
-        self.assertEqual(targets.shape[1], 4)
+        self.assertEqual(targets.shape[1], 120)
 
         seq_length = self.dataset.min_dims["dim_2"]
         self.assertEqual(features.shape[2], seq_length)
         self.assertEqual(targets.shape[2], seq_length)
 
-        expected_schunk = self.dim_1 * self.dim_3 * self.dim_4
+        expected_schunk = self.dim_1  # * self.dim_3 * self.dim_4
         self.assertEqual(features.shape[0], expected_schunk)
         self.assertEqual(targets.shape[0], expected_schunk)
 

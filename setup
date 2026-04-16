@@ -3,23 +3,23 @@
 # ======================
 # 0. Machine + Runtime
 # ======================
-Machine="HAL"   # options: LEONARDO, HAL
+Machine="LEONARDO"   # options: LEONARDO, HAL
 current_ntasks=1      # Change to: 0 or 4
-current_cpus=1        # Change to: 0 or 4
-current_workers=4     # Change to: 0 or 4
+current_cpus=16        # Change to: 0 or 4
+current_workers=16     # Change to: 0 or 4
 debug="False"         # True or False
 
-DATA_PATH="/data/kardaneh/RTDataBase/Data_LSM_1990-2000_Large/Data_LSM_1995-2000_Large" # Path to the dataset on HAL. Adjust if needed.
+DATA_PATH="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large" # Path to the dataset on HAL. Adjust if needed.
 
 # ======================
 # 1. Model Configuration
 # ======================
 type="lstm"
-hidden_size=64
-num_layers=2
-output_channel=4
+hidden_size=96
+num_layers=3
+output_channel=120
 seq_length=10
-feature_channel=6
+feature_channel=121
 embed_size=128
 nhead=8
 forward_expansion=4
@@ -28,11 +28,11 @@ dropout=0.1
 # ======================
 # 2. Training Configuration
 # ======================
-batch_size=4
-num_epochs=2
+batch_size=32
+num_epochs=40
 learning_rate=0.0001
 loss_type="huber"
-beta=0.2
+beta=0.
 beta_delta=1.0
 num_workers=$current_workers
 run_type="train" # options: "train", "resume_train", "inference".
@@ -43,7 +43,7 @@ seed=42
 # ======================
 train_data_files=$DATA_PATH
 test_data_files=$DATA_PATH
-train_years="1998-1999"
+train_years="1995-1999"
 test_year="2000"
 norm="log1p_standard"
 dataset_type="LSM"
@@ -107,12 +107,21 @@ if [ "$Machine" == "LEONARDO" ]; then
 cat >> $sbatch_script <<EOF
 #SBATCH -A EUHPC_D27_095
 #SBATCH -p boost_usr_prod
-#SBATCH --time=$([ "$debug" == "True" ] && echo "00:30:00" || echo "24:00:00")
+#SBATCH --time=$([ "$debug" == "True" ] && echo "00:30:00" || echo "08:00:00")
 #SBATCH -N 1
-#SBATCH --ntasks-per-node=32
 #SBATCH --gpus-per-node=2
 #SBATCH --mem-per-gpu=64G
 EOF
+
+# Only add ntasks-per-node if not empty
+if [ -n "$current_ntasks" ]; then
+    echo "#SBATCH --ntasks-per-node=$current_ntasks" >> $sbatch_script
+fi
+
+# Only add cpus-per-task if not empty
+if [ -n "$current_cpus" ]; then
+    echo "#SBATCH --cpus-per-task=$current_cpus" >> $sbatch_script
+fi
 
 [ "$debug" == "True" ] && echo "#SBATCH --qos=boost_qos_dbg" >> $sbatch_script
 

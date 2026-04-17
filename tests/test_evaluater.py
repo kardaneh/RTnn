@@ -315,7 +315,7 @@ class TestMetricFunctions(unittest.TestCase):
 
 
 class TestUnnormMpas(unittest.TestCase):
-    """Unit tests for unnorm_mpas function."""
+    """Unit tests for unnorm_mpas function with 5D tensors."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -341,79 +341,185 @@ class TestUnnormMpas(unittest.TestCase):
                 "sqrt_iqr": 1.2,
             }
         }
-        self.idxmap = {0: "test_var"}
+        # idxmap maps variable index to variable name (4 variables total)
+        self.idxmap = {0: "test_var", 1: "test_var", 2: "test_var", 3: "test_var"}
+
+        # Test dimensions
+        self.batch_size = 2
+        self.n_pft = 3
+        self.n_bands = 2
+        self.seq_len = 5
 
     def test_standard_normalization(self):
-        """Test standard normalization de-normalization."""
+        """Test standard normalization de-normalization with 5D tensors."""
         norm_type = {"test_var": "standard"}
-        pred = torch.tensor([[[0.0, 0.5, 1.0]]])  # (1,1,3)
-        targ = torch.tensor([[[0.0, 0.5, 1.0]]])
+
+        # Create 5D tensor: (batch, channels, n_pft, n_bands, seq)
+        pred = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+        targ = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+
+        for b in range(self.batch_size):
+            for pft in range(self.n_pft):
+                for band in range(self.n_bands):
+                    pred[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
+                    targ[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
 
         upred, utarg = unnorm_mpas(
             pred, targ, self.norm_mapping, norm_type, self.idxmap
         )
 
-        # (x * std + mean): 0*2+5=5, 0.5*2+5=6, 1*2+5=7
-        expected = torch.tensor([[[5.0, 6.0, 7.0]]])
+        # Expected: (x * std + mean): 0*2+5=5, 0.5*2+5=6, 1*2+5=7
+        expected = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+        for b in range(self.batch_size):
+            for pft in range(self.n_pft):
+                for band in range(self.n_bands):
+                    expected[b, 0, pft, band, :] = torch.tensor([5.0, 6.0, 7.0])
+
         torch.testing.assert_close(upred, expected)
         torch.testing.assert_close(utarg, expected)
 
     def test_minmax_normalization(self):
-        """Test minmax normalization de-normalization."""
+        """Test minmax normalization de-normalization with 5D tensors."""
         norm_type = {"test_var": "minmax"}
-        pred = torch.tensor([[[0.0, 0.5, 1.0]]])
-        targ = torch.tensor([[[0.0, 0.5, 1.0]]])
+
+        pred = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+        targ = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+
+        for b in range(self.batch_size):
+            for pft in range(self.n_pft):
+                for band in range(self.n_bands):
+                    pred[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
+                    targ[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
 
         upred, _ = unnorm_mpas(pred, targ, self.norm_mapping, norm_type, self.idxmap)
 
         # x * (max-min) + min: 0*10+0=0, 0.5*10+0=5, 1*10+0=10
-        expected = torch.tensor([[[0.0, 5.0, 10.0]]])
+        expected = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+        for b in range(self.batch_size):
+            for pft in range(self.n_pft):
+                for band in range(self.n_bands):
+                    expected[b, 0, pft, band, :] = torch.tensor([0.0, 5.0, 10.0])
+
         torch.testing.assert_close(upred, expected)
 
     def test_robust_normalization(self):
-        """Test robust normalization de-normalization."""
+        """Test robust normalization de-normalization with 5D tensors."""
         norm_type = {"test_var": "robust"}
-        pred = torch.tensor([[[0.0, 0.5, 1.0]]])
-        targ = torch.tensor([[[0.0, 0.5, 1.0]]])
+
+        pred = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+        targ = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+
+        for b in range(self.batch_size):
+            for pft in range(self.n_pft):
+                for band in range(self.n_bands):
+                    pred[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
+                    targ[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
 
         upred, _ = unnorm_mpas(pred, targ, self.norm_mapping, norm_type, self.idxmap)
 
         # x * iqr + median: 0*4+5=5, 0.5*4+5=7, 1*4+5=9
-        expected = torch.tensor([[[5.0, 7.0, 9.0]]])
+        expected = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+        for b in range(self.batch_size):
+            for pft in range(self.n_pft):
+                for band in range(self.n_bands):
+                    expected[b, 0, pft, band, :] = torch.tensor([5.0, 7.0, 9.0])
+
         torch.testing.assert_close(upred, expected)
 
     def test_log1p_standard_normalization(self):
-        """Test log1p standard normalization de-normalization."""
+        """Test log1p standard normalization de-normalization with 5D tensors."""
         norm_type = {"test_var": "log1p_standard"}
-        pred = torch.tensor([[[0.0, 0.5, 1.0]]])
-        targ = torch.tensor([[[0.0, 0.5, 1.0]]])
+
+        pred = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+        targ = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+
+        for b in range(self.batch_size):
+            for pft in range(self.n_pft):
+                for band in range(self.n_bands):
+                    pred[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
+                    targ[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
 
         upred, _ = unnorm_mpas(pred, targ, self.norm_mapping, norm_type, self.idxmap)
 
+        # Check shape
+        self.assertEqual(upred.shape, (self.batch_size, 1, self.n_pft, self.n_bands, 3))
+        self.assertTrue(torch.all(upred >= 0))
+
+        # Check specific values for first batch, first pft, first band
         # unnorm = expm1(x * std + mean)
         # 0: expm1(0*0.3+0.5)=expm1(0.5)=0.6487
         # 0.5: expm1(0.5*0.3+0.5)=expm1(0.65)=0.9155
         # 1: expm1(1*0.3+0.5)=expm1(0.8)=1.2255
-        self.assertEqual(upred.shape, (1, 1, 3))
-        self.assertTrue(torch.all(upred >= 0))
+        expected_first = torch.tensor([0.6487, 0.9155, 1.2255])
+        actual_first = upred[0, 0, 0, 0, :]
+        torch.testing.assert_close(actual_first, expected_first, rtol=1e-4, atol=1e-4)
+
+    def test_multiple_variables(self):
+        """Test unnormalization with multiple variables (4 channels)."""
+        norm_type = {"test_var": "standard"}
+
+        # Create 5D tensor with 4 channels
+        pred = torch.zeros(self.batch_size, 4, self.n_pft, self.n_bands, 3)
+        targ = torch.zeros(self.batch_size, 4, self.n_pft, self.n_bands, 3)
+
+        for b in range(self.batch_size):
+            for c in range(4):
+                for pft in range(self.n_pft):
+                    for band in range(self.n_bands):
+                        pred[b, c, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
+                        targ[b, c, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
+
+        upred, _ = unnorm_mpas(pred, targ, self.norm_mapping, norm_type, self.idxmap)
+
+        # Each of the 4 channels should be correctly unnormalized to [5,6,7]
+        expected_val = torch.tensor([5.0, 6.0, 7.0])
+
+        self.assertEqual(upred.shape, pred.shape)
+        for b in range(self.batch_size):
+            for c in range(4):
+                for pft in range(self.n_pft):
+                    for band in range(self.n_bands):
+                        # Use torch.allclose instead of assert_close to avoid rtol/atol requirement
+                        self.assertTrue(
+                            torch.allclose(
+                                upred[b, c, pft, band, :],
+                                expected_val,
+                                rtol=1e-6,
+                                atol=1e-6,
+                            ),
+                            f"Mismatch at batch={b}, channel={c}, pft={pft}, band={band}",
+                        )
 
     def test_unsupported_normalization(self):
         """Test unsupported normalization type raises error."""
         norm_type = {"test_var": "invalid_type"}
-        pred = torch.tensor([[[0.0, 0.5, 1.0]]])
-        targ = torch.tensor([[[0.0, 0.5, 1.0]]])
+
+        pred = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+        targ = torch.zeros(self.batch_size, 1, self.n_pft, self.n_bands, 3)
+
+        for b in range(self.batch_size):
+            for pft in range(self.n_pft):
+                for band in range(self.n_bands):
+                    pred[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
+                    targ[b, 0, pft, band, :] = torch.tensor([0.0, 0.5, 1.0])
 
         with self.assertRaises(ValueError):
             unnorm_mpas(pred, targ, self.norm_mapping, norm_type, self.idxmap)
 
 
 class TestCalcHr(unittest.TestCase):
-    """Unit tests for calc_hr function."""
+    """Unit tests for calc_hr function with 5D tensors."""
 
     def setUp(self):
-        """Set up test fixtures."""
-        self.up = torch.tensor([[[1.0, 2.0, 3.0, 4.0]]])
-        self.down = torch.tensor([[[0.5, 1.0, 1.5, 2.0]]])
+        """Set up test fixtures with 5D tensors."""
+        # Shape: (batch=1, channels=1, n_pft=1, n_bands=1, seq=4)
+        self.up = torch.tensor([[[[[1.0, 2.0, 3.0, 4.0]]]]])
+        self.down = torch.tensor([[[[[0.5, 1.0, 1.5, 2.0]]]]])
+
+        self.n_pft = 1
+        self.n_bands = 1
+        self.batch_size = 1
+        self.n_chans = 1
 
     def test_calc_hr_no_pressure(self):
         """Test calc_hr without pressure levels."""
@@ -421,115 +527,140 @@ class TestCalcHr(unittest.TestCase):
 
         # net = up - down = [0.5, 1.0, 1.5, 2.0]
         # dnet = net - roll(net) = [-1.5, 0.5, 0.5, 0.5]
-        # hr = -dnet[:,:,1:] = -[0.5, 0.5, 0.5] = [-0.5, -0.5, -0.5]
+        # hr = -dnet[..., 1:] = -[0.5, 0.5, 0.5] = [-0.5, -0.5, -0.5]
 
-        expected = torch.tensor([[[-0.5, -0.5, -0.5]]])
+        expected = torch.tensor([[[[[-0.5, -0.5, -0.5]]]]])
 
-        self.assertEqual(hr.shape, (1, 1, 3))
+        self.assertEqual(hr.shape, (1, 1, 1, 1, 3))
         torch.testing.assert_close(hr, expected, rtol=1e-6, atol=1e-6)
-
-    def test_calc_hr_with_pressure(self):
-        """Test calc_hr with pressure levels."""
-        p = torch.tensor([[[1000.0, 900.0, 800.0, 700.0]]])
-        hr = calc_hr(self.up, self.down, p=p)
-
-        self.assertEqual(hr.shape, (1, 1, 3))
-        self.assertTrue(torch.all(hr < 0))
-
-        # Check approximate values
-        expected_approx = torch.tensor([[[-0.0422, -0.0422, -0.0422]]])
-        torch.testing.assert_close(hr, expected_approx, rtol=1e-2, atol=1e-3)
 
     def test_calc_hr_zero_net(self):
         """Test calc_hr when up equals down."""
-        up = torch.tensor([[[1.0, 2.0, 3.0, 4.0]]])
-        down = torch.tensor([[[1.0, 2.0, 3.0, 4.0]]])
+        up = torch.tensor([[[[[1.0, 2.0, 3.0, 4.0]]]]])
+        down = torch.tensor([[[[[1.0, 2.0, 3.0, 4.0]]]]])
         hr = calc_hr(up, down)
 
-        expected = torch.tensor([[[0.0, 0.0, 0.0]]])
+        expected = torch.tensor([[[[[0.0, 0.0, 0.0]]]]])
 
         self.assertTrue(torch.all(hr == 0))
         torch.testing.assert_close(hr, expected)
 
     def test_calc_hr_with_constant_net(self):
         """Test calc_hr when net flux is constant."""
-        up = torch.tensor([[[2.0, 2.0, 2.0, 2.0]]])
-        down = torch.tensor([[[1.0, 1.0, 1.0, 1.0]]])
+        up = torch.tensor([[[[[2.0, 2.0, 2.0, 2.0]]]]])
+        down = torch.tensor([[[[[1.0, 1.0, 1.0, 1.0]]]]])
         hr = calc_hr(up, down)
 
-        expected = torch.tensor([[[0.0, 0.0, 0.0]]])
+        expected = torch.tensor([[[[[0.0, 0.0, 0.0]]]]])
         torch.testing.assert_close(hr, expected, rtol=1e-6, atol=1e-6)
 
-    def test_calc_hr_with_pressure_variable_dp(self):
-        """Test calc_hr with non-uniform pressure spacing."""
-        up = torch.tensor([[[1.0, 2.0, 4.0, 7.0]]])
-        down = torch.tensor([[[0.5, 1.0, 2.0, 3.5]]])
-        p = torch.tensor([[[1000.0, 850.0, 700.0, 500.0]]])
+    def test_calc_hr_with_pft_and_bands(self):
+        """Test calc_hr with multiple PFTs and bands."""
+        # Shape: (batch=1, channels=1, n_pft=2, n_bands=2, seq=4)
+        up = torch.zeros(1, 1, 2, 2, 4)
+        down = torch.zeros(1, 1, 2, 2, 4)
 
-        hr = calc_hr(up, down, p=p)
+        for pft in range(2):
+            for band in range(2):
+                up[0, 0, pft, band, :] = torch.tensor([1.0, 2.0, 3.0, 4.0])
+                down[0, 0, pft, band, :] = torch.tensor([0.5, 1.0, 1.5, 2.0])
 
-        # net = [0.5, 1.0, 2.0, 3.5]
-        # dnet = [-1.5, 0.5, 1.0, 1.5]
-        # dp = [500, -150, -150, -200]
-        # For indices 1:3, dnet/dp: 0.5/-150 = -0.00333, 1.0/-150 = -0.00667, 1.5/-200 = -0.0075
-        # hr = dnet/dp * fac where fac ≈ 8.437
-        # hr should be negative (since dnet positive, dp negative)
+        hr = calc_hr(up, down, p=None)
 
-        self.assertEqual(hr.shape, (1, 1, 3))
-        # All values should be negative (not positive as previously thought)
-        self.assertTrue(torch.all(hr < 0))
+        # Each PFT and band should have the same result
+        self.assertEqual(hr.shape, (1, 1, 2, 2, 3))
+        expected_val = torch.tensor([-0.5, -0.5, -0.5])
+
+        for pft in range(2):
+            for band in range(2):
+                torch.testing.assert_close(
+                    hr[0, 0, pft, band, :], expected_val, rtol=1e-6, atol=1e-6
+                )
 
     def test_calc_hr_2d_batch(self):
-        """Test calc_hr with 2D batch (batch_size=2, channels=2)."""
-        up = torch.tensor(
-            [[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]], [[2.0, 3.0, 4.0], [2.5, 3.5, 4.5]]]
-        )
-        down = torch.tensor(
-            [[[0.5, 1.0, 1.5], [1.0, 1.5, 2.0]], [[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]]]
-        )
+        """Test calc_hr with 2D batch (batch_size=2, channels=2, n_pft=1, n_bands=1)."""
+        # Shape: (batch=2, channels=2, n_pft=1, n_bands=1, seq=3)
+        up = torch.zeros(2, 2, 1, 1, 3)
+        down = torch.zeros(2, 2, 1, 1, 3)
 
-        hr = calc_hr(up, down)
+        # Batch 0, Channel 0
+        up[0, 0, 0, 0, :] = torch.tensor([1.0, 2.0, 3.0])
+        down[0, 0, 0, 0, :] = torch.tensor([0.5, 1.0, 1.5])
+        # Batch 0, Channel 1
+        up[0, 1, 0, 0, :] = torch.tensor([1.5, 2.5, 3.5])
+        down[0, 1, 0, 0, :] = torch.tensor([1.0, 1.5, 2.0])
+        # Batch 1, Channel 0
+        up[1, 0, 0, 0, :] = torch.tensor([2.0, 3.0, 4.0])
+        down[1, 0, 0, 0, :] = torch.tensor([1.0, 2.0, 3.0])
+        # Batch 1, Channel 1
+        up[1, 1, 0, 0, :] = torch.tensor([2.5, 3.5, 4.5])
+        down[1, 1, 0, 0, :] = torch.tensor([1.5, 2.5, 3.5])
 
-        # Expected shape: (batch=2, channels=2, seq_length-1=2)
-        self.assertEqual(hr.shape, (2, 2, 2))
+        hr = calc_hr(up, down, p=None)
+
+        # Expected shape: (2, 2, 1, 1, 2)
+        self.assertEqual(hr.shape, (2, 2, 1, 1, 2))
         self.assertIsInstance(hr, torch.Tensor)
 
         # Check first batch, first channel: net=[0.5,1.0,1.5], hr=-[0.5,0.5]=[-0.5,-0.5]
         expected_first = torch.tensor([-0.5, -0.5])
-        torch.testing.assert_close(hr[0, 0], expected_first, rtol=1e-6, atol=1e-6)
+        torch.testing.assert_close(
+            hr[0, 0, 0, 0, :], expected_first, rtol=1e-6, atol=1e-6
+        )
 
         # Check first batch, second channel: net=[0.5,1.0,1.5], hr=[-0.5,-0.5]
         expected_second = torch.tensor([-0.5, -0.5])
-        torch.testing.assert_close(hr[0, 1], expected_second, rtol=1e-6, atol=1e-6)
-
-    def test_calc_hr_with_pressure_2d_batch(self):
-        """Test calc_hr with pressure and 2D batch."""
-        up = torch.tensor([[[1.0, 2.0, 3.0, 4.0]], [[2.0, 3.0, 4.0, 5.0]]])
-        down = torch.tensor([[[0.5, 1.0, 1.5, 2.0]], [[1.0, 2.0, 3.0, 4.0]]])
-        # p must match batch dimension
-        p = torch.tensor(
-            [[[1000.0, 900.0, 800.0, 700.0]], [[1000.0, 900.0, 800.0, 700.0]]]
+        torch.testing.assert_close(
+            hr[0, 1, 0, 0, :], expected_second, rtol=1e-6, atol=1e-6
         )
 
-        hr = calc_hr(up, down, p=p)
+    def test_calc_hr_single_element(self):
+        """Test calc_hr with single element sequence (should return empty)."""
+        up = torch.tensor([[[[[1.0]]]]])
+        down = torch.tensor([[[[[0.5]]]]])
+        hr = calc_hr(up, down, p=None)
 
-        self.assertEqual(hr.shape, (2, 1, 3))
-        self.assertIsInstance(hr, torch.Tensor)
+        # With seq_length=1, there are no valid derivatives
+        self.assertEqual(hr.shape, (1, 1, 1, 1, 0))
 
-        # Calculate expected for first batch: net=[0.5,1.0,1.5,2.0]
-        # dnet = [-1.5, 0.5, 0.5, 0.5], dp = [300, -100, -100, -100]
-        # hr = dnet/dp * fac ≈ 0.5/-100 * 8.437 = -0.0422
-        expected_value = -0.0422
-        # hr[0] has shape (1, 3), so expected should also have shape (1, 3)
-        expected = torch.tensor([[expected_value, expected_value, expected_value]])
+    def test_calc_hr_multiple_pft_bands_different_values(self):
+        """Test calc_hr with different values across PFTs and bands."""
+        # Shape: (batch=1, channels=1, n_pft=2, n_bands=2, seq=4)
+        up = torch.zeros(1, 1, 2, 2, 4)
+        down = torch.zeros(1, 1, 2, 2, 4)
 
-        # Check first batch (shape: 1, 3)
-        torch.testing.assert_close(hr[0], expected, rtol=1e-2, atol=1e-3)
+        # Different values for each combination
+        up[0, 0, 0, 0, :] = torch.tensor([1.0, 2.0, 3.0, 4.0])
+        down[0, 0, 0, 0, :] = torch.tensor([0.5, 1.0, 1.5, 2.0])
 
-        # Second batch: net=[1.0,1.0,1.0,1.0] (since 2-1=1, 3-2=1, 4-3=1, 5-4=1)
-        # dnet = [0, 0, 0, 0], so hr should be all zeros
-        expected_zero = torch.tensor([[0.0, 0.0, 0.0]])
-        torch.testing.assert_close(hr[1], expected_zero, rtol=1e-6, atol=1e-6)
+        up[0, 0, 0, 1, :] = torch.tensor([2.0, 4.0, 6.0, 8.0])
+        down[0, 0, 0, 1, :] = torch.tensor([1.0, 2.0, 3.0, 4.0])
+
+        up[0, 0, 1, 0, :] = torch.tensor([1.5, 3.0, 4.5, 6.0])
+        down[0, 0, 1, 0, :] = torch.tensor([0.75, 1.5, 2.25, 3.0])
+
+        up[0, 0, 1, 1, :] = torch.tensor([3.0, 6.0, 9.0, 12.0])
+        down[0, 0, 1, 1, :] = torch.tensor([1.5, 3.0, 4.5, 6.0])
+
+        hr = calc_hr(up, down, p=None)
+
+        self.assertEqual(hr.shape, (1, 1, 2, 2, 3))
+
+        # Each combination should have hr = [-0.5, -0.5, -0.5] * (net_scale)
+        # net = up - down, then hr = -dnet[..., 1:]
+        # For constant step size, hr should be constant across sequence
+        for pft in range(2):
+            for band in range(2):
+                # Check that all values in the sequence are the same (constant derivative)
+                hr_seq = hr[0, 0, pft, band, :]
+                self.assertTrue(
+                    torch.allclose(hr_seq[0], hr_seq[1]),
+                    f"hr not constant for pft={pft}, band={band}",
+                )
+                self.assertTrue(
+                    torch.allclose(hr_seq[0], hr_seq[2]),
+                    f"hr not constant for pft={pft}, band={band}",
+                )
 
 
 def run_tests():

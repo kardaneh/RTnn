@@ -225,174 +225,6 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
     return norm_mapping
 
 
-def plot_RTM(predicts, targets, filename):
-    """
-    Plot radiative transfer model predictions against targets.
-
-    Creates a 2x2 grid of line plots showing predicted vs true values for
-    four different flux channels. Plots random samples from the batch.
-
-    Parameters
-    ----------
-    predicts : torch.Tensor
-        Model predictions of shape (batch_size, 4, seq_length).
-    targets : torch.Tensor
-        Ground truth targets of shape (batch_size, 4, seq_length).
-    filename : str
-        Path where the plot will be saved.
-
-    Notes
-    -----
-    - Plots up to 7 random samples from the batch
-    - Uses mpltex for line styles
-    - Y-axis range: 0-1
-    - X-axis: level indices
-    """
-    predicts = predicts.cpu().detach().numpy()
-    targets = targets.cpu().detach().numpy()
-    num_samples = predicts.shape[0]
-    sample_indices = random.sample(range(num_samples), 7)
-
-    fig = plt.figure(tight_layout=True, figsize=(12, 12))
-    plt.subplots_adjust(
-        hspace=0.2, wspace=0.2, left=0.1, right=0.9, top=0.9, bottom=0.1
-    )
-    gs = gridspec.GridSpec(2, 2)
-
-    name_dict = {
-        (0, 0): {"plotname": r"$\mathrm{Flux_1}$"},
-        (0, 1): {"plotname": r"$\mathrm{Flux_2}$"},
-        (1, 0): {"plotname": r"$\mathrm{Flux_3}$"},
-        (1, 1): {"plotname": r"$\mathrm{Flux_4}$"},
-    }
-
-    index_map = [(0, 0), (0, 1), (1, 0), (1, 1)]
-    legend_lines = []
-    legend_labels = []
-
-    for idx, (i, j) in enumerate(index_map):
-        ax = fig.add_subplot(gs[i, j])
-        linestyles = mpltex.linestyle_generator()
-        for sample_index in sample_indices:
-            (pred_line,) = ax.plot(
-                predicts[sample_index, idx, :], label="Predict", **next(linestyles)
-            )
-            (true_line,) = ax.plot(
-                targets[sample_index, idx, :], label="True", **next(linestyles)
-            )
-            if idx == 0:
-                legend_lines.extend([pred_line, true_line])
-                legend_labels.extend([pred_line.get_label(), true_line.get_label()])
-
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(3))
-        ax.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
-        ax.set_ylabel(name_dict[(i, j)]["plotname"])
-        ax.set_xlabel(r"$\mathrm{Level}$")
-        ax.set_ylim(0, 1)
-        ax.set_xlim(0, predicts.shape[-1] - 1)
-        fig.legend(
-            handles=legend_lines,
-            labels=legend_labels,
-            loc="center right",
-            bbox_to_anchor=(1.2, 0.5),
-            borderaxespad=0.5,
-            frameon=False,
-            ncol=1,
-        )
-    plt.savefig(filename, bbox_inches="tight")
-    plt.close(fig)
-
-
-def plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, filename):
-    """
-    Plot absorption rates for two channel groups.
-
-    Creates a 2-panel figure showing absorption rates for channels 1-2 and 3-4.
-
-    Parameters
-    ----------
-    abs12_predict : torch.Tensor
-        Predicted absorption for channels 1-2 of shape (batch_size, 1, seq_length).
-    abs12_target : torch.Tensor
-        True absorption for channels 1-2.
-    abs34_predict : torch.Tensor
-        Predicted absorption for channels 3-4.
-    abs34_target : torch.Tensor
-        True absorption for channels 3-4.
-    filename : str
-        Path where the plot will be saved.
-
-    Notes
-    -----
-    - Upper panel: channels 1-2
-    - Lower panel: channels 3-4
-    - Plots random samples from the batch
-    """
-    abs12_predict = abs12_predict.cpu().detach().numpy()
-    abs12_target = abs12_target.cpu().detach().numpy()
-    abs34_predict = abs34_predict.cpu().detach().numpy()
-    abs34_target = abs34_target.cpu().detach().numpy()
-
-    num_samples = abs12_predict.shape[0]
-    sample_indices = random.sample(range(num_samples), 7)
-
-    fig = plt.figure(tight_layout=False, figsize=(6, 12))
-    plt.subplots_adjust(
-        hspace=0.2, wspace=0.2, left=0.1, right=0.9, top=0.9, bottom=0.1
-    )
-    gs = gridspec.GridSpec(2, 1, figure=fig)
-
-    legend_lines = []
-    legend_labels = []
-
-    ax1 = fig.add_subplot(gs[0, 0])
-    linestyles = mpltex.linestyle_generator()
-
-    for sample_index in sample_indices:
-        (pred_line,) = ax1.plot(
-            abs12_predict[sample_index, 0, :], label="Predict", **next(linestyles)
-        )
-        (true_line,) = ax1.plot(
-            abs12_target[sample_index, 0, :], label="True", **next(linestyles)
-        )
-
-        legend_lines.extend([pred_line, true_line])
-        legend_labels.extend([pred_line.get_label(), true_line.get_label()])
-
-    ax1.set_ylabel(r"$\mathrm{Absorption_{12}}$")
-    ax1.xaxis.set_major_locator(ticker.MultipleLocator(3))
-    ax1.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
-    ax1.set_xlim(0, abs12_predict.shape[-1] - 1)
-    ax1.set_ylim(0, 1)
-
-    ax2 = fig.add_subplot(gs[1, 0])
-    linestyles = mpltex.linestyle_generator()
-
-    for sample_index in sample_indices:
-        ax2.plot(abs34_predict[sample_index, 0, :], label="Predict", **next(linestyles))
-        ax2.plot(abs34_target[sample_index, 0, :], label="True", **next(linestyles))
-
-    ax2.set_ylabel(r"$\mathrm{Absorption_{34}}$")
-    ax2.set_xlabel(r"$\mathrm{Level}$")
-    ax2.xaxis.set_major_locator(ticker.MultipleLocator(3))
-    ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.25))
-    ax2.set_xlim(0, abs34_predict.shape[-1] - 1)
-    ax2.set_ylim(0, 1)
-
-    fig.legend(
-        handles=legend_lines,
-        labels=legend_labels,
-        loc="center right",
-        bbox_to_anchor=(1.3, 0.5),
-        borderaxespad=0.5,
-        frameon=False,
-        ncol=1,
-    )
-
-    plt.savefig(filename, bbox_inches="tight")
-    plt.close(fig)
-
-
 def plot_flux_and_abs_lines(
     predicts,
     targets,
@@ -434,8 +266,7 @@ def plot_flux_and_abs_lines(
         - 2x2 grid for fluxes (upwelling/downwelling for two channels)
         - Optional 1x2 grid for absorption rates (if provided)
     """
-    predicts = predicts.cpu().detach().numpy()
-    targets = targets.cpu().detach().numpy()
+
     include_abs12 = abs12_predict is not None and abs12_target is not None
     include_abs34 = abs34_predict is not None and abs34_target is not None
     include_abs = include_abs12 and include_abs34
@@ -492,12 +323,12 @@ def plot_flux_and_abs_lines(
         linestyles = mpltex.linestyle_generator()
         for sample_index in sample_indices:
             (pred_line,) = ax.plot(
-                abs12_predict[sample_index, 0, :].cpu().detach().numpy(),
+                abs12_predict[sample_index, 0, :],
                 label="Predict)",
                 **next(linestyles),
             )
             (true_line,) = ax.plot(
-                abs12_target[sample_index, 0, :].cpu().detach().numpy(),
+                abs12_target[sample_index, 0, :],
                 label="True",
                 **next(linestyles),
             )
@@ -513,12 +344,12 @@ def plot_flux_and_abs_lines(
         linestyles = mpltex.linestyle_generator()
         for sample_index in sample_indices:
             (pred_line,) = ax.plot(
-                abs34_predict[sample_index, 0, :].cpu().detach().numpy(),
+                abs34_predict[sample_index, 0, :],
                 label="Predict",
                 **next(linestyles),
             )
             (true_line,) = ax.plot(
-                abs34_target[sample_index, 0, :].cpu().detach().numpy(),
+                abs34_target[sample_index, 0, :],
                 label="True",
                 **next(linestyles),
             )
@@ -615,21 +446,14 @@ def plot_flux_and_abs(
 
     for (r, c), props in name_dict.items():
         flux_idx = index_map[(r, c)]
-        y_pred = predicts[:, flux_idx, :].reshape(-1).detach().cpu().numpy()
-        y_true = targets[:, flux_idx, :].reshape(-1).detach().cpu().numpy()
+        y_pred = predicts[:, flux_idx, :].reshape(-1)
+        y_true = targets[:, flux_idx, :].reshape(-1)
         ax = axes[r, c]
 
         hb = ax.hexbin(
             y_true, y_pred, gridsize=100, cmap="jet", bins="log", vmin=1, vmax=1e6
         )
-        # ax.set_xlim(y_true.min(), y_true.max())
-        # ax.set_ylim(y_true.min(), y_true.max())
-        ax.xaxis.set_major_locator(
-            ticker.MultipleLocator((y_true.max() - y_true.min()) / 4)
-        )
-        ax.yaxis.set_major_locator(
-            ticker.MultipleLocator((y_true.max() - y_true.min()) / 4)
-        )
+
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
         ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
         ax.plot(
@@ -647,19 +471,12 @@ def plot_flux_and_abs(
 
     if include_abs:
         ax = axes[2, 0]
-        y_pred = abs12_predict.reshape(-1).detach().cpu().numpy()
-        y_true = abs12_target.reshape(-1).detach().cpu().numpy()
+        y_pred = abs12_predict.reshape(-1)
+        y_true = abs12_target.reshape(-1)
         hb = ax.hexbin(
             y_true, y_pred, gridsize=100, cmap="jet", bins="log", vmin=1, vmax=1e6
         )
-        # ax.set_xlim(y_true.min(), y_true.max())
-        # ax.set_ylim(y_true.min(), y_true.max())
-        ax.xaxis.set_major_locator(
-            ticker.MultipleLocator((y_true.max() - y_true.min()) / 4)
-        )
-        ax.yaxis.set_major_locator(
-            ticker.MultipleLocator((y_true.max() - y_true.min()) / 4)
-        )
+
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
         ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
 
@@ -676,8 +493,8 @@ def plot_flux_and_abs(
         ax.set_ylabel("Predicted")
 
         ax = axes[2, 1]
-        y_pred = abs34_predict.reshape(-1).detach().cpu().numpy()
-        y_true = abs34_target.reshape(-1).detach().cpu().numpy()
+        y_pred = abs34_predict.reshape(-1)
+        y_true = abs34_target.reshape(-1)
         hb = ax.hexbin(
             y_true, y_pred, gridsize=100, cmap="jet", bins="log", vmin=1, vmax=1e6
         )
@@ -687,14 +504,7 @@ def plot_flux_and_abs(
             "r:",
             linewidth=0.5,
         )
-        # ax.set_xlim(y_true.min(), y_true.max())
-        # ax.set_ylim(y_true.min(), y_true.max())
-        ax.xaxis.set_major_locator(
-            ticker.MultipleLocator((y_true.max() - y_true.min()) / 4)
-        )
-        ax.yaxis.set_major_locator(
-            ticker.MultipleLocator((y_true.max() - y_true.min()) / 4)
-        )
+
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
         ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
         r2 = r2_score(y_true, y_pred)
@@ -712,6 +522,120 @@ def plot_flux_and_abs(
         logger.info(f"Saved hexbin plot to {filename}")
     else:
         print(f"Saved hexbin plot to {filename}")
+
+
+def plot_all_diagnostics(
+    predicts,
+    targets,
+    abs12_predict=None,
+    abs12_target=None,
+    abs34_predict=None,
+    abs34_target=None,
+    n_pft=15,
+    n_bands=2,
+    n_chans=4,
+    output_dir="./results",
+    prefix="diagnostics",
+    logger=None,
+):
+    """
+    Generate all diagnostic plots: aggregated, per PFT, per band.
+
+    This will create:
+    - 1 aggregated plot (all PFTs, all bands)
+    - 2 per-band plots (VIS, NIR)
+    - 15 per-PFT plots
+    Total: 18 plots, each with 6 panels
+    """
+
+    predicts_np = predicts.detach().numpy()
+    targets_np = targets.detach().numpy()
+
+    if abs12_predict is not None:
+        abs12_predict_np = abs12_predict.detach().numpy()
+        abs12_target_np = abs12_target.detach().numpy()
+        abs34_predict_np = abs34_predict.detach().numpy()
+        abs34_target_np = abs34_target.detach().numpy()
+    else:
+        abs12_predict_np = None
+        abs12_target_np = None
+        abs34_predict_np = None
+        abs34_target_np = None
+
+    # 1. Aggregated plot (all PFTs, all bands)
+
+    plot_flux_and_abs(
+        predicts_np,
+        targets_np,
+        abs12_predict_np,
+        abs12_target_np,
+        abs34_predict_np,
+        abs34_target_np,
+        filename=os.path.join(output_dir, f"{prefix}_aggregated.png"),
+        logger=logger,
+    )
+
+    # 2. Randomly select 8 PFTs (or fewer if n_pft < 8)
+    num_pft_to_plot = min(8, n_pft)
+    selected_pfts = random.sample(range(n_pft), num_pft_to_plot)
+
+    if logger:
+        logger.info(f"Selected PFTs for detailed plots: {selected_pfts}")
+
+    # 3. For each selected PFT, create plots for each band
+    for pft_idx in selected_pfts:
+        for band_idx in range(n_bands):
+            # Extract data for specific PFT and band - shape (batch, 4, seq)
+            predicts_pft_band = predicts_np[:, :, pft_idx, band_idx, :]
+            targets_pft_band = targets_np[:, :, pft_idx, band_idx, :]
+
+            if abs12_predict_np is not None:
+                abs12_pft_band = abs12_predict_np[:, :, pft_idx, band_idx, :]
+                abs12_target_pft_band = abs12_target_np[:, :, pft_idx, band_idx, :]
+                abs34_pft_band = abs34_predict_np[:, :, pft_idx, band_idx, :]
+                abs34_target_pft_band = abs34_target_np[:, :, pft_idx, band_idx, :]
+            else:
+                abs12_pft_band = None
+                abs12_target_pft_band = None
+                abs34_pft_band = None
+                abs34_target_pft_band = None
+
+            band_name = "VIS" if band_idx == 0 else "NIR"
+            base_filename = os.path.join(
+                output_dir, f"{prefix}_pft{pft_idx:02d}_{band_name}"
+            )
+
+            # Hexbin plot
+            plot_flux_and_abs(
+                predicts_pft_band,
+                targets_pft_band,
+                abs12_pft_band,
+                abs12_target_pft_band,
+                abs34_pft_band,
+                abs34_target_pft_band,
+                filename=f"{base_filename}_hexbin.png",
+                logger=logger,
+            )
+            # Line plot
+            plot_flux_and_abs_lines(
+                predicts_pft_band,
+                targets_pft_band,
+                abs12_pft_band,
+                abs12_target_pft_band,
+                abs34_pft_band,
+                abs34_target_pft_band,
+                filename=f"{base_filename}_lines.png",
+                logger=logger,
+            )
+
+    if logger:
+        logger.info(
+            f"Generated {1 + num_pft_to_plot * n_bands} diagnostic plots in {output_dir}"
+        )
+    else:
+        print(
+            f"Generated {1 + num_pft_to_plot * n_bands} diagnostic plots in {output_dir}"
+        )
 
 
 def plot_metric_histories(

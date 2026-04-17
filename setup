@@ -7,32 +7,94 @@ Machine="LEONARDO"   # options: LEONARDO, HAL
 current_ntasks=1      # Change to: 0 or 4
 current_cpus=16        # Change to: 0 or 4
 current_workers=16     # Change to: 0 or 4
-debug="False"         # True or False
+debug="Flase"         # True or False
 
 DATA_PATH="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large" # Path to the dataset on HAL. Adjust if needed.
 
 # ======================
 # 1. Model Configuration
 # ======================
-type="lstm"
-hidden_size=96
+type="encodertorch"
+hidden_size=256
+
+# NUMBER OF LAYERS
+# ----------------
+# num_layers = 3
+#
+# Rule of thumb: num_layers = 2 to 6 for sequence length 10
+# More layers = more capacity but slower training and more overfitting risk
+#
+# Formula: num_layers ≈ log2(seq_length) + 1 = log2(10) + 1 ≈ 3.3 + 1 = 4.3 (rounded to 4)
+#           but with dropout, 2-3 is often sufficient for this problem size
+#
+# Recommended range: 2-4
 num_layers=3
+
 output_channel=120
 seq_length=10
 feature_channel=121
-embed_size=128
-nhead=8
+
+# EMBEDDING SIZE
+# ---------------
+# embed_size = 256
+#
+# Rule of thumb: embed_size should be between input and output dimensions
+# input=121, output=120 → embed_size=256 is a good balance
+#
+# Formula: embed_size = 2 × max(input, output) = 2 × 121 = 242 (rounded to 256)
+#
+# For 256: embed_size / 64 = 4 heads (nice round number)
+#
+# Recommended range: 256-512 (256 is conservative, good starting point)
+embed_size=256
+
+# NUMBER OF ATTENTION HEADS
+# -------------------------
+# nhead = 4
+#
+# Rule of thumb: heads = embed_size // 64
+#
+# Formula: heads = embed_size // d_head (where d_head is typically 64)
+#
+# For embed_size=256: 256 / 64 = 4 heads
+#
+# Must divide embed_size evenly: 256 % 4 = 0
+nhead=4
+
+# FEED-FORWARD EXPANSION FACTOR
+# -----------------------------
+# forward_expansion = 2
+#
+# Rule of thumb: forward_expansion = 2 to 4
+#
+# Formula: ff_dim = embed_size × forward_expansion
+#
+# For forward_expansion=2: ff_dim = 256 × 2 = 512
+# For forward_expansion=4: ff_dim = 256 × 4 = 1024
+#
+# Larger expansion = more capacity but more parameters
+# Recommended range: 2-4 (2 is conservative, 4 is aggressive)
 forward_expansion=4
-dropout=0.1
+
+# DROPOUT RATE
+# ------------
+# dropout = 0.3
+#
+# Rule of thumb: dropout = 0.1 to 0.5
+#
+# For output_channel=120 (many outputs), use higher dropout to prevent overfitting
+#
+# Recommended range: 0.2-0.4
+dropout=0.2
 
 # ======================
 # 2. Training Configuration
 # ======================
 batch_size=32
-num_epochs=40
+num_epochs=50
 learning_rate=0.0001
 loss_type="huber"
-beta=0.
+beta=0.2
 beta_delta=1.0
 num_workers=$current_workers
 run_type="train" # options: "train", "resume_train", "inference".
@@ -62,7 +124,33 @@ load_checkpoint_name="nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.
 lr_str="${learning_rate//./d}"
 beta_str="${beta//./d}"
 
-model_parts=("$type" "h${hidden_size}" "l${num_layers}")
+# ======================
+# 5. Tags (Final version)
+# ======================
+
+# Format numeric values (avoid dots)
+lr_str="${learning_rate//./d}"
+beta_str="${beta//./d}"
+dropout_str="${dropout//./d}"
+
+# Model-specific naming
+if [ "$type" == "encodertorch" ] || [ "$type" == "transformer" ]; then
+    model_parts=(
+        "$type"
+        "e${embed_size}"
+        "h${nhead}"
+        "l${num_layers}"
+        "fe${forward_expansion}"
+        "d${dropout_str}"
+    )
+else
+    model_parts=(
+        "$type"
+        "h${hidden_size}"
+        "l${num_layers}"
+        "d${dropout_str}"
+    )
+fi
 model_name=$(IFS=_ ; echo "${model_parts[*]}")
 
 tag="${model_name}_nrm_${norm}_l_${loss_type}_sb_${batch_size}_ne_${num_epochs}"
@@ -107,7 +195,7 @@ if [ "$Machine" == "LEONARDO" ]; then
 cat >> $sbatch_script <<EOF
 #SBATCH -A EUHPC_D27_095
 #SBATCH -p boost_usr_prod
-#SBATCH --time=$([ "$debug" == "True" ] && echo "00:30:00" || echo "08:00:00")
+#SBATCH --time=$([ "$debug" == "True" ] && echo "00:30:00" || echo "10:00:00")
 #SBATCH -N 1
 #SBATCH --gpus-per-node=2
 #SBATCH --mem-per-gpu=64G

@@ -942,9 +942,7 @@ def load_checkpoint_if_requested(args, model, optimizer, paths, device, logger):
             logger.info(f"Current train_loss_history length: {len(train_loss_history)}")
             logger.info(f"Current valid_loss_history length: {len(valid_loss_history)}")
     else:
-        logger.info(
-            f"Model loaded for 'inference' if {args.run_type} == 'inference' else 'continued training'"
-        )
+        logger.info(f"Model loaded for 'inference' as {args.run_type} == 'inference'")
 
     return (
         start_epoch,
@@ -978,6 +976,9 @@ def train_epoch(
     writer,
     global_step,
     logger,
+    n_pft=15,
+    n_bands=2,
+    n_chans=4,
 ):
     """
     Train for one epoch.
@@ -987,6 +988,7 @@ def train_epoch(
     tuple
         (average_train_loss, updated_global_step)
     """
+
     model.train()
 
     # Reset metrics
@@ -1022,10 +1024,28 @@ def train_epoch(
         # Forward pass
         predicts = model(feature)
 
-        # Unnormalize for absorption calculation
-        predicts_unnorm, targets_unnorm = unnorm_mpas(
-            predicts, targets, norm_mapping, normalization_type, index_mapping
+        # Reshape to (batch, 4, n_pft, n_bands, seq)
+        pred_reshaped = predicts.reshape(
+            inner_batch_size, n_chans, n_pft, n_bands, target_shape[3]
         )
+        targ_reshaped = targets.reshape(
+            inner_batch_size, n_chans, n_pft, n_bands, target_shape[3]
+        )
+
+        predicts_unnorm, targets_unnorm = unnorm_mpas(
+            pred_reshaped,
+            targ_reshaped,
+            norm_mapping,
+            normalization_type,
+            index_mapping,
+        )
+        assert (
+            predicts_unnorm.shape == pred_reshaped.shape
+        ), f"Expected predicts_unnorm shape {pred_reshaped.shape}, got {predicts_unnorm.shape}"
+
+        assert (
+            targets_unnorm.shape == targ_reshaped.shape
+        ), f"Expected targets_unnorm shape {targ_reshaped.shape}, got {targets_unnorm.shape}"
 
         # Calculate absorption
         (
@@ -1035,6 +1055,22 @@ def train_epoch(
             abs34_target,
             conservation_penalty,
         ) = calc_abs(predicts_unnorm, targets_unnorm)
+        if epoch == 0 and batch_idx == 0:
+            logger.info(f"conservation_penalty: {conservation_penalty}")
+
+        expected_abs_shape = (inner_batch_size, 1, n_pft, n_bands, target_shape[3] - 1)
+        assert (
+            abs12_predict.shape == expected_abs_shape
+        ), f"Expected abs12_predict shape {expected_abs_shape}, got {abs12_predict.shape}"
+        assert (
+            abs12_target.shape == expected_abs_shape
+        ), f"Expected abs12_target shape {expected_abs_shape}, got {abs12_target.shape}"
+        assert (
+            abs34_predict.shape == expected_abs_shape
+        ), f"Expected abs34_predict shape {expected_abs_shape}, got {abs34_predict.shape}"
+        assert (
+            abs34_target.shape == expected_abs_shape
+        ), f"Expected abs34_target shape {expected_abs_shape}, got {abs34_target.shape}"
 
         # Compute metrics
         output_dict = {
@@ -1059,6 +1095,7 @@ def train_epoch(
 
         # Compute loss
         main_count, main_val = predicts.numel(), loss_func(predicts, targets)
+
         abs12_count, abs12_val = (
             abs12_predict.numel(),
             loss_func(abs12_predict, abs12_target),
@@ -1071,12 +1108,12 @@ def train_epoch(
         weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (
             abs12_val * abs12_count + abs34_val * abs34_count
         )
+
         total_count = (1.0 - args.beta) * main_count + args.beta * (
             abs12_count + abs34_count
         )
-        total_loss = weighted_loss / total_count
 
-        # total_loss = physics_loss(predicts, targets, conservation_penalty, lambda_phys=args.beta, delta=args.beta_delta)
+        total_loss = weighted_loss / total_count
 
         # Backward pass
         optimizer.zero_grad()
@@ -1115,6 +1152,10 @@ def main():
 
     # Log configuration
     log_configuration(args, paths, logger)
+
+    n_pft = 15
+    n_bands = 2
+    n_chans = 4
 
     try:
         # Setup device and seed
@@ -1205,6 +1246,9 @@ def main():
                 args.num_epochs - 1,
                 logger,
                 paths.results,
+                n_pft=n_pft,
+                n_bands=n_bands,
+                n_chans=n_chans,
             )
 
             logger.info("Inference results:")
@@ -1267,6 +1311,9 @@ def main():
                 writer,
                 global_step,
                 logger,
+                n_pft=n_pft,
+                n_bands=n_bands,
+                n_chans=n_chans,
             )
 
             train_loss_history[epoch] = avg_train_loss
@@ -1284,6 +1331,9 @@ def main():
                     epoch,
                     logger,
                     paths.results,
+                    n_pft=n_pft,
+                    n_bands=n_bands,
+                    n_chans=n_chans,
                 )
                 valid_loss_history[epoch] = valid_loss
 

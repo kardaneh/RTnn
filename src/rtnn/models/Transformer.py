@@ -475,9 +475,9 @@ class EncoderTorch(nn.Module):
             nhead=heads,
             dim_feedforward=forward_expansion * embed_size,
             dropout=dropout,
-            activation="relu",  # matches ReLU
-            batch_first=True,  # IMPORTANT (you used batch-first)
-            norm_first=False,  # matches post-norm design
+            activation="relu",
+            batch_first=True,
+            norm_first=False,
         )
 
         # Stack layers
@@ -485,7 +485,7 @@ class EncoderTorch(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-        # Final projection (same as Conv1d)
+        # Final projection
         self.final = nn.Conv1d(embed_size, output_channel, kernel_size=1)
 
     def forward(

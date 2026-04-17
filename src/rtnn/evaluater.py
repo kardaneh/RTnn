@@ -26,9 +26,7 @@ import numpy as np
 import sys
 from tqdm import tqdm
 import os
-from rtnn.diagnostics import (
-    plot_flux_and_abs_lines,
-)
+from rtnn.diagnostics import plot_all_diagnostics
 from typing import Optional
 
 sys.path.append("..")
@@ -519,114 +517,88 @@ def gmrae_all(pred, true):
 
 def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
     """
-    Reverse normalization to recover original physical values.
+    Reverse normalization for 5D tensors.
 
-    Applies inverse transformation based on the normalization method used
-    during preprocessing.
-
-    Parameters
-    ----------
-    pred : torch.Tensor
-        Normalized predictions of shape (batch, channels, seq_length).
-    targ : torch.Tensor
-        Normalized targets.
-    norm_mapping : dict
-        Dictionary containing normalization statistics for each variable.
-    normalization_type : dict
-        Dictionary mapping variable names to normalization types.
-    idxmap : dict
-        Dictionary mapping channel indices to variable names.
-
-    Returns
-    -------
-    tuple
-        (unnormalized_predictions, unnormalized_targets)
-
-    Supported normalization types:
-        - minmax: x * (max - min) + min
-        - standard: x * std + mean
-        - robust: x * iqr + median
-        - log1p_*: expm1(x * scale + offset)
-        - sqrt_*: (x * scale + offset) ** 2
-
-    Examples
-    --------
-    >>> idxmap = {0: 'collim_alb', 1: 'collim_tran'}
-    >>> upred, utarg = unnorm_mpas(pred, targ, norm_mapping, norm_type, idxmap)
+    pred and targ shape: (batch, 4, n_pft, n_bands, seq_length)
     """
     device = pred.device
     upred = torch.zeros_like(pred, device=device)
     utarg = torch.zeros_like(targ, device=device)
 
-    for i, var_name in idxmap.items():
+    # idxmap maps channel indices 0-3 to variable names
+    for var_idx, var_name in idxmap.items():
         norm_type = normalization_type.get(var_name, "log1p_minmax")
         norm = norm_mapping[var_name]
+
+        # Get slice for this variable: (batch, 1, n_pft, n_bands, seq)
+        pred_var = pred[:, var_idx : var_idx + 1, :, :, :]
+        targ_var = targ[:, var_idx : var_idx + 1, :, :, :]
 
         if norm_type == "standard":
             mean = norm["vmean"]
             std = norm["vstd"]
-            upred[:, i, :] = pred[:, i, :] * std + mean
-            utarg[:, i, :] = targ[:, i, :] * std + mean
+            upred[:, var_idx : var_idx + 1, :, :, :] = pred_var * std + mean
+            utarg[:, var_idx : var_idx + 1, :, :, :] = targ_var * std + mean
 
         elif norm_type == "minmax":
             vmin = norm["vmin"]
             vmax = norm["vmax"]
-            upred[:, i, :] = pred[:, i, :] * (vmax - vmin) + vmin
-            utarg[:, i, :] = targ[:, i, :] * (vmax - vmin) + vmin
+            upred[:, var_idx : var_idx + 1, :, :, :] = pred_var * (vmax - vmin) + vmin
+            utarg[:, var_idx : var_idx + 1, :, :, :] = targ_var * (vmax - vmin) + vmin
 
         elif norm_type == "robust":
             median = norm["median"]
             iqr = norm["iqr"]
-            upred[:, i, :] = pred[:, i, :] * iqr + median
-            utarg[:, i, :] = targ[:, i, :] * iqr + median
+            upred[:, var_idx : var_idx + 1, :, :, :] = pred_var * iqr + median
+            utarg[:, var_idx : var_idx + 1, :, :, :] = targ_var * iqr + median
 
         elif norm_type == "log1p_minmax":
             log_min = norm["log_min"]
             log_max = norm["log_max"]
-            unnorm_pred = pred[:, i, :] * (log_max - log_min) + log_min
-            unnorm_targ = targ[:, i, :] * (log_max - log_min) + log_min
-            upred[:, i, :] = torch.expm1(unnorm_pred)
-            utarg[:, i, :] = torch.expm1(unnorm_targ)
+            unnorm_pred = pred_var * (log_max - log_min) + log_min
+            unnorm_targ = targ_var * (log_max - log_min) + log_min
+            upred[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_pred)
+            utarg[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_targ)
 
         elif norm_type == "log1p_standard":
             mean = norm["log_mean"]
             std = norm["log_std"]
-            unnorm_pred = pred[:, i, :] * std + mean
-            unnorm_targ = targ[:, i, :] * std + mean
-            upred[:, i, :] = torch.expm1(unnorm_pred)
-            utarg[:, i, :] = torch.expm1(unnorm_targ)
+            unnorm_pred = pred_var * std + mean
+            unnorm_targ = targ_var * std + mean
+            upred[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_pred)
+            utarg[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_targ)
 
         elif norm_type == "log1p_robust":
             median = norm["log_median"]
             iqr = norm["log_iqr"]
-            unnorm_pred = pred[:, i, :] * iqr + median
-            unnorm_targ = targ[:, i, :] * iqr + median
-            upred[:, i, :] = torch.expm1(unnorm_pred)
-            utarg[:, i, :] = torch.expm1(unnorm_targ)
+            unnorm_pred = pred_var * iqr + median
+            unnorm_targ = targ_var * iqr + median
+            upred[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_pred)
+            utarg[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_targ)
 
         elif norm_type == "sqrt_minmax":
             sqrt_min = norm["sqrt_min"]
             sqrt_max = norm["sqrt_max"]
-            unnorm_pred = pred[:, i, :] * (sqrt_max - sqrt_min) + sqrt_min
-            unnorm_targ = targ[:, i, :] * (sqrt_max - sqrt_min) + sqrt_min
-            upred[:, i, :] = unnorm_pred**2
-            utarg[:, i, :] = unnorm_targ**2
+            unnorm_pred = pred_var * (sqrt_max - sqrt_min) + sqrt_min
+            unnorm_targ = targ_var * (sqrt_max - sqrt_min) + sqrt_min
+            upred[:, var_idx : var_idx + 1, :, :, :] = unnorm_pred**2
+            utarg[:, var_idx : var_idx + 1, :, :, :] = unnorm_targ**2
 
         elif norm_type == "sqrt_standard":
             mean = norm["sqrt_mean"]
             std = norm["sqrt_std"]
-            unnorm_pred = pred[:, i, :] * std + mean
-            unnorm_targ = targ[:, i, :] * std + mean
-            upred[:, i, :] = unnorm_pred**2
-            utarg[:, i, :] = unnorm_targ**2
+            unnorm_pred = pred_var * std + mean
+            unnorm_targ = targ_var * std + mean
+            upred[:, var_idx : var_idx + 1, :, :, :] = unnorm_pred**2
+            utarg[:, var_idx : var_idx + 1, :, :, :] = unnorm_targ**2
 
         elif norm_type == "sqrt_robust":
             median = norm["sqrt_median"]
             iqr = norm["sqrt_iqr"]
-            unnorm_pred = pred[:, i, :] * iqr + median
-            unnorm_targ = targ[:, i, :] * iqr + median
-            upred[:, i, :] = unnorm_pred**2
-            utarg[:, i, :] = unnorm_targ**2
+            unnorm_pred = pred_var * iqr + median
+            unnorm_targ = targ_var * iqr + median
+            upred[:, var_idx : var_idx + 1, :, :, :] = unnorm_pred**2
+            utarg[:, var_idx : var_idx + 1, :, :, :] = unnorm_targ**2
         else:
             raise ValueError(
                 f"Unsupported normalization type '{norm_type}' for variable '{var_name}'"
@@ -637,13 +609,13 @@ def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
 
 def conservation_residual(alb, tran, abs_flux):
     """
-    alb, tran: shape (batch, 1, N) - fluxes at levels
-    abs_flux: shape (batch, 1, N-1) - absorption at layer centers
-    Returns residual of shape (batch, 1, N-1)
+    alb, tran: shape (batch, 1, n_pft, n_bands, seq)
+    abs_flux: shape (batch, 1, n_pft, n_bands, seq-1)
+    Returns residual of shape (batch, 1, n_pft, n_bands, seq-1)
     """
     # Average fluxes to layer centers (N-1 layers)
-    alb_center = (alb[:, :, :-1] + alb[:, :, 1:]) / 2.0
-    tran_center = (tran[:, :, :-1] + tran[:, :, 1:]) / 2.0
+    alb_center = (alb[..., :-1] + alb[..., 1:]) / 2.0
+    tran_center = (tran[..., :-1] + tran[..., 1:]) / 2.0
     # Conservation: alb + tran + abs = 1
     return (alb_center + tran_center + abs_flux - 1.0) ** 2
 
@@ -652,39 +624,24 @@ def calc_abs(pred, targ, p=None):
     """
     Calculate absorption rates from flux predictions.
 
-    Computes net absorption rates for two channel groups (1-2 and 3-4) using
-    the difference between upwelling and downwelling fluxes.
-
-    Parameters
-    ----------
-    pred : torch.Tensor
-        Predictions of shape (batch, 4, seq_length) where channels 0-1 are
-        for first group and 2-3 for second group.
-    targ : torch.Tensor
-        Targets of same shape as pred.
-    p : torch.Tensor, optional
-        Pressure levels for atmospheric heating rate calculation.
-        If provided, computes heating rate using pressure gradients.
-
-    Returns
-    -------
-    tuple
-        (abs12_pred, abs12_targ, abs34_pred, abs34_targ) where each is a
-        tensor of shape (batch, 1, seq_length-1).
-
-    Notes
-    -----
-    - If p is None: returns d(net) where net = up - down
-    - If p is provided: returns heating rate using d(net)/dp
+    pred and targ shape: (batch, 4, n_pft, n_bands, seq_length)
+    Returns absorption with shape (batch, 1, n_pft, n_bands, seq_length-1)
     """
-    abs12_pred = calc_hr(pred[:, 0:1, :], pred[:, 1:2, :], p)
-    abs12_targ = calc_hr(targ[:, 0:1, :], targ[:, 1:2, :], p)
-    abs34_pred = calc_hr(pred[:, 2:3, :], pred[:, 3:4, :], p)
-    abs34_targ = calc_hr(targ[:, 2:3, :], targ[:, 3:4, :], p)
+    # Collimated (channels 0 and 1)
+    abs12_pred = calc_hr(pred[:, 0:1, :, :, :], pred[:, 1:2, :, :, :], p)
+    abs12_targ = calc_hr(targ[:, 0:1, :, :, :], targ[:, 1:2, :, :, :], p)
 
-    # Collimated (channels 0, 1) and Isotropic (channels 2, 3)
-    collim_resid = conservation_residual(pred[:, 0:1, :], pred[:, 1:2, :], abs12_pred)
-    isotrop_resid = conservation_residual(pred[:, 2:3, :], pred[:, 3:4, :], abs34_pred)
+    # Isotropic (channels 2 and 3)
+    abs34_pred = calc_hr(pred[:, 2:3, :, :, :], pred[:, 3:4, :, :, :], p)
+    abs34_targ = calc_hr(targ[:, 2:3, :, :, :], targ[:, 3:4, :, :, :], p)
+
+    # Conservation penalty
+    collim_resid = conservation_residual(
+        pred[:, 0:1, :, :, :], pred[:, 1:2, :, :, :], abs12_pred
+    )
+    isotrop_resid = conservation_residual(
+        pred[:, 2:3, :, :, :], pred[:, 3:4, :, :, :], abs34_pred
+    )
     conservation_penalty = (collim_resid + isotrop_resid).mean()
 
     return abs12_pred, abs12_targ, abs34_pred, abs34_targ, conservation_penalty
@@ -694,55 +651,12 @@ def calc_hr(up, down, p=None):
     """
     Calculate heating rate from upwelling and downwelling fluxes.
 
-    Computes the net radiative heating rate by taking the vertical derivative
-    of net flux (upwelling - downwelling). If pressure levels are provided,
-    calculates the actual atmospheric heating rate using pressure gradients.
-
-    Parameters
-    ----------
-    up : torch.Tensor
-        Upwelling flux tensor of shape (batch, channels, seq_length).
-    down : torch.Tensor
-        Downwelling flux tensor of shape (batch, channels, seq_length).
-    p : torch.Tensor, optional
-        Pressure levels of shape (seq_length,) or (batch, seq_length).
-        If provided, computes physical heating rate. If None, returns
-        the derivative of net flux.
-
-    Returns
-    -------
-    torch.Tensor
-        If p is None:
-            Returns the negative derivative of net flux with respect to
-            level index: -d(net)/dz (or d(net)/d(level)) of shape
-            (batch, channels, seq_length - 1)
-        If p is provided:
-            Returns the atmospheric heating rate in K/day using the formula:
-            heating_rate = (g * 8.64e4) / (cp * 100) * d(net)/dp
-            where g = 9.8066 m/s², cp = 1004 J/(kg·K) (calculated as 7*R/2 with R=287)
-
-    Notes
-    -----
-    - The derivative is computed using finite differences: net[i+1] - net[i]
-    - For pressure-based calculation, uses dp = p[i+1] - p[i]
-    - The factor 8.64e4 converts from W/m² to K/day
-    - The factor 100 converts pressure from hPa to Pa
-
-    Examples
-    --------
-    >>> # Calculate net flux derivative
-    >>> hr = calc_hr(up, down)
-    >>> hr.shape
-    torch.Size([32, 4, 9])  # for seq_length=10
-
-    >>> # Calculate actual heating rate with pressure levels
-    >>> pressure = torch.linspace(1000, 100, 10)  # hPa
-    >>> heating_rate = calc_hr(up, down, p=pressure)
-    >>> heating_rate.shape
-    torch.Size([32, 4, 9])
+    up and down shape: (batch, 1, n_pft, n_bands, seq_length)
+    Returns shape: (batch, 1, n_pft, n_bands, seq_length - 1)
     """
     net = up - down
-    dnet = net - torch.roll(net, 1, 2)
+    # Roll along the last dimension (seq_length)
+    dnet = net - torch.roll(net, 1, dims=-1)
 
     if p is not None:
         g = 9.8066
@@ -750,10 +664,14 @@ def calc_hr(up, down, p=None):
         cp = 7.0 * r / 2.0
         fac = g * 8.64e4 / (cp * 100)
 
-        dp = p - torch.roll(p, 1, 2)
-        return dnet[:, :, 1:] / dp[:, :, 1:] * fac
+        # p shape: (seq_length,) or (batch, seq_length)
+        # Need to handle broadcasting
+        if p.dim() == 1:
+            p = p.view(1, 1, 1, 1, -1)
+        dp = p - torch.roll(p, 1, dims=-1)
+        return dnet[..., 1:] / dp[..., 1:] * fac
     else:
-        return -dnet[:, :, 1:]
+        return -dnet[..., 1:]
 
 
 def run_validation(
@@ -767,6 +685,9 @@ def run_validation(
     epoch,
     logger=None,
     base_dir="./results",
+    n_pft=15,
+    n_bands=2,
+    n_chans=4,
 ):
     """
     Evaluate model accuracy on LSM dataset.
@@ -811,6 +732,7 @@ def run_validation(
     >>> print(f"Validation loss: {valid_loss:.4f}")
     >>> print(f"NMAE: {metrics['fluxes_NMAE']:.4f}")
     """
+
     model.eval()
 
     valid_loss_types = [
@@ -837,8 +759,8 @@ def run_validation(
     }
 
     valid_loss = MetricTracker()
-
-    if epoch == args.num_epochs - 1:
+    save_plots = (epoch % 10 == 0) or (epoch == args.num_epochs - 1)
+    if save_plots:
         if logger:
             logger.info("Collecting data for final epoch")
         else:
@@ -873,9 +795,28 @@ def run_validation(
 
             predicts = model(feature)
 
-            predicts_unnorm, targets_unnorm = unnorm_mpas(
-                predicts, targets, norm_mapping, normalization_type, index_mapping
+            # Reshape to (batch, 4, n_pft, n_bands, seq)
+            pred_reshaped = predicts.reshape(
+                inner_batch_size, n_chans, n_pft, n_bands, target_shape[3]
             )
+            targ_reshaped = targets.reshape(
+                inner_batch_size, n_chans, n_pft, n_bands, target_shape[3]
+            )
+
+            predicts_unnorm, targets_unnorm = unnorm_mpas(
+                pred_reshaped,
+                targ_reshaped,
+                norm_mapping,
+                normalization_type,
+                index_mapping,
+            )
+            assert (
+                predicts_unnorm.shape == pred_reshaped.shape
+            ), f"Expected predicts_unnorm shape {pred_reshaped.shape}, got {predicts_unnorm.shape}"
+
+            assert (
+                targets_unnorm.shape == targ_reshaped.shape
+            ), f"Expected targets_unnorm shape {targ_reshaped.shape}, got {targets_unnorm.shape}"
 
             (
                 abs12_predict,
@@ -885,7 +826,36 @@ def run_validation(
                 conservation_penalty,
             ) = calc_abs(predicts_unnorm, targets_unnorm)
 
-            if epoch == args.num_epochs - 1:
+            expected_abs_shape = (
+                inner_batch_size,
+                1,
+                n_pft,
+                n_bands,
+                target_shape[3] - 1,
+            )
+            assert (
+                abs12_predict.shape == expected_abs_shape
+            ), f"Expected abs12_predict shape {expected_abs_shape}, got {abs12_predict.shape}"
+            assert (
+                abs12_target.shape == expected_abs_shape
+            ), f"Expected abs12_target shape {expected_abs_shape}, got {abs12_target.shape}"
+            assert (
+                abs34_predict.shape == expected_abs_shape
+            ), f"Expected abs34_predict shape {expected_abs_shape}, got {abs34_predict.shape}"
+            assert (
+                abs34_target.shape == expected_abs_shape
+            ), f"Expected abs34_target shape {expected_abs_shape}, got {abs34_target.shape}"
+
+            if batch_idx == 0:
+                logger.info(f"Feature shape: {feature.shape}")
+                logger.info(f"Targets shape: {targets.shape}")
+                logger.info(f"abs12_predict shape: {abs12_predict.shape}")
+                logger.info(f"abs12_target shape: {abs12_target.shape}")
+                logger.info(f"abs34_predict shape: {abs34_predict.shape}")
+                logger.info(f"abs34_target shape: {abs34_target.shape}")
+                logger.info(f"Conservation penalty: {conservation_penalty.item():.6f}")
+
+            if save_plots:
                 all_predicts_unnorm.append(predicts_unnorm.cpu())
                 all_targets_unnorm.append(targets_unnorm.cpu())
                 all_abs12_predict.append(abs12_predict.cpu())
@@ -923,42 +893,22 @@ def run_validation(
             weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (
                 abs12_val * abs12_count + abs34_val * abs34_count
             )
+
             total_count = (1.0 - args.beta) * main_count + args.beta * (
                 abs12_count + abs34_count
             )
             total_loss = weighted_loss / total_count
-            # total_loss = physics_loss(predicts, targets, conservation_penalty, lambda_phys=args.beta, delta=args.beta_delta)
 
             valid_loss.update(total_loss.item(), 1)
             loop.set_postfix(loss=total_loss.item())
 
-        if epoch == args.num_epochs - 1:
+        if save_plots:
             if logger:
-                logger.info(f"Doing plot for batch {batch_idx} in final epoch")
+                logger.info("Doing plot for final epoch")
             else:
-                print(f"Doing plot for batch {batch_idx} in final epoch")
+                print("Doing plot for final epoch")
 
             os.makedirs(base_dir, exist_ok=True)
-
-            assert len(all_predicts_unnorm) != 0, "No data collected for final epoch"
-            assert (
-                len(all_targets_unnorm) != 0
-            ), "No target data collected for final epoch"
-            assert (
-                len(all_abs12_predict) != 0
-            ), "No abs12 data collected for final epoch"
-            assert (
-                len(all_abs34_predict) != 0
-            ), "No abs34 data collected for final epoch"
-            assert len(all_predicts_unnorm) == len(
-                all_targets_unnorm
-            ), "Mismatch in collected data lengths"
-            assert len(all_abs12_predict) == len(
-                all_abs12_target
-            ), "Mismatch in collected data lengths"
-            assert len(all_abs34_predict) == len(
-                all_abs34_target
-            ), "Mismatch in collected data lengths"
 
             all_predicts_unnorm = torch.cat(all_predicts_unnorm, dim=0)
             all_targets_unnorm = torch.cat(all_targets_unnorm, dim=0)
@@ -967,30 +917,19 @@ def run_validation(
             all_abs34_predict = torch.cat(all_abs34_predict, dim=0)
             all_abs34_target = torch.cat(all_abs34_target, dim=0)
 
-            # plot_RTM(predicts_unnorm, targets_unnorm, os.path.join(base_dir, f"Flux{batch_idx}_{args.test_year}.png"))
-            # plot_HeatRate(abs12_predict, abs12_target, abs34_predict, abs34_target, os.path.join(base_dir, f"Abs{batch_idx}_{args.test_year}.png"))
-            plot_flux_and_abs_lines(
+            plot_all_diagnostics(
                 all_predicts_unnorm,
                 all_targets_unnorm,
                 abs12_predict=all_abs12_predict,
                 abs12_target=all_abs12_target,
                 abs34_predict=all_abs34_predict,
                 abs34_target=all_abs34_target,
-                filename=os.path.join(
-                    base_dir, f"Lineplot_Flux_Abs_{args.test_year}.png"
-                ),
+                n_pft=n_pft,
+                n_bands=n_bands,
+                output_dir=base_dir,
+                prefix=f"validation_epoch{epoch}",
+                logger=logger,
             )
-            # plot_flux_and_abs(
-            #    all_predicts_unnorm,
-            #    all_targets_unnorm,
-            #    abs12_predict=all_abs12_predict,
-            #    abs12_target=all_abs12_target,
-            #    abs34_predict=all_abs34_predict,
-            #    abs34_target=all_abs34_target,
-            #    filename=os.path.join(
-            #        base_dir, f"flux_abs_hexbin_{args.test_year}.png"
-            #        ),
-            #    )
 
     return valid_loss.getmean(), {
         k: (tracker.getsqrtmean() if k.lower().endswith("mse") else tracker.getmean())

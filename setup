@@ -14,7 +14,7 @@ DATA_PATH="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large" # Path to the 
 # ======================
 # 1. Model Configuration
 # ======================
-type="encodertorch"
+type="lstm"
 hidden_size=256
 
 # NUMBER OF LAYERS
@@ -85,7 +85,7 @@ forward_expansion=4
 # For output_channel=120 (many outputs), use higher dropout to prevent overfitting
 #
 # Recommended range: 0.2-0.4
-dropout=0.2
+dropout=0.1
 
 # ======================
 # 2. Training Configuration
@@ -94,7 +94,7 @@ batch_size=32
 num_epochs=50
 learning_rate=0.0001
 loss_type="huber"
-beta=0.2
+beta=0.5
 beta_delta=1.0
 num_workers=$current_workers
 run_type="train" # options: "train", "resume_train", "inference".

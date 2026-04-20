@@ -444,43 +444,19 @@ class DataPreprocessor(Dataset):
         self.df = xr.open_dataset(path)
 
         # Get dimensions
-        # sequence_length_dim = self.min_dims["dim_2"]
-        # dim_1 = self.min_dims["dim_1"]
-        # dim_3 = self.min_dims["dim_3"]
-        # dim_4 = self.min_dims["dim_4"]
-
-        # Get dimensions
         seq_len = self.min_dims["dim_2"]  # 10 (vertical levels)
         dim_1 = self.min_dims["dim_1"]  # 263 (spatial points)
         n_pft = self.min_dims["dim_3"]  # 15
         n_bands = self.min_dims["dim_4"]  # 2
 
-        # self.schunk = dim_1 * dim_3 * dim_4
-
-        # Initialize arrays for each variable group
-        # npcosz = np.zeros([self.schunk, len(self.cosz), sequence_length_dim])
-        # nplai = np.zeros([self.schunk, len(self.lai), sequence_length_dim])
-        # npssa = np.zeros([self.schunk, len(self.ssa), sequence_length_dim])
-        # npov = np.zeros([self.schunk, len(self.ov), sequence_length_dim])
-        # nprs = np.zeros([self.schunk, len(self.rs), sequence_length_dim])
-
-        # if self.debug:
-        #    self.logger.info(
-        #        f"Dimensions for processing:\n"
-        #        f"  |- sequence_length_dim: {sequence_length_dim}\n"
-        #        f"  |- dim_1: {dim_1}\n"
-        #        f"  |- dim_3: {dim_3}\n"
-        #        f"  |- dim_4: {dim_4}\n"
-        #        f"  |- schunk (total spatial chunk size): {self.schunk}"
-        #    )
-        #    self.logger.info(
-        #        f"Initialized numpy arrays for variable groups with shapes:\n"
-        #        f"  |- npcosz: {npcosz.shape}\n"
-        #        f"  |- nplai: {nplai.shape}\n"
-        #        f"  |- npssa: {npssa.shape}\n"
-        #        f"  |- npov: {npov.shape}\n"
-        #        f"  |- nprs: {nprs.shape}"
-        #    )
+        if self.debug:
+            self.logger.info(
+                f"Dimensions for processing:\n"
+                f"  |- sequence_length_dim: {seq_len}\n"
+                f"  |- dim_1: {dim_1}\n"
+                f"  |- n_pft: {n_pft}\n"
+                f"  |- n_bands: {n_bands}"
+            )
 
         # ================================================================
         # FEATURES

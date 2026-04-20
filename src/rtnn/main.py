@@ -1429,7 +1429,7 @@ def main():
             tindex_tracker=train_dataset.tindex_tracker,
             mode="train",
             save_dir=paths.results,
-            filename="density_scatter_test",
+            filename="density_scatter_train",
         )
 
         plot_spatial_temporal_density(

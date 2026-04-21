@@ -320,6 +320,7 @@ def parse_args():
             "transformer",
             "encodertorch",
             "vrtn",
+            "verticalrt",
         ],
         help="Model architecture type",
     )

@@ -68,14 +68,6 @@ rtnn.model_utils module
    :undoc-members:
    :show-inheritance:
 
-rtnn.stats module
------------------
-
-.. automodule:: rtnn.stats
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 rtnn.utils module
 -----------------
 

@@ -226,15 +226,16 @@ Note that `ntasks-per-node × cpus-per-task` is set to a maximum of 4.
    - Without workers, more cores actually hurt performance (Test 5: 1898s vs Test 1: 1922s)
    - Suggests I/O is the primary bottleneck, not CPU compute
 
-**Recommendations for HAL Machine:**
 
-**🥇 Best Configuration (Simple & Effective):**
-```bash
-#SBATCH --ntasks-per-node=1  # or omit (default)
-#SBATCH --cpus-per-task=1    # or omit (default)
+**Best Configuration (Simple and Effective):**
 
-# In your training script:
-num_workers=4
+.. code-block:: bash
+
+   #SBATCH --ntasks-per-node=1
+   #SBATCH --cpus-per-task=1
+
+   # In your training script:
+   num_workers=4
 
 Next Steps
 ----------

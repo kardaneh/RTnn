@@ -3,18 +3,26 @@
 # ======================
 # 0. Machine + Runtime
 # ======================
-Machine="LEONARDO"   # options: LEONARDO, HAL
-current_ntasks=1      # Change to: 0 or 4
-current_cpus=16        # Change to: 0 or 4
-current_workers=16     # Change to: 0 or 4
+#Machine="LEONARDO"   # options: LEONARDO, HAL
+Machine="HAL"   # options: LEONARDO, HAL
+
+current_ntasks=1      # Better to keep zero
+
+#current_cpus=16        # On LEONARDO
+current_cpus=4          # On HAL
+
+#current_workers=16      # On LEONARDO
+current_workers=4        # On HAL
+
 debug="Flase"         # True or False
 
-DATA_PATH="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large" # Path to the dataset on HAL. Adjust if needed.
+#DATA_PATH="/leonardo_work/EUHPC_D17_070/Data_LSM_1995-2000_Large"                           # Path to the dataset on LEONARDO
+DATA_PATH="/data/kardaneh/RTDataBase/Data_LSM_1990-2000_Large/Data_LSM_1995-2000_Large"      # Path to the dataset on HAL
 
 # ======================
 # 1. Model Configuration
 # ======================
-type="lstm"
+type="verticalrt"
 hidden_size=256
 
 # NUMBER OF LAYERS
@@ -90,7 +98,10 @@ dropout=0.1
 # ======================
 # 2. Training Configuration
 # ======================
-batch_size=32
+
+#batch_size=32      # On LEONARDO
+batch_size=4       # On HAL
+
 num_epochs=50
 learning_rate=0.0001
 loss_type="huber"
@@ -220,7 +231,7 @@ cat >> $sbatch_script <<EOF
 #SBATCH --gpus=1
 #SBATCH --mem=48G
 #SBATCH --time=24:00:00
-#SBATCH --nodelist=hal10
+#SBATCH --nodelist=hal11
 EOF
 
 # Only add ntasks-per-node if not empty
@@ -289,8 +300,6 @@ echo "GPU count: \$(python -c 'import torch; print(torch.cuda.device_count())')"
 echo "=== RTnn Training ==="
 echo "Version: \$(python -c 'import rtnn; print(rtnn.__version__)')"
 echo "Model: $model_name"
-echo "Run type: $run_type"
-echo "Debug: $debug"
 echo "Start time: \$(date)"
 
 rtnn \\

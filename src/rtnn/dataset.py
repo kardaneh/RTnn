@@ -465,8 +465,8 @@ class DataPreprocessor(Dataset):
         # - cosz: 1
         # - lai: 2 vars × n_pft = 30
         # - ssa: 2 vars × n_bands × n_pft = 60
-        # - rs: 1 var ×  n_bands × n_pft = 2
-        # Total: 93
+        # - rs: 1 var ×  n_bands × n_pft = 30
+        # Total: 121
 
         n_lai_features = 2 * n_pft  # 30
         n_ssa_features = 2 * n_bands * n_pft  # 60

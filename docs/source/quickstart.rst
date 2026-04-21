@@ -50,7 +50,7 @@ Train a model:
 
    rtnn \\
        --type lstm \\
-       --hidden_size 128 \\
+       --hidden_size 256 \\
        --num_layers 3 \\
        --batch_size 32 \\
        --num_epochs 100 \\
@@ -75,34 +75,49 @@ Show help:
 Example: Training an LSTM Model
 -------------------------------
 
-Here's a complete example using the SBATCH script:
+For quick testing with 121 input features and 120 output channels:
 
 .. code-block:: bash
 
-   #!/usr/bin/env bash
-   #SBATCH -A your_account
-   #SBATCH -p boost_usr_prod
-   #SBATCH --qos=boost_qos_dbg
+   #!/bin/bash
+   #SBATCH --partition=batch
+   #SBATCH --gpus=1
+   #SBATCH --ntasks-per-node=1
+   #SBATCH --cpus-per-task=4
+   #SBATCH --mem=48G
    #SBATCH --time=00:30:00
-   #SBATCH -N 1
-   #SBATCH --gpus-per-node=4
 
-   module load profile/deeplrn
-   module load cineca-ai
    source .venv/bin/activate
 
    rtnn \\
        --type lstm \\
        --hidden_size 64 \\
        --num_layers 2 \\
-       --batch_size 16 \\
+       --output_channel 120 \\
+       --seq_length 10 \\
+       --feature_channel 121 \\
+       --batch_size 4 \\
        --num_epochs 2 \\
-       --learning_rate 0.0001 \\
+       --learning_rate 0.001 \\
        --loss_type huber \\
-       --train_years 1998 \\
-       --test_year 1999 \\
-       --main_folder Debug__lstm_h64_l2_sb_16_ne_2 \\
-       --sub_folder run_$(date +"%Y%m%d_%H%M%S")
+       --beta 0.2 \\
+       --train_years 1999 \\
+       --test_year 2000 \\
+       --norm log1p_standard \\
+       --num_workers 4 \\
+       --save_model False \\
+       --main_folder RapidTest \\
+       --sub_folder quick_run
+
+**Key settings for speed:**
+
+- `--num_epochs 2`: Only 2 epochs
+- `--train_years 1999`: Single year of data
+- `--hidden_size 64`: Smaller hidden dimension
+- `--num_layers 2`: Fewer layers
+- `--batch_size 8`: Larger batch size
+- `--save_model False`: No checkpoint overhead
+- `--num_workers 4`: Parallel data loading
 
 Performance Optimization
 ------------------------------------

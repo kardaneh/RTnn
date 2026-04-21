@@ -91,6 +91,81 @@ Deep fully connected network with batch normalization.
 - FCBlock: Linear → BatchNorm → ReLU
 - Optional sequence length expansion
 
+Vertical RT Column Network (Physics-Inspired)
+---------------------------------------------
+
+A physics-inspired neural network that emulates the two-stream matrix-based
+radiative transfer solver. This architecture preserves the physical structure
+of the RT equations, making it particularly well-suited for vertical canopy
+radiative transfer modeling.
+
+.. code-block:: python
+
+   from rtnn import VerticalRTColumnNet
+
+   model = VerticalRTColumnNet(
+       feature_channel=121,   # Input features (cosz + LAI + SSA + RS)
+       hidden=256,            # Hidden dimension size
+       out_channel=120,       # Output channels (4 vars × 15 PFTs × 2 bands)
+       n_layers=10,           # Number of vertical canopy layers
+       layer_embed_dim=16,    # Dimension of layer positional embedding
+       mu_bar=0.5,            # Average inverse diffuse optical depth
+       dropout=0.1            # Dropout rate
+   )
+
+**Physical Interpretation:**
+
+The architecture follows the analytical solution of the two-stream equations:
+
+.. math::
+
+   F(\\tau) = A \\cdot e^{\\lambda \\tau} + B \\cdot e^{-\\lambda \\tau} + C \\cdot e^{-\\tau / \\mu_0}
+
+Where:
+- :math:`\\lambda = \\sqrt{\\gamma_1^2 - \\gamma_2^2}` (eigenvalue)
+- :math:`\\Gamma = \\gamma_2 / (\\gamma_1 + \\lambda)` (reflection/transmission ratio)
+- :math:`C^+` and :math:`C^-` are particular solutions for direct beam
+
+**Key Components:**
+
+1. **Layer Positional Embedding**: Adds vertical position information (depth awareness)
+
+2. **Optical Properties Predictor**: Computes per-layer:
+
+   - :math:`\\omega` (single scattering albedo)
+   - :math:`\\gamma_1, \\gamma_2, \\gamma_3, \\gamma_4` (scattering coefficients)
+   - :math:`K = G(\\mu)/\\mu` (extinction coefficient for direct beam)
+
+3. **Downward Sweep** (Top → Bottom):
+
+   - Models downward diffuse flux propagation through the canopy
+
+4. **Surface Boundary Condition**:
+
+   - Reflects bottom flux based on surface albedo :math:`R_s`
+
+5. **Upward Sweep** (Bottom → Top):
+
+   - Models upward diffuse flux propagation
+
+6. **Flux Reconstruction**:
+
+   - Combines downward and upward fluxes with residual connections
+
+**Advantages:**
+
+- Preserves physical structure of RT equations
+- Handles vertical heterogeneity naturally
+- Learns layer-specific optical properties
+- Physically interpretable parameters
+- Efficient for multi-layer canopy problems
+
+**When to Use:**
+
+- Modeling radiative transfer through vegetation canopies
+- Problems with vertical structure (multiple layers)
+- When physical interpretability is important
+- Emulating two-stream RT solvers in Land Surface Models
 
 Model Comparison
 ----------------
@@ -115,6 +190,10 @@ Model Comparison
      - Moderate
      - Simple relationships
      - Fast, no temporal modeling
+   * - VerticalRT
+     - Moderate-Large
+     - Vertical RT problems
+     - Physics-inspired, interpretable, specialized
 
 Choosing an Architecture
 ------------------------
@@ -122,5 +201,6 @@ Choosing an Architecture
 1. **LSTM/GRU**: Default choice for temporal sequences
 2. **Transformer**: For long sequences or when attention is important
 3. **FCN**: For simple regression tasks without temporal structure
+4. **VerticalRT**: For vertical canopy radiative transfer problems (physics-inspired)
 
 See :doc:`training_strategy` for hyperparameter recommendations.

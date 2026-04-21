@@ -119,11 +119,12 @@ The architecture follows the analytical solution of the two-stream equations:
 
 .. math::
 
-   F(\\tau) = A \\cdot e^{\\lambda \\tau} + B \\cdot e^{-\\lambda \\tau} + C \\cdot e^{-\\tau / \\mu_0}
+   F(\tau) = A \cdot e^{\lambda \tau} + B \cdot e^{-\lambda \tau} + C \cdot e^{-\tau / \mu_0}
 
 Where:
-- :math:`\\lambda = \\sqrt{\\gamma_1^2 - \\gamma_2^2}` (eigenvalue)
-- :math:`\\Gamma = \\gamma_2 / (\\gamma_1 + \\lambda)` (reflection/transmission ratio)
+
+- :math:`\lambda = \sqrt{\gamma_1^2 - \gamma_2^2}` (eigenvalue)
+- :math:`\Gamma = \gamma_2 / (\gamma_1 + \lambda)` (reflection/transmission ratio)
 - :math:`C^+` and :math:`C^-` are particular solutions for direct beam
 
 **Key Components:**
@@ -132,9 +133,9 @@ Where:
 
 2. **Optical Properties Predictor**: Computes per-layer:
 
-   - :math:`\\omega` (single scattering albedo)
-   - :math:`\\gamma_1, \\gamma_2, \\gamma_3, \\gamma_4` (scattering coefficients)
-   - :math:`K = G(\\mu)/\\mu` (extinction coefficient for direct beam)
+   - :math:`\omega` (single scattering albedo)
+   - :math:`\gamma_1, \gamma_2, \gamma_3, \gamma_4` (scattering coefficients)
+   - :math:`K = G(\mu)/\mu` (extinction coefficient for direct beam)
 
 3. **Downward Sweep** (Top → Bottom):
 

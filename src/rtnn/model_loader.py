@@ -164,6 +164,7 @@ def load_model(args):
             seq_length=args.seq_length,
             dim_expand=0,
         )
+
     else:
         raise ValueError(f"Model type '{args.type}' is not implemented.")
 

@@ -28,7 +28,8 @@ scikit-learn : For R² score calculation
 xarray : For NetCDF data handling
 """
 
-import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib.gridspec as gridspec
 import numpy as np
 import mpltex
@@ -218,7 +219,8 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
             norm_label = ""
             file_suffix = "_histogram.png"
 
-            fig = plt.figure(figsize=(8, 5))
+            fig = Figure(figsize=(8, 5))
+            canvas = FigureCanvasAgg(fig)
             ax = fig.add_subplot(111)
             ax.hist(full_data, bins=200)
             ax.set_yscale("log")
@@ -227,10 +229,23 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
             ax.set_ylabel("Log Count")
             ax.grid(True)
             out_path = os.path.join(output_dir, f"{var_name}{file_suffix}")
-            plt.savefig(out_path, bbox_inches="tight")
-            plt.close(fig)
+            canvas.print_figure(out_path, bbox_inches="tight")
 
     return norm_mapping
+
+
+def subplots(nrows, ncols, figsize):
+    """Replacement for plt.subplots() using Figure and FigureCanvasAgg."""
+    fig = Figure(figsize=figsize)
+    FigureCanvasAgg(fig)
+    axes = []
+    for i in range(nrows):
+        row_axes = []
+        for j in range(ncols):
+            ax = fig.add_subplot(nrows, ncols, i * ncols + j + 1)
+            row_axes.append(ax)
+        axes.append(row_axes)
+    return fig, np.array(axes)
 
 
 def plot_flux_and_abs_lines(
@@ -280,13 +295,13 @@ def plot_flux_and_abs_lines(
     include_abs = include_abs12 and include_abs34
 
     if include_abs:
-        fig, axes = plt.subplots(3, 2, figsize=(10, 15))
+        fig, axes = subplots(3, 2, figsize=(10, 15))
     else:
-        fig, axes = plt.subplots(2, 2, figsize=(10, 10))
-
-    plt.subplots_adjust(
+        fig, axes = subplots(2, 2, figsize=(10, 10))
+    fig.subplots_adjust(
         hspace=0.3, wspace=0.3, left=0.1, right=0.9, top=0.9, bottom=0.1
     )
+    canvas = FigureCanvasAgg(fig)
 
     num_samples = predicts.shape[0]
     sample_indices = random.sample(range(num_samples), 10)
@@ -294,10 +309,10 @@ def plot_flux_and_abs_lines(
     index_map = {(0, 0): 0, (0, 1): 1, (1, 0): 2, (1, 1): 3}
 
     name_dict = {
-        (0, 0): {"plotname": r"$\mathrm{Flux_{1u}}$"},
-        (0, 1): {"plotname": r"$\mathrm{Flux_{1d}}$"},
-        (1, 0): {"plotname": r"$\mathrm{Flux_{2u}}$"},
-        (1, 1): {"plotname": r"$\mathrm{Flux_{2d}}$"},
+        (0, 0): {"plotname": r"$\mathrm{Flux_{direct}^{u}}$"},
+        (0, 1): {"plotname": r"$\mathrm{Flux_{direct}^{d}}$"},
+        (1, 0): {"plotname": r"$\mathrm{Flux_{diffusion}^{u}}$"},
+        (1, 1): {"plotname": r"$\mathrm{Flux_{diffusion}^{d}}$"},
     }
 
     legend_lines = []
@@ -319,7 +334,7 @@ def plot_flux_and_abs_lines(
                 legend_lines.extend([pred_line, true_line])
                 legend_labels.extend([pred_line.get_label(), true_line.get_label()])
 
-        ax.set_xlabel(r"$\mathrm{Level}$")
+        ax.set_xlabel(r"$\mathrm{Vertical\ Level}$")
         ax.set_ylabel(props["plotname"])
         ax.set_xlim(0, predicts.shape[-1] - 1)
         ax.set_ylim(0, 1)
@@ -341,8 +356,8 @@ def plot_flux_and_abs_lines(
                 **next(linestyles),
             )
 
-        ax.set_ylabel(r"$\mathrm{Absorption_{1}}$")
-        ax.set_xlabel(r"$\mathrm{Level}$")
+        ax.set_ylabel(r"$\mathrm{Abs_{direct}}$")
+        ax.set_xlabel(r"$\mathrm{Vertical\ Level}$")
         ax.set_xlim(0, abs12_predict.shape[-1] - 1)
         ax.set_ylim(0, 1)
         ax.xaxis.set_major_locator(ticker.MultipleLocator(3))
@@ -362,8 +377,8 @@ def plot_flux_and_abs_lines(
                 **next(linestyles),
             )
 
-        ax.set_ylabel(r"$\mathrm{Absorption_{2}}$")
-        ax.set_xlabel(r"$\mathrm{Level}$")
+        ax.set_ylabel(r"$\mathrm{Abs_{diffusion}}$")
+        ax.set_xlabel(r"$\mathrm{Vertical\ Level}$")
         ax.set_xlim(0, abs34_predict.shape[-1] - 1)
         ax.set_ylim(0, 1)
         ax.xaxis.set_major_locator(ticker.MultipleLocator(3))
@@ -379,8 +394,7 @@ def plot_flux_and_abs_lines(
         ncol=1,
     )
 
-    plt.savefig(filename, bbox_inches="tight")
-    plt.close(fig)
+    canvas.print_figure(filename, bbox_inches="tight")
     if logger:
         logger.info(f"Saved line plot to {filename}")
     else:
@@ -436,20 +450,21 @@ def plot_flux_and_abs(
     include_abs = include_abs12 and include_abs34
 
     if include_abs:
-        fig, axes = plt.subplots(3, 2, figsize=(10, 15))
+        fig, axes = subplots(3, 2, figsize=(10, 15))
     else:
-        fig, axes = plt.subplots(2, 2, figsize=(10, 10))
-    plt.subplots_adjust(
+        fig, axes = subplots(2, 2, figsize=(10, 10))
+    fig.subplots_adjust(
         hspace=0.3, wspace=0.3, left=0.1, right=0.9, top=0.9, bottom=0.1
     )
+    canvas = FigureCanvasAgg(fig)
 
     index_map = {(0, 0): 0, (0, 1): 1, (1, 0): 2, (1, 1): 3}
 
     name_dict = {
-        (0, 0): {"name": "Flux1u", "plotname": r"$\mathrm{Flux_{1u}}$"},
-        (0, 1): {"name": "Flux1d", "plotname": r"$\mathrm{Flux_{1d}}$"},
-        (1, 0): {"name": "Flux2u", "plotname": r"$\mathrm{Flux_{2u}}$"},
-        (1, 1): {"name": "Flux2d", "plotname": r"$\mathrm{Flux_{2d}}$"},
+        (0, 0): {"name": "Flux1u", "plotname": r"$\mathrm{Flux_{direct}^{u}}$"},
+        (0, 1): {"name": "Flux1d", "plotname": r"$\mathrm{Flux_{direct}^{d}}$"},
+        (1, 0): {"name": "Flux2u", "plotname": r"$\mathrm{Flux_{diffusion}^{u}}$"},
+        (1, 1): {"name": "Flux2d", "plotname": r"$\mathrm{Flux_{diffusion}^{d}}$"},
     }
 
     for (r, c), props in name_dict.items():
@@ -471,7 +486,8 @@ def plot_flux_and_abs(
             linewidth=0.5,
         )
         r2 = r2_score(y_true, y_pred)
-        ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
+        ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes)
+
         flux_name = props["plotname"]
         ax.set_title(rf"{flux_name}")
         ax.set_xlabel("Observed")
@@ -495,8 +511,8 @@ def plot_flux_and_abs(
             linewidth=0.5,
         )
         r2 = r2_score(y_true, y_pred)
-        ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
-        ax.set_title(r"$\mathrm{Abs_{1}}$")
+        ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes)
+        ax.set_title(r"$\mathrm{Abs_{direct}}$")
         ax.set_xlabel("Observed")
         ax.set_ylabel("Predicted")
 
@@ -516,16 +532,15 @@ def plot_flux_and_abs(
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
         ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
         r2 = r2_score(y_true, y_pred)
-        ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes, fontsize=10)
-        ax.set_title(r"$\mathrm{Abs_{2}}$")
+        ax.text(0.05, 0.9, f"$R^2$: {r2:.5f}", transform=ax.transAxes)
+        ax.set_title(r"$\mathrm{Abs_{diffusion}}$")
         ax.set_xlabel("Observed")
         ax.set_ylabel("Predicted")
 
     # Shared colorbar on the right
     cbar_ax = fig.add_axes([0.92, 0.1, 0.015, 0.8])
     fig.colorbar(hb, cax=cbar_ax, label=r"$\mathrm{\log_{10}[Count]}$")
-    plt.savefig(filename, bbox_inches="tight")
-    plt.close(fig)
+    canvas.print_figure(filename, bbox_inches="tight")
     if logger:
         logger.info(f"Saved hexbin plot to {filename}")
     else:
@@ -677,10 +692,16 @@ def plot_metric_histories(
     - Blue lines: training, Orange lines: validation
     """
     num_metrics = len(train_history)
+    if num_metrics == 0:
+        if logger:
+            logger.warning("No metrics to plot")
+        return
     cols = 3
     rows = math.ceil(num_metrics / cols)
 
-    fig = plt.figure(tight_layout=True, figsize=(5 * cols, 4 * rows))
+    fig = Figure(figsize=(5 * cols, 4 * rows))
+    fig.set_tight_layout(True)
+    canvas = FigureCanvasAgg(fig)
     gs = gridspec.GridSpec(rows, cols)
 
     for idx, key in enumerate(train_history):
@@ -697,8 +718,7 @@ def plot_metric_histories(
         ax.legend()
         ax.grid(True)
 
-    plt.savefig(filename, bbox_inches="tight")
-    plt.close(fig)
+    canvas.print_figure(filename, bbox_inches="tight")
     if logger:
         logger.info(f"Saved metric history plot to {filename}")
     else:
@@ -731,7 +751,8 @@ def plot_loss_histories(
     - Orange line: validation loss
     - Includes grid for better readability
     """
-    fig = plt.figure(figsize=(8, 5))
+    fig = Figure(figsize=(8, 5))
+    canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
     linestyles = mpltex.linestyle_generator(markers=[])
     ax.plot(train_loss, label="train", **next(linestyles))
@@ -742,8 +763,7 @@ def plot_loss_histories(
     ax.set_ylabel("Loss Value")
     ax.legend()
     ax.grid(True)
-    plt.savefig(filename, bbox_inches="tight")
-    plt.close(fig)
+    canvas.print_figure(filename, bbox_inches="tight")
     if logger:
         logger.info(f"Saved loss history plot to {filename}")
     else:
@@ -791,7 +811,7 @@ def plot_spatial_temporal_density(
         Path to the saved plot file.
     """
 
-    if not sindex_tracker or not tindex_tracker:
+    if len(sindex_tracker) == 0 or len(tindex_tracker) == 0:
         print(f"No data to plot for {mode} mode")
         return None
 
@@ -806,7 +826,8 @@ def plot_spatial_temporal_density(
     max_time = int(tindex_tracker.max())
 
     # Create figure with GridSpec for custom layout
-    fig = plt.figure(figsize=figsize)
+    fig = Figure(figsize=figsize)
+    canvas = FigureCanvasAgg(fig)
 
     # Define grid:
     # - Top histogram takes 20% height
@@ -900,8 +921,7 @@ def plot_spatial_temporal_density(
     # Save figure
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, f"{filename}_{mode}.png")
-    plt.savefig(save_path, bbox_inches="tight")
-    plt.close(fig)
+    canvas.print_figure(save_path, bbox_inches="tight")
     if logger:
         logger.info(
             f"Saved density scatter plot with marginal histograms to: {save_path}"

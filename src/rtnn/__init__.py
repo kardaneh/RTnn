@@ -31,7 +31,6 @@ from rtnn.evaluater import (
 from rtnn.models.rnn import RNN_LSTM, RNN_GRU
 from rtnn.models.fcn import FCN
 from rtnn.models.Transformer import Encoder as TransformerEncoder
-from rtnn.models.DimChangeModule import DimChange
 
 __all__ = [
     "__version__",
@@ -51,5 +50,4 @@ __all__ = [
     "RNN_GRU",
     "FCN",
     "TransformerEncoder",
-    "DimChange",
 ]

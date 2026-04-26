@@ -1,0 +1,1637 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rtnn.main &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../inference_modes.html">Inference Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_handling.html">Data Handling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rtnn.main</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rtnn.main</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># Copyright 2026 IPSL / CNRS / Sorbonne University</span>
+<span class="c1"># Authors: Kazem Ardaneh</span>
+<span class="c1">#</span>
+<span class="c1"># This work is licensed under the Creative Commons</span>
+<span class="c1"># Attribution-NonCommercial-ShareAlike 4.0 International License.</span>
+<span class="c1"># To view a copy of this license, visit</span>
+<span class="c1"># http://creativecommons.org/licenses/by-nc-sa/4.0/</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">RTnn (Radiative Transfer Neural Network) Training Pipeline</span>
+
+<span class="sd">This module provides the main entry point for training neural network models</span>
+<span class="sd">for radiative transfer calculations in climate modeling. It supports various</span>
+<span class="sd">model architectures including LSTM, GRU, Transformer, and FCN.</span>
+
+<span class="sd">The training pipeline includes:</span>
+<span class="sd">- Data loading and preprocessing from NetCDF files</span>
+<span class="sd">- Model initialization and configuration</span>
+<span class="sd">- Training loop with progress tracking</span>
+<span class="sd">- Validation and metric computation</span>
+<span class="sd">- Checkpoint saving and model persistence</span>
+<span class="sd">- Visualization and logging</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">optim</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.tensorboard</span><span class="w"> </span><span class="kn">import</span> <span class="n">SummaryWriter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="c1"># Import local modules</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileUtils</span><span class="p">,</span> <span class="n">EasyDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataPreprocessor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.model_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.model_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelUtils</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.evaluater</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">unnorm_mpas</span><span class="p">,</span>
+    <span class="n">calc_abs</span><span class="p">,</span>
+    <span class="n">run_validation</span><span class="p">,</span>
+    <span class="n">get_loss_function</span><span class="p">,</span>
+    <span class="n">MetricTracker</span><span class="p">,</span>
+    <span class="n">r2_all</span><span class="p">,</span>
+    <span class="n">nmae_all</span><span class="p">,</span>
+    <span class="n">nmse_all</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.diagnostics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">plot_metric_histories</span><span class="p">,</span>
+    <span class="n">plot_loss_histories</span><span class="p">,</span>
+    <span class="n">plot_spatial_temporal_density</span><span class="p">,</span>
+    <span class="n">stats</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">__version__</span><span class="p">,</span> <span class="n">__version_info__</span><span class="p">,</span> <span class="n">__author__</span><span class="p">,</span> <span class="n">__license__</span><span class="p">,</span> <span class="n">__copyright__</span>
+
+
+<div class="viewcode-block" id="print_version">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.print_version">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_version</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print detailed version information.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rtnn version </span><span class="si">{</span><span class="n">__version__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Version info: </span><span class="si">{</span><span class="n">__version_info__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Author: </span><span class="si">{</span><span class="n">__author__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;License: </span><span class="si">{</span><span class="n">__license__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Copyright: </span><span class="si">{</span><span class="n">__copyright__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="parse_years">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.parse_years">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_years</span><span class="p">(</span><span class="n">year_str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse a year string into a list of integers.</span>
+
+<span class="sd">    Supports hyphen-separated ranges (e.g., &quot;1995-1999&quot;) and comma-separated</span>
+<span class="sd">    lists (e.g., &quot;1995,1997,1999&quot;). Returns a list of integers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    year_str : str</span>
+<span class="sd">        String containing years in range or comma-separated format.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list of int</span>
+<span class="sd">        List of parsed years.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; parse_years(&quot;1995-1999&quot;)</span>
+<span class="sd">    [1995, 1996, 1997, 1998, 1999]</span>
+
+<span class="sd">    &gt;&gt;&gt; parse_years(&quot;1995,1997,1999&quot;)</span>
+<span class="sd">    [1995, 1997, 1999]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;-&quot;</span> <span class="ow">in</span> <span class="n">year_str</span><span class="p">:</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">year_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">year_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)))</span></div>
+
+
+
+<div class="viewcode-block" id="parse_args">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.parse_args">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_args</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse command-line arguments for RTnn model training.</span>
+
+<span class="sd">    Defines and parses command-line arguments required to configure and run the</span>
+<span class="sd">    Radiative Transfer Neural Network (RTnn) training pipeline. This includes</span>
+<span class="sd">    model architecture parameters, training hyperparameters, data configuration,</span>
+<span class="sd">    and output settings.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    argparse.Namespace</span>
+<span class="sd">        Object containing parsed command-line arguments, grouped as follows:</span>
+
+<span class="sd">        **Model architecture**</span>
+<span class="sd">            type : str</span>
+<span class="sd">                Model type (e.g., &quot;lstm&quot;, &quot;gru&quot;, &quot;fcn&quot;, &quot;fullyconnected&quot;,</span>
+<span class="sd">                &quot;transformer&quot;, &quot;cnn&quot;, &quot;mlp&quot;).</span>
+<span class="sd">            hidden_size : int</span>
+<span class="sd">                Size of hidden layers.</span>
+<span class="sd">            num_layers : int</span>
+<span class="sd">                Number of model layers.</span>
+<span class="sd">            seq_length : int</span>
+<span class="sd">                Length of input sequence.</span>
+<span class="sd">            feature_channel : int</span>
+<span class="sd">                Number of input feature channels.</span>
+<span class="sd">            output_channel : int</span>
+<span class="sd">                Number of output channels.</span>
+<span class="sd">            embed_size : int</span>
+<span class="sd">                Embedding dimension for transformer models.</span>
+<span class="sd">            nhead : int</span>
+<span class="sd">                Number of attention heads (transformer).</span>
+<span class="sd">            forward_expansion : int</span>
+<span class="sd">                Expansion factor for feed-forward layers.</span>
+<span class="sd">            dropout : float</span>
+<span class="sd">                Dropout rate.</span>
+
+<span class="sd">        **Training hyperparameters**</span>
+<span class="sd">            batch_size : int</span>
+<span class="sd">                Number of samples per batch.</span>
+<span class="sd">            tbatch : int</span>
+<span class="sd">                Temporal batch length.</span>
+<span class="sd">            num_epochs : int</span>
+<span class="sd">                Number of training epochs.</span>
+<span class="sd">            learning_rate : float</span>
+<span class="sd">                Initial learning rate.</span>
+<span class="sd">            loss_type : str</span>
+<span class="sd">                Loss function (e.g., &quot;mse&quot;, &quot;mae&quot;, &quot;nmae&quot;, &quot;nmse&quot;, &quot;wmse&quot;,</span>
+<span class="sd">                &quot;logcosh&quot;, &quot;smoothl1&quot;, &quot;huber&quot;).</span>
+<span class="sd">            beta : float</span>
+<span class="sd">                Weighting factor for loss components.</span>
+<span class="sd">            beta_delta : float</span>
+<span class="sd">                Delta parameter for Huber or SmoothL1 loss.</span>
+<span class="sd">            num_workers : int</span>
+<span class="sd">                Number of data loader workers.</span>
+
+<span class="sd">        **Data configuration**</span>
+<span class="sd">            train_data_files : str</span>
+<span class="sd">                Path or pattern for training data files.</span>
+<span class="sd">            test_data_files : str</span>
+<span class="sd">                Path or pattern for testing data files.</span>
+<span class="sd">            train_years : str</span>
+<span class="sd">                Training years (comma-separated or range, e.g., &quot;1995-1999&quot;).</span>
+<span class="sd">            test_year : str</span>
+<span class="sd">                Test year or range.</span>
+<span class="sd">            norm : str</span>
+<span class="sd">                Normalization scheme (e.g., &quot;log1p_standard&quot;, &quot;standard&quot;,</span>
+<span class="sd">                &quot;minmax&quot;, &quot;none&quot;).</span>
+<span class="sd">            dataset_type : str</span>
+<span class="sd">                Dataset type (e.g., &quot;LSM&quot;, &quot;RTM&quot;).</span>
+
+<span class="sd">        **Output configuration**</span>
+<span class="sd">            root_dir : str</span>
+<span class="sd">                Root directory for all operations.</span>
+<span class="sd">            main_folder : str</span>
+<span class="sd">                Main output folder name.</span>
+<span class="sd">            sub_folder : str</span>
+<span class="sd">                Sub-folder name for the current run.</span>
+<span class="sd">            prefix : str</span>
+<span class="sd">                Prefix for saved files.</span>
+<span class="sd">            model_name : str</span>
+<span class="sd">                Custom model name (auto-generated if empty).</span>
+<span class="sd">            save_model : bool</span>
+<span class="sd">                Whether to save model checkpoints.</span>
+<span class="sd">            save_checkpoint_name : str</span>
+<span class="sd">                Base name for saved checkpoints.</span>
+<span class="sd">            save_per_samples : int</span>
+<span class="sd">                Save checkpoint every N samples.</span>
+<span class="sd">            load_model : bool</span>
+<span class="sd">                Whether to load an existing model.</span>
+<span class="sd">            load_checkpoint_name : str</span>
+<span class="sd">                Checkpoint file to load.</span>
+<span class="sd">            inference : bool</span>
+<span class="sd">                Run in inference-only mode.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; args = parse_args()</span>
+<span class="sd">    &gt;&gt;&gt; args.type</span>
+<span class="sd">    &#39;lstm&#39;</span>
+<span class="sd">    &gt;&gt;&gt; args.batch_size</span>
+<span class="sd">    16</span>
+
+<span class="sd">    Command line usage</span>
+<span class="sd">    ------------------</span>
+<span class="sd">    $ rtnn --type lstm --hidden_size 128 --num_layers 3 --batch_size 32</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Train the RT model&quot;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--version&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Show version information and exit&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--root_dir&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;./&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Root directory for all operations&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--train_data_files&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;./data/train/&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to training dataset directory or file pattern&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--test_data_files&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;./data/test/&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to testing dataset directory or file pattern&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--train_years&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;1995-1999&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Training years as comma-separated list or range&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--test_year&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;2000&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Test year or year range&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--main_folder&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;results&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Main output folder name&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--sub_folder&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;experiment&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sub-folder name for current run&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--prefix&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;run&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Prefix for saved files&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--dataset_type&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;LSM&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;LSM&quot;</span><span class="p">,</span> <span class="s2">&quot;RTM&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Type of dataset being processed&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--norm&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;log1p_standard&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;log1p_standard&quot;</span><span class="p">,</span> <span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="s2">&quot;minmax&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Data normalization scheme&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--loss_type&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;mse&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;nmae&quot;</span><span class="p">,</span> <span class="s2">&quot;nmse&quot;</span><span class="p">,</span> <span class="s2">&quot;smoothl1&quot;</span><span class="p">,</span> <span class="s2">&quot;huber&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Loss function type&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--beta_delta&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Delta parameter for Huber/SmoothL1 loss&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--learning_rate&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Initial learning rate&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--beta&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weighting factor for loss components&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--batch_size&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of samples per batch&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--num_epochs&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Total number of training epochs&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--num_workers&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of data loader workers&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--type&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;lstm&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+            <span class="s2">&quot;lstm&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;gru&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fcn&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fullyconnected&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;transformer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;encodertorch&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;vrtn&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;verticalrt&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Model architecture type&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--hidden_size&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Size of hidden layers&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--num_layers&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of model layers&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--seq_length&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sequence length (None for default)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--feature_channel&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input feature channels (None for default)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--output_channel&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of output channels&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--embed_size&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Embedding dimension (None for default)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--nhead&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Attention heads (None for default)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--forward_expansion&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Feed-forward expansion factor&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--dropout&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout rate (None for no dropout)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--model_name&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Custom model name (auto-generated if empty)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--save_model&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable model checkpoint saving&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--save_checkpoint_name&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;model&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Base name for saved checkpoints&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--save_per_samples&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Save checkpoint every N samples&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--load_checkpoint_name&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;model.pth.tar&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Checkpoint file to load&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--debug&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable or disable debug mode&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--seed&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Random seed for reproducibility&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Run configuration</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--run_type&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;resume_train&quot;</span><span class="p">,</span> <span class="s2">&quot;inference&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run type: &#39;train&#39;,&#39;resume_train&#39;, or &#39;inference&#39; (mode determines whether to load checkpoint and how to handle training)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">args</span></div>
+
+
+
+<div class="viewcode-block" id="setup_directories_and_logging">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.setup_directories_and_logging">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_directories_and_logging</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set up directory structure and logging infrastructure for experiments.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Parsed command-line arguments.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    paths : EasyDict</span>
+<span class="sd">        Dictionary containing paths to created directories.</span>
+<span class="sd">    logger : Logger</span>
+<span class="sd">        Configured logger instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">current_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
+    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">current_dir</span><span class="p">)</span>
+    <span class="n">project_root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">))</span>
+
+    <span class="n">paths</span> <span class="o">=</span> <span class="n">EasyDict</span><span class="p">()</span>
+    <span class="n">paths</span><span class="o">.</span><span class="n">logs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="s2">&quot;logs&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">main_folder</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">sub_folder</span><span class="p">)</span>
+    <span class="n">paths</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">project_root</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">main_folder</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">sub_folder</span>
+    <span class="p">)</span>
+    <span class="n">paths</span><span class="o">.</span><span class="n">runs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">main_folder</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">sub_folder</span><span class="p">)</span>
+    <span class="n">paths</span><span class="o">.</span><span class="n">checkpoints</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">project_root</span><span class="p">,</span> <span class="s2">&quot;checkpoints&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">main_folder</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">sub_folder</span>
+    <span class="p">)</span>
+    <span class="n">paths</span><span class="o">.</span><span class="n">stats</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="s2">&quot;stats&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">main_folder</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">sub_folder</span><span class="p">)</span>
+
+    <span class="c1"># Create directories</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">[</span><span class="n">paths</span><span class="o">.</span><span class="n">logs</span><span class="p">,</span> <span class="n">paths</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="n">paths</span><span class="o">.</span><span class="n">runs</span><span class="p">,</span> <span class="n">paths</span><span class="o">.</span><span class="n">checkpoints</span><span class="p">,</span> <span class="n">paths</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
+        <span class="n">FileUtils</span><span class="o">.</span><span class="n">makedir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c1"># Setup logger</span>
+    <span class="n">log_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">logs</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_log.txt&quot;</span><span class="p">)</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span>
+        <span class="n">console_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">file_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span> <span class="n">record</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">debug</span>
+    <span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">show_header</span><span class="p">(</span><span class="s2">&quot;RTnn Training Pipeline&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Directories and logging infrastructure set up successfully.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">paths</span><span class="p">,</span> <span class="n">logger</span></div>
+
+
+
+<div class="viewcode-block" id="log_configuration">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.log_configuration">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_configuration</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Log all configuration parameters to the provided logger.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Configuration object containing all experiment parameters.</span>
+<span class="sd">    paths : EasyDict</span>
+<span class="sd">        Dictionary containing paths to various experiment directories.</span>
+<span class="sd">    logger : Logger</span>
+<span class="sd">        Logger instance for outputting configuration information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CONFIGURATION PARAMETERS&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+
+    <span class="c1"># Execution mode</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Execution Mode:&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Debug: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Run type: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">run_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Save model: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">save_model</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Model architecture</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Model Architecture:&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Type: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Hidden size: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">hidden_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Num layers: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">num_layers</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Seq length: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">seq_length</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Feature channels: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">feature_channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Output channels: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">output_channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Embed size: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">embed_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Attention heads: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">nhead</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Forward expansion: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">forward_expansion</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Dropout: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">dropout</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Training configuration</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Training Configuration:&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Number of epochs: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Batch size: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">batch_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Learning rate: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">learning_rate</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Number of workers: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">num_workers</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Random seed: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Loss configuration</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Loss Configuration:&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Loss type: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">loss_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Beta (absorption weight): </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">beta</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">loss_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;smoothl1&quot;</span><span class="p">,</span> <span class="s2">&quot;huber&quot;</span><span class="p">]:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Beta delta: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">beta_delta</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Data configuration</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Data Configuration:&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Train years: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">train_years</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Test year: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">test_year</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Train data path: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">train_data_files</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Test data path: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">test_data_files</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Dataset type: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">dataset_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Normalization: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Output configuration</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Output Configuration:&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Main folder: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">main_folder</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Sub folder: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">sub_folder</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Prefix: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Checkpoint configuration</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Checkpoint Configuration:&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Save model: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">save_model</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Save checkpoint name: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">save_checkpoint_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Save per samples: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">save_per_samples</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Load checkpoint name: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">load_checkpoint_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Directory paths</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Generated Directory Paths:&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Logs: </span><span class="si">{</span><span class="n">paths</span><span class="o">.</span><span class="n">logs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Results: </span><span class="si">{</span><span class="n">paths</span><span class="o">.</span><span class="n">results</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- TensorBoard: </span><span class="si">{</span><span class="n">paths</span><span class="o">.</span><span class="n">runs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Checkpoints: </span><span class="si">{</span><span class="n">paths</span><span class="o">.</span><span class="n">checkpoints</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Statistics: </span><span class="si">{</span><span class="n">paths</span><span class="o">.</span><span class="n">stats</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="setup_device_and_seed">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.setup_device_and_seed">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_device_and_seed</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set up device (GPU/CPU) and random seeds for reproducibility.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Parsed command-line arguments.</span>
+<span class="sd">    logger : Logger</span>
+<span class="sd">        Logger instance.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.device</span>
+<span class="sd">        Device to use for computations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span><span class="s2">&quot;Setting up device and random seeds&quot;</span><span class="p">)</span>
+    <span class="c1"># Set random seeds</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed_all</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Random seed set to: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Set device</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using device: </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GPU: </span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_name</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CUDA version: </span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">cuda</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Enable anomaly detection for debugging</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">set_detect_anomaly</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Anomaly detection enabled (may slow down training)&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Device and random seeds set up successfully&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">device</span></div>
+
+
+
+<div class="viewcode-block" id="get_data_files">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.get_data_files">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_data_files</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get training and testing data files based on year specifications.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Parsed command-line arguments.</span>
+<span class="sd">    logger : Logger</span>
+<span class="sd">        Logger instance.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (train_files, test_files) lists of file paths.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span><span class="s2">&quot;Getting data files&quot;</span><span class="p">)</span>
+    <span class="n">train_years</span> <span class="o">=</span> <span class="n">parse_years</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">train_years</span><span class="p">)</span>
+    <span class="n">test_years</span> <span class="o">=</span> <span class="n">parse_years</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">test_year</span><span class="p">)</span>
+
+    <span class="c1"># Get training files</span>
+    <span class="n">train_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">train_years</span><span class="p">:</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">train_data_files</span><span class="si">}</span><span class="s2">/rtnetcdf_*_</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">.nc&quot;</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No training files found for year </span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2"> with pattern </span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">train_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+    <span class="n">train_files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">train_files</span><span class="p">)</span>
+
+    <span class="c1"># Get test files</span>
+    <span class="n">test_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">test_years</span><span class="p">:</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">test_data_files</span><span class="si">}</span><span class="s2">/rtnetcdf_*_</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">.nc&quot;</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No test files found for year </span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2"> with pattern </span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">test_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+    <span class="n">test_files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">test_files</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train_files</span><span class="p">)</span><span class="si">}</span><span class="s2"> training files:&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">train_files</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_files</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  ... and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train_files</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">5</span><span class="si">}</span><span class="s2"> more&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">test_files</span><span class="p">)</span><span class="si">}</span><span class="s2"> test files:&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">test_files</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_files</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  ... and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">test_files</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">5</span><span class="si">}</span><span class="s2"> more&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Data files retrieved successfully&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">train_files</span><span class="p">,</span> <span class="n">test_files</span></div>
+
+
+
+<div class="viewcode-block" id="create_normalization_mapping">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.create_normalization_mapping">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_normalization_mapping</span><span class="p">(</span><span class="n">train_files</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create normalization mapping from training data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    train_files : list</span>
+<span class="sd">        List of training file paths.</span>
+<span class="sd">    paths : EasyDict</span>
+<span class="sd">        Directory paths.</span>
+<span class="sd">    logger : Logger</span>
+<span class="sd">        Logger instance.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Normalization statistics for each variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">train_files</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No training files found for normalization statistics&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span>
+        <span class="s2">&quot;Computing statistics for normalization&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;Using first training file: </span><span class="si">{</span><span class="n">train_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_mapping</span> <span class="o">=</span> <span class="n">stats</span><span class="p">([</span><span class="n">train_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">logger</span><span class="p">,</span> <span class="n">paths</span><span class="o">.</span><span class="n">stats</span><span class="p">,</span> <span class="n">norm_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">norm_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Variable: </span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">stat_name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">stat</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  |- </span><span class="si">{</span><span class="n">stat_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Normalization statistics computed for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">norm_mapping</span><span class="p">)</span><span class="si">}</span><span class="s2"> variables&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">norm_mapping</span></div>
+
+
+
+<div class="viewcode-block" id="create_datasets_and_loaders">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.create_datasets_and_loaders">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_datasets_and_loaders</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">train_files</span><span class="p">,</span> <span class="n">test_files</span><span class="p">,</span> <span class="n">norm_mapping</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create datasets and data loaders for training and validation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Parsed command-line arguments.</span>
+<span class="sd">    train_files : list</span>
+<span class="sd">        Training file paths.</span>
+<span class="sd">    test_files : list</span>
+<span class="sd">        Test file paths.</span>
+<span class="sd">    norm_mapping : dict</span>
+<span class="sd">        Normalization statistics.</span>
+<span class="sd">    logger : Logger</span>
+<span class="sd">        Logger instance.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (train_loader, test_loader, train_dataset, test_dataset)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Define normalization types for each variable</span>
+    <span class="n">normalization_type</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;coszang&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;laieff_collim&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;laieff_isotrop&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;leaf_ssa&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;leaf_psd&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;rs_surface_emu&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;collim_alb&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;collim_tran&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;isotrop_alb&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+        <span class="s2">&quot;isotrop_tran&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">norm</span> <span class="ow">in</span> <span class="n">normalization_type</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Normalization for &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39;: &#39;</span><span class="si">{</span><span class="n">norm</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create training dataset</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span><span class="s2">&quot;Creating training dataset&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Files: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train_files</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">DataPreprocessor</span><span class="p">(</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="n">dfs</span><span class="o">=</span><span class="n">train_files</span><span class="p">,</span>
+        <span class="n">stime</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">tbatch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">norm_mapping</span><span class="o">=</span><span class="n">norm_mapping</span><span class="p">,</span>
+        <span class="n">normalization_type</span><span class="o">=</span><span class="n">normalization_type</span><span class="p">,</span>
+        <span class="n">debug</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Training dataset created successfully.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create test dataset</span>
+    <span class="n">test_tbatch</span> <span class="o">=</span> <span class="mi">4</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">run_type</span> <span class="o">==</span> <span class="s2">&quot;inference&quot;</span> <span class="k">else</span> <span class="mi">48</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span><span class="s2">&quot;Creating test dataset&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Files: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">test_files</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">DataPreprocessor</span><span class="p">(</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="n">dfs</span><span class="o">=</span><span class="n">test_files</span><span class="p">,</span>
+        <span class="n">stime</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">tbatch</span><span class="o">=</span><span class="n">test_tbatch</span><span class="p">,</span>
+        <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">norm_mapping</span><span class="o">=</span><span class="n">norm_mapping</span><span class="p">,</span>
+        <span class="n">normalization_type</span><span class="o">=</span><span class="n">normalization_type</span><span class="p">,</span>
+        <span class="n">debug</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Test dataset created successfully.&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span><span class="s2">&quot;Creating data loaders&quot;</span><span class="p">)</span>
+    <span class="c1"># Create data loaders</span>
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="o">=</span><span class="n">train_dataset</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">num_workers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_workers</span><span class="p">,</span>
+        <span class="n">pin_memory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">drop_last</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="o">=</span><span class="n">test_dataset</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">num_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>  <span class="c1"># Use single worker for test loader to avoid potential issues</span>
+        <span class="n">pin_memory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Training dataset size: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test dataset size: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Training batches per epoch: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test batches: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Data loaders created successfully.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span> <span class="n">normalization_type</span><span class="p">,</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span></div>
+
+
+
+<div class="viewcode-block" id="initialize_model">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.initialize_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">initialize_model</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialize the model architecture.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Parsed command-line arguments.</span>
+<span class="sd">    device : torch.device</span>
+<span class="sd">        Device to place model on.</span>
+<span class="sd">    logger : Logger</span>
+<span class="sd">        Logger instance.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.nn.Module</span>
+<span class="sd">        Initialized model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span><span class="s2">&quot;Initializing model&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Type: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">ModelUtils</span><span class="o">.</span><span class="n">get_parameter_number</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># Enable DataParallel for multi-GPU training</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using </span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span><span class="si">}</span><span class="s2"> GPUs with DataParallel&quot;</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">DataParallel</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Model initialized successfully.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model</span></div>
+
+
+
+<div class="viewcode-block" id="load_checkpoint_if_requested">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.load_checkpoint_if_requested">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint_if_requested</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load model checkpoint if requested using ModelUtils.load_training_checkpoint().</span>
+
+<span class="sd">    This function leverages ModelUtils.load_training_checkpoint() which handles:</span>
+<span class="sd">    - DataParallel compatibility</span>
+<span class="sd">    - Loading model and optimizer states</span>
+<span class="sd">    - Extracting training state (epoch, samples, metrics, etc.)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Parsed command-line arguments.</span>
+<span class="sd">    model : torch.nn.Module</span>
+<span class="sd">        Model to load weights into.</span>
+<span class="sd">    optimizer : torch.optim.Optimizer</span>
+<span class="sd">        Optimizer to restore state.</span>
+<span class="sd">    paths : EasyDict</span>
+<span class="sd">        Directory paths.</span>
+<span class="sd">    device : torch.device</span>
+<span class="sd">        Device for loading.</span>
+<span class="sd">    logger : Logger</span>
+<span class="sd">        Logger instance.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (start_epoch, samples_processed, batches_processed, best_val_loss,</span>
+<span class="sd">         best_epoch, checkpoint, train_loss_history, valid_loss_history,</span>
+<span class="sd">         valid_metrics_history)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Only load if requested</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">run_type</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting new training run (no checkpoint loading)&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">{}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Run type: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">run_type</span><span class="si">}</span><span class="s2"> - checkpoint loading will be attempted&quot;</span><span class="p">)</span>
+
+    <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">checkpoints</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">load_checkpoint_name</span><span class="p">)</span>
+
+    <span class="c1"># Debug information</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CHECKPOINT LOADING DEBUG INFO&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint path: </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model checkpoint directory: </span><span class="si">{</span><span class="n">paths</span><span class="o">.</span><span class="n">checkpoints</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Load checkpoint name: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">load_checkpoint_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Full checkpoint path exists: </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Check if checkpoint exists</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint not found at: </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot load model without checkpoint. Exiting.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint not found: </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Load checkpoint using ModelUtils</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading checkpoint from: </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="p">(</span>
+        <span class="n">epoch</span><span class="p">,</span>
+        <span class="n">samples_processed</span><span class="p">,</span>
+        <span class="n">batches_processed</span><span class="p">,</span>
+        <span class="n">best_val_loss</span><span class="p">,</span>
+        <span class="n">best_epoch</span><span class="p">,</span>
+        <span class="n">checkpoint</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">ModelUtils</span><span class="o">.</span><span class="n">load_training_checkpoint</span><span class="p">(</span>
+        <span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Extract history from checkpoint if available</span>
+    <span class="n">train_loss_history</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;train_loss_history&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">valid_loss_history</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;valid_loss_history&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">valid_metrics_history</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;valid_metrics_history&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+    <span class="c1"># Debug logging</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span> <span class="ow">and</span> <span class="n">checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Checkpoint loaded successfully&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Epoch: </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Samples processed: </span><span class="si">{</span><span class="n">samples_processed</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Batches processed: </span><span class="si">{</span><span class="n">batches_processed</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Best validation loss: </span><span class="si">{</span><span class="n">best_val_loss</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- Best epoch: </span><span class="si">{</span><span class="n">best_epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Checkpoint keys available:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;train_loss_history&quot;</span><span class="p">,</span> <span class="s2">&quot;valid_loss_history&quot;</span><span class="p">]:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: list with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="si">}</span><span class="s2"> elements&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;valid_metrics_history&quot;</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: dict with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="si">}</span><span class="s2"> keys&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;args&quot;</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot; |- </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: dict with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="si">}</span><span class="s2"> arguments&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; |- </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">checkpoint</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Determine starting epoch (resume training or continue from checkpoint)</span>
+    <span class="n">start_epoch</span> <span class="o">=</span> <span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">run_type</span> <span class="o">==</span> <span class="s2">&quot;resume_train&quot;</span> <span class="k">else</span> <span class="n">epoch</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">run_type</span> <span class="o">==</span> <span class="s2">&quot;resume_train&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resuming training from epoch </span><span class="si">{</span><span class="n">start_epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current train_loss_history length: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train_loss_history</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current valid_loss_history length: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_loss_history</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model loaded for &#39;inference&#39; as </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">run_type</span><span class="si">}</span><span class="s2"> == &#39;inference&#39;&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">start_epoch</span><span class="p">,</span>
+        <span class="n">samples_processed</span><span class="p">,</span>
+        <span class="n">batches_processed</span><span class="p">,</span>
+        <span class="n">best_val_loss</span><span class="p">,</span>
+        <span class="n">best_epoch</span><span class="p">,</span>
+        <span class="n">checkpoint</span><span class="p">,</span>
+        <span class="n">train_loss_history</span><span class="p">,</span>
+        <span class="n">valid_loss_history</span><span class="p">,</span>
+        <span class="n">valid_metrics_history</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="train_epoch">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.train_epoch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">train_epoch</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">train_loader</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">loss_func</span><span class="p">,</span>
+    <span class="n">metric_funcs</span><span class="p">,</span>
+    <span class="n">metric_names</span><span class="p">,</span>
+    <span class="n">output_keys</span><span class="p">,</span>
+    <span class="n">train_metrics</span><span class="p">,</span>
+    <span class="n">train_loss_tracker</span><span class="p">,</span>
+    <span class="n">norm_mapping</span><span class="p">,</span>
+    <span class="n">normalization_type</span><span class="p">,</span>
+    <span class="n">index_mapping</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">,</span>
+    <span class="n">args</span><span class="p">,</span>
+    <span class="n">epoch</span><span class="p">,</span>
+    <span class="n">writer</span><span class="p">,</span>
+    <span class="n">global_step</span><span class="p">,</span>
+    <span class="n">logger</span><span class="p">,</span>
+    <span class="n">n_pft</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">n_bands</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">n_chans</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Train for one epoch.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (average_train_loss, updated_global_step)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+
+    <span class="c1"># Reset metrics</span>
+    <span class="k">for</span> <span class="n">meter</span> <span class="ow">in</span> <span class="n">train_metrics</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">meter</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="n">train_loss_tracker</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+        <span class="nb">enumerate</span><span class="p">(</span><span class="n">train_loader</span><span class="p">),</span>
+        <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">),</span>
+        <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">leave</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span> <span class="ow">in</span> <span class="n">loop</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">epoch</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">batch_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;First batch shapes:&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Feature shape: </span><span class="si">{</span><span class="n">feature</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Targets shape: </span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Reshape inputs</span>
+        <span class="n">feature_shape</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">target_shape</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">inner_batch_size</span> <span class="o">=</span> <span class="n">feature_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">feature_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">feature</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">inner_batch_size</span><span class="p">,</span> <span class="n">feature_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">feature_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">inner_batch_size</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># Forward pass</span>
+        <span class="n">predicts</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+
+        <span class="c1"># Reshape to (batch, 4, n_pft, n_bands, seq)</span>
+        <span class="n">pred_reshaped</span> <span class="o">=</span> <span class="n">predicts</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">inner_batch_size</span><span class="p">,</span> <span class="n">n_chans</span><span class="p">,</span> <span class="n">n_pft</span><span class="p">,</span> <span class="n">n_bands</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">targ_reshaped</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">inner_batch_size</span><span class="p">,</span> <span class="n">n_chans</span><span class="p">,</span> <span class="n">n_pft</span><span class="p">,</span> <span class="n">n_bands</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">predicts_unnorm</span><span class="p">,</span> <span class="n">targets_unnorm</span> <span class="o">=</span> <span class="n">unnorm_mpas</span><span class="p">(</span>
+            <span class="n">pred_reshaped</span><span class="p">,</span>
+            <span class="n">targ_reshaped</span><span class="p">,</span>
+            <span class="n">norm_mapping</span><span class="p">,</span>
+            <span class="n">normalization_type</span><span class="p">,</span>
+            <span class="n">index_mapping</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">predicts_unnorm</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">pred_reshaped</span><span class="o">.</span><span class="n">shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected predicts_unnorm shape </span><span class="si">{</span><span class="n">pred_reshaped</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">predicts_unnorm</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">targets_unnorm</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">targ_reshaped</span><span class="o">.</span><span class="n">shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected targets_unnorm shape </span><span class="si">{</span><span class="n">targ_reshaped</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">targets_unnorm</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># Calculate absorption</span>
+        <span class="p">(</span>
+            <span class="n">abs12_predict</span><span class="p">,</span>
+            <span class="n">abs12_target</span><span class="p">,</span>
+            <span class="n">abs34_predict</span><span class="p">,</span>
+            <span class="n">abs34_target</span><span class="p">,</span>
+            <span class="n">conservation_penalty</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">calc_abs</span><span class="p">(</span><span class="n">predicts_unnorm</span><span class="p">,</span> <span class="n">targets_unnorm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">epoch</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">batch_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;conservation_penalty: </span><span class="si">{</span><span class="n">conservation_penalty</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">expected_abs_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_pft</span><span class="p">,</span> <span class="n">n_bands</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">abs12_predict</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_abs_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected abs12_predict shape </span><span class="si">{</span><span class="n">expected_abs_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">abs12_predict</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">abs12_target</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_abs_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected abs12_target shape </span><span class="si">{</span><span class="n">expected_abs_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">abs12_target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">abs34_predict</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_abs_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected abs34_predict shape </span><span class="si">{</span><span class="n">expected_abs_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">abs34_predict</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">abs34_target</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_abs_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected abs34_target shape </span><span class="si">{</span><span class="n">expected_abs_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">abs34_target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># Compute metrics</span>
+        <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;fluxes&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">predicts</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+            <span class="s2">&quot;abs12&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">abs12_predict</span><span class="p">,</span> <span class="n">abs12_target</span><span class="p">),</span>
+            <span class="s2">&quot;abs34&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">abs34_predict</span><span class="p">,</span> <span class="n">abs34_target</span><span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">output_keys</span><span class="p">:</span>
+            <span class="n">pred</span><span class="p">,</span> <span class="n">tgt</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metric_names</span><span class="p">:</span>
+                <span class="n">metric_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">metric_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">train_metrics</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Metric key &#39;</span><span class="si">{</span><span class="n">metric_key</span><span class="si">}</span><span class="s2">&#39; not found in train_metrics&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Metric key &#39;</span><span class="si">{</span><span class="n">metric_key</span><span class="si">}</span><span class="s2">&#39; not found in train_metrics&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">count</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">metric_funcs</span><span class="p">[</span><span class="n">metric</span><span class="p">](</span><span class="n">pred</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span>
+                <span class="n">train_metrics</span><span class="p">[</span><span class="n">metric_key</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">count</span><span class="p">)</span>
+
+        <span class="c1"># Compute loss</span>
+        <span class="n">main_count</span><span class="p">,</span> <span class="n">main_val</span> <span class="o">=</span> <span class="n">predicts</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">loss_func</span><span class="p">(</span><span class="n">predicts</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+
+        <span class="n">abs12_count</span><span class="p">,</span> <span class="n">abs12_val</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">abs12_predict</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span>
+            <span class="n">loss_func</span><span class="p">(</span><span class="n">abs12_predict</span><span class="p">,</span> <span class="n">abs12_target</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">abs34_count</span><span class="p">,</span> <span class="n">abs34_val</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">abs34_predict</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span>
+            <span class="n">loss_func</span><span class="p">(</span><span class="n">abs34_predict</span><span class="p">,</span> <span class="n">abs34_target</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">weighted_loss</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">main_val</span> <span class="o">*</span> <span class="n">main_count</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">abs12_val</span> <span class="o">*</span> <span class="n">abs12_count</span> <span class="o">+</span> <span class="n">abs34_val</span> <span class="o">*</span> <span class="n">abs34_count</span>
+        <span class="p">)</span>
+
+        <span class="n">total_count</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">main_count</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">abs12_count</span> <span class="o">+</span> <span class="n">abs34_count</span>
+        <span class="p">)</span>
+
+        <span class="n">total_loss</span> <span class="o">=</span> <span class="n">weighted_loss</span> <span class="o">/</span> <span class="n">total_count</span>
+
+        <span class="c1"># Backward pass</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">total_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="c1"># Update trackers</span>
+        <span class="n">train_loss_tracker</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">total_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Update progress bar</span>
+        <span class="n">loop</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="n">total_loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+        <span class="c1"># TensorBoard logging</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span>
+            <span class="s2">&quot;train/total_loss&quot;</span><span class="p">,</span> <span class="n">total_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">global_step</span><span class="o">=</span><span class="n">global_step</span>
+        <span class="p">)</span>
+        <span class="n">global_step</span> <span class="o">+=</span> <span class="n">args</span><span class="o">.</span><span class="n">batch_size</span>
+
+    <span class="k">return</span> <span class="n">train_loss_tracker</span><span class="o">.</span><span class="n">getmean</span><span class="p">(),</span> <span class="n">global_step</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.main.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main entry point for training the RTnn model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Parse arguments</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Show version and exit if requested</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+        <span class="n">print_version</span><span class="p">()</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Setup directories and logging</span>
+    <span class="n">paths</span><span class="p">,</span> <span class="n">logger</span> <span class="o">=</span> <span class="n">setup_directories_and_logging</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="c1"># Log configuration</span>
+    <span class="n">log_configuration</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+
+    <span class="n">n_pft</span> <span class="o">=</span> <span class="mi">15</span>
+    <span class="n">n_bands</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">n_chans</span> <span class="o">=</span> <span class="mi">4</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Setup device and seed</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">setup_device_and_seed</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+
+        <span class="c1"># Get data files</span>
+        <span class="n">train_files</span><span class="p">,</span> <span class="n">test_files</span> <span class="o">=</span> <span class="n">get_data_files</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">train_files</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No training files found&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">test_files</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">run_type</span> <span class="o">==</span> <span class="s2">&quot;inference&quot;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No test files found, but continuing with training only&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">run_type</span> <span class="o">==</span> <span class="s2">&quot;inference&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">test_files</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Inference mode requires test files, but none were found&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Compute normalization statistics</span>
+        <span class="n">norm_mapping</span> <span class="o">=</span> <span class="n">create_normalization_mapping</span><span class="p">(</span><span class="n">train_files</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+
+        <span class="c1"># Create datasets and loaders</span>
+        <span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span> <span class="n">normalization_type</span><span class="p">,</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">create_datasets_and_loaders</span><span class="p">(</span>
+                <span class="n">args</span><span class="p">,</span> <span class="n">train_files</span><span class="p">,</span> <span class="n">test_files</span><span class="p">,</span> <span class="n">norm_mapping</span><span class="p">,</span> <span class="n">logger</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Initialize model</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">initialize_model</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+
+        <span class="c1"># Setup loss function and optimizer</span>
+        <span class="n">loss_func</span> <span class="o">=</span> <span class="n">get_loss_function</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">loss_type</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">)</span>
+        <span class="n">scheduler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ReduceLROnPlateau</span><span class="p">(</span>
+            <span class="n">optimizer</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">5</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Setup metrics</span>
+        <span class="n">metric_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NMAE&quot;</span><span class="p">,</span> <span class="s2">&quot;NMSE&quot;</span><span class="p">,</span> <span class="s2">&quot;R2&quot;</span><span class="p">]</span>
+        <span class="n">metric_funcs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;NMAE&quot;</span><span class="p">:</span> <span class="n">nmae_all</span><span class="p">,</span> <span class="s2">&quot;NMSE&quot;</span><span class="p">:</span> <span class="n">nmse_all</span><span class="p">,</span> <span class="s2">&quot;R2&quot;</span><span class="p">:</span> <span class="n">r2_all</span><span class="p">}</span>
+        <span class="n">output_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;fluxes&quot;</span><span class="p">,</span> <span class="s2">&quot;abs12&quot;</span><span class="p">,</span> <span class="s2">&quot;abs34&quot;</span><span class="p">]</span>
+
+        <span class="n">train_metrics</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">MetricTracker</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">output_keys</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">metric_names</span>
+        <span class="p">}</span>
+        <span class="n">train_loss_tracker</span> <span class="o">=</span> <span class="n">MetricTracker</span><span class="p">()</span>
+
+        <span class="c1"># Index mapping for output variables</span>
+        <span class="n">index_mapping</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;collim_alb&quot;</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;collim_tran&quot;</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;isotrop_alb&quot;</span><span class="p">,</span>
+            <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;isotrop_tran&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Index mapping initialized.&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">index_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> -&gt; &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="c1"># Load checkpoint if requested</span>
+        <span class="p">(</span>
+            <span class="n">start_epoch</span><span class="p">,</span>
+            <span class="n">samples_processed</span><span class="p">,</span>
+            <span class="n">batches_processed</span><span class="p">,</span>
+            <span class="n">best_val_loss</span><span class="p">,</span>
+            <span class="n">best_epoch</span><span class="p">,</span>
+            <span class="n">checkpoint</span><span class="p">,</span>
+            <span class="n">train_loss_history</span><span class="p">,</span>
+            <span class="n">valid_loss_history</span><span class="p">,</span>
+            <span class="n">valid_metrics_history</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">load_checkpoint_if_requested</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+
+        <span class="c1"># Setup TensorBoard</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">runs</span><span class="p">)</span>
+        <span class="n">global_step</span> <span class="o">=</span> <span class="n">samples_processed</span>
+
+        <span class="c1"># Run inference only if requested</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">run_type</span> <span class="o">==</span> <span class="s2">&quot;inference&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_loader</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Inference mode requires test data&quot;</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span><span class="s2">&quot;Running inference&quot;</span><span class="p">,</span> <span class="s2">&quot;Evaluating model on test data&quot;</span><span class="p">)</span>
+
+            <span class="n">valid_loss</span><span class="p">,</span> <span class="n">valid_metrics</span> <span class="o">=</span> <span class="n">run_validation</span><span class="p">(</span>
+                <span class="n">test_loader</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="n">norm_mapping</span><span class="p">,</span>
+                <span class="n">normalization_type</span><span class="p">,</span>
+                <span class="n">index_mapping</span><span class="p">,</span>
+                <span class="n">device</span><span class="p">,</span>
+                <span class="n">args</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">logger</span><span class="p">,</span>
+                <span class="n">paths</span><span class="o">.</span><span class="n">results</span><span class="p">,</span>
+                <span class="n">n_pft</span><span class="o">=</span><span class="n">n_pft</span><span class="p">,</span>
+                <span class="n">n_bands</span><span class="o">=</span><span class="n">n_bands</span><span class="p">,</span>
+                <span class="n">n_chans</span><span class="o">=</span><span class="n">n_chans</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Inference results:&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Validation loss: </span><span class="si">{</span><span class="n">valid_loss</span><span class="si">:</span><span class="s2">.6e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">valid_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">val</span><span class="si">:</span><span class="s2">.6e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Inference completed&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Initialize or extend history arrays</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">train_loss_history</span><span class="p">:</span>
+            <span class="n">train_loss_history</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Extend history if needed</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loss_history</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">:</span>
+                <span class="n">train_loss_history</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loss_history</span><span class="p">))</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_loss_history</span><span class="p">:</span>
+            <span class="n">valid_loss_history</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_loss_history</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">:</span>
+                <span class="n">valid_loss_history</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_loss_history</span><span class="p">))</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_metrics_history</span><span class="p">:</span>
+            <span class="n">valid_metrics_history</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">train_metrics</span><span class="p">}</span>
+
+        <span class="n">train_metrics_history</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">train_metrics</span><span class="p">}</span>
+        <span class="n">valid_loss</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">valid_loss_history</span><span class="p">[</span><span class="n">start_epoch</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">start_epoch</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Training loop</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">start_task</span><span class="p">(</span><span class="s2">&quot;Starting training&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Epochs: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">):</span>
+            <span class="n">epoch_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+            <span class="c1"># Train for one epoch</span>
+            <span class="n">avg_train_loss</span><span class="p">,</span> <span class="n">global_step</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="n">train_loader</span><span class="p">,</span>
+                <span class="n">optimizer</span><span class="p">,</span>
+                <span class="n">loss_func</span><span class="p">,</span>
+                <span class="n">metric_funcs</span><span class="p">,</span>
+                <span class="n">metric_names</span><span class="p">,</span>
+                <span class="n">output_keys</span><span class="p">,</span>
+                <span class="n">train_metrics</span><span class="p">,</span>
+                <span class="n">train_loss_tracker</span><span class="p">,</span>
+                <span class="n">norm_mapping</span><span class="p">,</span>
+                <span class="n">normalization_type</span><span class="p">,</span>
+                <span class="n">index_mapping</span><span class="p">,</span>
+                <span class="n">device</span><span class="p">,</span>
+                <span class="n">args</span><span class="p">,</span>
+                <span class="n">epoch</span><span class="p">,</span>
+                <span class="n">writer</span><span class="p">,</span>
+                <span class="n">global_step</span><span class="p">,</span>
+                <span class="n">logger</span><span class="p">,</span>
+                <span class="n">n_pft</span><span class="o">=</span><span class="n">n_pft</span><span class="p">,</span>
+                <span class="n">n_bands</span><span class="o">=</span><span class="n">n_bands</span><span class="p">,</span>
+                <span class="n">n_chans</span><span class="o">=</span><span class="n">n_chans</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">train_loss_history</span><span class="p">[</span><span class="n">epoch</span><span class="p">]</span> <span class="o">=</span> <span class="n">avg_train_loss</span>
+
+            <span class="c1"># Validation</span>
+            <span class="k">if</span> <span class="n">test_loader</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">valid_loss</span><span class="p">,</span> <span class="n">valid_metrics</span> <span class="o">=</span> <span class="n">run_validation</span><span class="p">(</span>
+                    <span class="n">test_loader</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="n">norm_mapping</span><span class="p">,</span>
+                    <span class="n">normalization_type</span><span class="p">,</span>
+                    <span class="n">index_mapping</span><span class="p">,</span>
+                    <span class="n">device</span><span class="p">,</span>
+                    <span class="n">args</span><span class="p">,</span>
+                    <span class="n">epoch</span><span class="p">,</span>
+                    <span class="n">logger</span><span class="p">,</span>
+                    <span class="n">paths</span><span class="o">.</span><span class="n">results</span><span class="p">,</span>
+                    <span class="n">n_pft</span><span class="o">=</span><span class="n">n_pft</span><span class="p">,</span>
+                    <span class="n">n_bands</span><span class="o">=</span><span class="n">n_bands</span><span class="p">,</span>
+                    <span class="n">n_chans</span><span class="o">=</span><span class="n">n_chans</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">valid_loss_history</span><span class="p">[</span><span class="n">epoch</span><span class="p">]</span> <span class="o">=</span> <span class="n">valid_loss</span>
+
+                <span class="c1"># Log metrics</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Train Loss: </span><span class="si">{</span><span class="n">avg_train_loss</span><span class="si">:</span><span class="s2">.6e</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Valid Loss: </span><span class="si">{</span><span class="n">valid_loss</span><span class="si">:</span><span class="s2">.6e</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Time: </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">epoch_start_time</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s&quot;</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Update metrics history</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">train_metrics</span><span class="p">:</span>
+                    <span class="n">train_value</span> <span class="o">=</span> <span class="n">train_metrics</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">getmean</span><span class="p">()</span>
+                    <span class="n">valid_value</span> <span class="o">=</span> <span class="n">valid_metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+                    <span class="n">train_metrics_history</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_value</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">valid_metrics_history</span><span class="p">:</span>
+                        <span class="n">valid_metrics_history</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">valid_value</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">valid_metrics_history</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">valid_value</span><span class="p">]</span>
+
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: train=</span><span class="si">{</span><span class="n">train_value</span><span class="si">:</span><span class="s2">.6e</span><span class="si">}</span><span class="s2">, valid=</span><span class="si">{</span><span class="n">valid_value</span><span class="si">:</span><span class="s2">.6e</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># Update scheduler</span>
+                <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">valid_loss</span><span class="p">)</span>
+
+                <span class="c1"># Save best model</span>
+                <span class="k">if</span> <span class="n">valid_loss</span> <span class="o">&lt;</span> <span class="n">best_val_loss</span><span class="p">:</span>
+                    <span class="n">best_val_loss</span> <span class="o">=</span> <span class="n">valid_loss</span>
+                    <span class="n">best_epoch</span> <span class="o">=</span> <span class="n">epoch</span>
+                    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">save_model</span><span class="p">:</span>
+                        <span class="n">ModelUtils</span><span class="o">.</span><span class="n">save_training_checkpoint</span><span class="p">(</span>
+                            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                            <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+                            <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
+                            <span class="n">samples_processed</span><span class="o">=</span><span class="n">samples_processed</span><span class="p">,</span>
+                            <span class="n">batches_processed</span><span class="o">=</span><span class="n">batches_processed</span><span class="p">,</span>
+                            <span class="n">train_loss_history</span><span class="o">=</span><span class="n">train_loss_history</span><span class="p">,</span>
+                            <span class="n">valid_loss_history</span><span class="o">=</span><span class="n">valid_loss_history</span><span class="p">,</span>
+                            <span class="n">valid_metrics_history</span><span class="o">=</span><span class="n">valid_metrics_history</span><span class="p">,</span>
+                            <span class="n">best_val_loss</span><span class="o">=</span><span class="n">best_val_loss</span><span class="p">,</span>
+                            <span class="n">best_epoch</span><span class="o">=</span><span class="n">best_epoch</span><span class="p">,</span>
+                            <span class="n">avg_val_loss</span><span class="o">=</span><span class="n">valid_loss</span><span class="p">,</span>
+                            <span class="n">avg_epoch_loss</span><span class="o">=</span><span class="n">avg_train_loss</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+                            <span class="n">paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span>
+                            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+                            <span class="n">checkpoint_type</span><span class="o">=</span><span class="s2">&quot;best&quot;</span><span class="p">,</span>
+                            <span class="n">save_full_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+            <span class="c1"># Save epoch checkpoint (every 10 epochs)</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">save_model</span> <span class="ow">and</span> <span class="n">epoch</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ModelUtils</span><span class="o">.</span><span class="n">save_training_checkpoint</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+                    <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
+                    <span class="n">samples_processed</span><span class="o">=</span><span class="n">samples_processed</span><span class="p">,</span>
+                    <span class="n">batches_processed</span><span class="o">=</span><span class="n">batches_processed</span><span class="p">,</span>
+                    <span class="n">train_loss_history</span><span class="o">=</span><span class="n">train_loss_history</span><span class="p">,</span>
+                    <span class="n">valid_loss_history</span><span class="o">=</span><span class="n">valid_loss_history</span><span class="p">,</span>
+                    <span class="n">valid_metrics_history</span><span class="o">=</span><span class="n">valid_metrics_history</span><span class="p">,</span>
+                    <span class="n">best_val_loss</span><span class="o">=</span><span class="n">best_val_loss</span><span class="p">,</span>
+                    <span class="n">best_epoch</span><span class="o">=</span><span class="n">best_epoch</span><span class="p">,</span>
+                    <span class="n">avg_val_loss</span><span class="o">=</span><span class="n">valid_loss</span> <span class="k">if</span> <span class="n">test_loader</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+                    <span class="n">avg_epoch_loss</span><span class="o">=</span><span class="n">avg_train_loss</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+                    <span class="n">paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span>
+                    <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+                    <span class="n">checkpoint_type</span><span class="o">=</span><span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
+                    <span class="n">save_full_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Generate plots at the end of training</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Generating training summary plots...&quot;</span><span class="p">)</span>
+
+        <span class="n">plot_metric_histories</span><span class="p">(</span>
+            <span class="n">train_metrics_history</span><span class="p">,</span>
+            <span class="n">valid_metrics_history</span><span class="p">,</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="s2">&quot;metrics_panel.png&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">plot_loss_histories</span><span class="p">(</span>
+            <span class="n">train_loss_history</span><span class="p">[:</span> <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">],</span>
+            <span class="n">valid_loss_history</span><span class="p">[:</span> <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">],</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="s2">&quot;training_validation_loss.png&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">plot_spatial_temporal_density</span><span class="p">(</span>
+            <span class="n">sindex_tracker</span><span class="o">=</span><span class="n">train_dataset</span><span class="o">.</span><span class="n">sindex_tracker</span><span class="p">,</span>
+            <span class="n">tindex_tracker</span><span class="o">=</span><span class="n">train_dataset</span><span class="o">.</span><span class="n">tindex_tracker</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+            <span class="n">save_dir</span><span class="o">=</span><span class="n">paths</span><span class="o">.</span><span class="n">results</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;density_scatter_train&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">plot_spatial_temporal_density</span><span class="p">(</span>
+            <span class="n">sindex_tracker</span><span class="o">=</span><span class="n">test_dataset</span><span class="o">.</span><span class="n">sindex_tracker</span><span class="p">,</span>
+            <span class="n">tindex_tracker</span><span class="o">=</span><span class="n">test_dataset</span><span class="o">.</span><span class="n">tindex_tracker</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">,</span>
+            <span class="n">save_dir</span><span class="o">=</span><span class="n">paths</span><span class="o">.</span><span class="n">results</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;density_scatter_test&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Save final checkpoint</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">save_model</span><span class="p">:</span>
+            <span class="n">ModelUtils</span><span class="o">.</span><span class="n">save_training_checkpoint</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+                <span class="n">epoch</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">samples_processed</span><span class="o">=</span><span class="n">samples_processed</span><span class="p">,</span>
+                <span class="n">batches_processed</span><span class="o">=</span><span class="n">batches_processed</span><span class="p">,</span>
+                <span class="n">train_loss_history</span><span class="o">=</span><span class="n">train_loss_history</span><span class="p">,</span>
+                <span class="n">valid_loss_history</span><span class="o">=</span><span class="n">valid_loss_history</span><span class="p">,</span>
+                <span class="n">valid_metrics_history</span><span class="o">=</span><span class="n">valid_metrics_history</span><span class="p">,</span>
+                <span class="n">best_val_loss</span><span class="o">=</span><span class="n">best_val_loss</span><span class="p">,</span>
+                <span class="n">best_epoch</span><span class="o">=</span><span class="n">best_epoch</span><span class="p">,</span>
+                <span class="n">avg_val_loss</span><span class="o">=</span><span class="n">valid_loss</span> <span class="k">if</span> <span class="n">test_loader</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">avg_epoch_loss</span><span class="o">=</span><span class="n">avg_train_loss</span> <span class="k">if</span> <span class="s2">&quot;avg_train_loss&quot;</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">()</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+                <span class="n">paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span>
+                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+                <span class="n">checkpoint_type</span><span class="o">=</span><span class="s2">&quot;final&quot;</span><span class="p">,</span>
+                <span class="n">save_full_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Final model checkpoint saved successfully!&quot;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">&quot;Training completed successfully!&quot;</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Training failed with exception&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">raise</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, IPSL / CNRS / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

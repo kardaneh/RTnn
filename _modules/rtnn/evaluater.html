@@ -1,0 +1,1152 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rtnn.evaluater &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../inference_modes.html">Inference Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_handling.html">Data Handling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rtnn.evaluater</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rtnn.evaluater</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2026 IPSL / CNRS / Sorbonne University</span>
+<span class="c1"># Authors: Kazem Ardaneh</span>
+<span class="c1">#</span>
+<span class="c1"># This work is licensed under the Creative Commons</span>
+<span class="c1"># Attribution-NonCommercial-ShareAlike 4.0 International License.</span>
+<span class="c1"># To view a copy of this license, visit</span>
+<span class="c1"># http://creativecommons.org/licenses/by-nc-sa/4.0/</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Evaluation utilities for RTnn model assessment.</span>
+
+<span class="sd">This module provides comprehensive evaluation tools for radiative transfer</span>
+<span class="sd">neural network models, including custom loss functions, metric computation,</span>
+<span class="sd">and visualization helpers.</span>
+
+<span class="sd">The module includes:</span>
+<span class="sd">- Custom loss functions (NMSE, NMAE, combined MSE-MAE, LogCosh, Weighted MSE)</span>
+<span class="sd">- Metric calculators for evaluation (MSE, MAE, MBE, R², NMSE, NMAE, MARE, GMRAE)</span>
+<span class="sd">- Data normalization/de-normalization utilities</span>
+<span class="sd">- Absorption rate calculations</span>
+<span class="sd">- Main evaluation loop for LSM models</span>
+
+<span class="sd">Dependencies</span>
+<span class="sd">------------</span>
+<span class="sd">torch : For tensor operations and loss functions</span>
+<span class="sd">numpy : For numerical operations</span>
+<span class="sd">plot_helper : For visualization utilities</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.diagnostics</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_all_diagnostics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;..&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="NMSELoss">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.NMSELoss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NMSELoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalized Mean Squared Error Loss.</span>
+
+<span class="sd">    Computes MSE normalized by the mean square of the target values.</span>
+<span class="sd">    Useful when the scale of the target variable varies.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    eps : float, optional</span>
+<span class="sd">        Small constant for numerical stability. Default is 1e-8.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; criterion = NMSELoss()</span>
+<span class="sd">    &gt;&gt;&gt; loss = criterion(predictions, targets)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="NMSELoss.__init__">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.NMSELoss.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NMSELoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mse</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NMSELoss.forward">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.NMSELoss.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="n">mse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mse</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">target</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span>
+        <span class="k">return</span> <span class="n">mse</span> <span class="o">/</span> <span class="n">norm</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="NMAELoss">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.NMAELoss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NMAELoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalized Mean Absolute Error Loss.</span>
+
+<span class="sd">    Computes MAE normalized by the mean absolute value of the target.</span>
+<span class="sd">    Provides a scale-invariant error metric.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    eps : float, optional</span>
+<span class="sd">        Small constant for numerical stability. Default is 1e-8.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="NMAELoss.__init__">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.NMAELoss.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NMAELoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">L1Loss</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NMAELoss.forward">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.NMAELoss.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="n">mae</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">target</span><span class="p">))</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span>
+        <span class="k">return</span> <span class="n">mae</span> <span class="o">/</span> <span class="n">norm</span></div>
+</div>
+
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># E  Physics-informed loss (energy conservation)</span>
+<span class="c1"># =============================================================================</span>
+<div class="viewcode-block" id="physics_loss">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.physics_loss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">physics_loss</span><span class="p">(</span>
+    <span class="n">pred</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">conservation_penalty</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lambda_phys</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combined Huber loss + energy conservation penalty (improvement E).</span>
+
+<span class="sd">    The four output variables satisfy:</span>
+<span class="sd">        albedo + transmittance + absorptance = 1</span>
+
+<span class="sd">    For collimated:   collim_alb  + collim_tran  + collim_abs  = 1</span>
+<span class="sd">    For isotropic:    isotrop_alb + isotrop_tran + isotrop_abs = 1</span>
+
+<span class="sd">    This function enforces the constraint as a soft penalty.  You can pass</span>
+<span class="sd">    ``pred_abs`` if your model also predicts absorptance; otherwise the</span>
+<span class="sd">    penalty is computed implicitly as (1 - alb - tran).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor  shape (B, 4, L)</span>
+<span class="sd">        Model predictions: [collim_alb, collim_tran, isotrop_alb, isotrop_tran]</span>
+<span class="sd">        (channel order matches your ``ov`` list in DataPreprocessor).</span>
+<span class="sd">    target : torch.Tensor  shape (B, 4, L)</span>
+<span class="sd">        Ground-truth targets.</span>
+<span class="sd">    pred_abs : torch.Tensor or None  shape (B, 2, L)</span>
+<span class="sd">        If provided, predicted absorptance for [collimated, isotropic].</span>
+<span class="sd">        If None, absorptance is inferred as (1 - alb - tran).</span>
+<span class="sd">    lambda_phys : float</span>
+<span class="sd">        Weight of the energy conservation penalty relative to Huber loss.</span>
+<span class="sd">    delta : float</span>
+<span class="sd">        Huber loss delta parameter.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.Tensor  scalar loss value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># --- Primary Huber loss ---</span>
+    <span class="n">huber</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">huber_loss</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">huber</span> <span class="o">+</span> <span class="n">lambda_phys</span> <span class="o">*</span> <span class="n">conservation_penalty</span></div>
+
+
+
+<div class="viewcode-block" id="MetricTracker">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.MetricTracker">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MetricTracker</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A utility class for tracking and computing statistics of metric values.</span>
+
+<span class="sd">    This class maintains a running average of metric values and provides</span>
+<span class="sd">    methods to compute mean and root mean squared values.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : float</span>
+<span class="sd">        Cumulative weighted sum of metric values</span>
+<span class="sd">    count : int</span>
+<span class="sd">        Total number of samples processed</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; tracker = MetricTracker()</span>
+<span class="sd">    &gt;&gt;&gt; tracker.update(10.0, 5)  # value=10.0, count=5 samples</span>
+<span class="sd">    &gt;&gt;&gt; tracker.update(20.0, 3)  # value=20.0, count=3 samples</span>
+<span class="sd">    &gt;&gt;&gt; print(tracker.getmean())  # (10*5 + 20*3) / (5+3) = 110/8 = 13.75</span>
+<span class="sd">    13.75</span>
+<span class="sd">    &gt;&gt;&gt; print(tracker.getsqrtmean())  # sqrt(13.75)</span>
+<span class="sd">    3.7080992435478315</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MetricTracker.__init__">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.MetricTracker.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize MetricTracker with zero values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="MetricTracker.reset">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.MetricTracker.reset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset all tracked values to zero.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value_sq</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+
+
+<div class="viewcode-block" id="MetricTracker.update">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.MetricTracker.update">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">count</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the tracker with new metric values.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        value : float</span>
+<span class="sd">            The metric value to add</span>
+<span class="sd">        count : int</span>
+<span class="sd">            Number of samples this value represents (weight)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="n">count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">+=</span> <span class="n">value</span> <span class="o">*</span> <span class="n">count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value_sq</span> <span class="o">+=</span> <span class="p">(</span><span class="n">value</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">count</span></div>
+
+
+<div class="viewcode-block" id="MetricTracker.getmean">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.MetricTracker.getmean">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getmean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the mean of all tracked values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">            Weighted mean of all values: total_value / total_count</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ZeroDivisionError</span>
+<span class="sd">            If no values have been added (count == 0)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ZeroDivisionError</span><span class="p">(</span><span class="s2">&quot;Cannot compute mean with zero samples&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span></div>
+
+
+<div class="viewcode-block" id="MetricTracker.getstd">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.MetricTracker.getstd">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getstd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the standard deviation of all tracked values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">            Weighted standard deviation of all values:</span>
+<span class="sd">            sqrt(E(x^2) - (E(x))^2)</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ZeroDivisionError</span>
+<span class="sd">            If no values have been added (count == 0)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ZeroDivisionError</span><span class="p">(</span><span class="s2">&quot;Cannot compute std with zero samples&quot;</span><span class="p">)</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getmean</span><span class="p">()</span>
+        <span class="n">variance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_sq</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">-</span> <span class="n">mean</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">variance</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>  <span class="c1"># numerical safety</span></div>
+
+
+<div class="viewcode-block" id="MetricTracker.getsqrtmean">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.MetricTracker.getsqrtmean">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getsqrtmean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the square root of the mean of all tracked values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">            Square root of the weighted mean: sqrt(total_value / total_count)</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ZeroDivisionError</span>
+<span class="sd">            If no values have been added (count == 0)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getmean</span><span class="p">())</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="get_loss_function">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.get_loss_function">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_loss_function</span><span class="p">(</span><span class="n">loss_type</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function to instantiate the requested loss function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    loss_type : str</span>
+<span class="sd">        Type of loss function. Options:</span>
+<span class="sd">        - &#39;mse&#39;: Mean Squared Error</span>
+<span class="sd">        - &#39;mae&#39;: Mean Absolute Error</span>
+<span class="sd">        - &#39;nmae&#39;: Normalized Mean Absolute Error</span>
+<span class="sd">        - &#39;nmse&#39;: Normalized Mean Squared Error</span>
+<span class="sd">        - &#39;wmse&#39;: Weighted Mean Squared Error</span>
+<span class="sd">        - &#39;logcosh&#39;: Log-Cosh loss</span>
+<span class="sd">        - &#39;smoothl1&#39;: Smooth L1 Loss (Huber-like)</span>
+<span class="sd">        - &#39;huber&#39;: Huber Loss</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Arguments containing loss-specific parameters (e.g., beta_delta for Huber).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.nn.Module</span>
+<span class="sd">        Initialized loss function.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If loss_type is not supported or required parameters are missing.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; args = argparse.Namespace(beta_delta=1.0)</span>
+<span class="sd">    &gt;&gt;&gt; criterion = get_loss_function(&#39;huber&#39;, args)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;mse&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">logger</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using Mean Squared Error (MSE) loss&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;mae&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">logger</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using Mean Absolute Error (MAE) loss&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">L1Loss</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;nmae&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">logger</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using Normalized Mean Absolute Error (NMAE) loss&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">NMAELoss</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;nmse&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">logger</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using Normalized Mean Squared Error (NMSE) loss&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">NMSELoss</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">loss_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;smoothl1&quot;</span><span class="p">,</span> <span class="s2">&quot;huber&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;beta_delta&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">loss_type</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">Loss requires --beta_delta&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">logger</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Using </span><span class="si">{</span><span class="n">loss_type</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2"> loss with delta=</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">beta_delta</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">SmoothL1Loss</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">beta_delta</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;smoothl1&quot;</span>
+            <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">HuberLoss</span><span class="p">(</span><span class="n">delta</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">beta_delta</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported loss type: </span><span class="si">{</span><span class="n">loss_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="mse_all">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.mse_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mse_all</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">true</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute Mean Squared Error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor</span>
+<span class="sd">        Predictions.</span>
+<span class="sd">    true : torch.Tensor</span>
+<span class="sd">        Ground truth.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (num_elements, mse_value)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pred</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">pred</span> <span class="o">-</span> <span class="n">true</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="mbe_all">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.mbe_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mbe_all</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">true</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute Mean Bias Error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor</span>
+<span class="sd">        Predictions.</span>
+<span class="sd">    true : torch.Tensor</span>
+<span class="sd">        Ground truth.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (num_elements, mbe_value)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pred</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">true</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="mae_all">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.mae_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mae_all</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">true</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute Mean Absolute Error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor</span>
+<span class="sd">        Predictions.</span>
+<span class="sd">    true : torch.Tensor</span>
+<span class="sd">        Ground truth.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (num_elements, mae_value)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pred</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">true</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="r2_all">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.r2_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">r2_all</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">true</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate R2 (coefficient of determination) between predicted and true values.</span>
+
+<span class="sd">    Computes the R2 metric and returns both the number of elements and</span>
+<span class="sd">    the R2 value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor</span>
+<span class="sd">        Predicted values from the model</span>
+<span class="sd">    true : torch.Tensor</span>
+<span class="sd">        Ground truth values</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (num_elements, r2_value) where:</span>
+<span class="sd">        - num_elements (int): Total number of elements in the tensors</span>
+<span class="sd">        - r2_value (torch.Tensor): R2 score</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    R2 is calculated as:</span>
+
+<span class="sd">        R2 = 1 - sum((true - pred)^2) / sum((true - mean(true))^2)</span>
+
+<span class="sd">    This implementation is fully torch-based and works on CPU and GPU.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">pred</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">true</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape mismatch: pred </span><span class="si">{</span><span class="n">pred</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> vs true </span><span class="si">{</span><span class="n">true</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-12</span>  <span class="c1"># Small value to avoid division by zero when variance is zero</span>
+    <span class="n">num_elements</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+
+    <span class="c1"># Flatten</span>
+    <span class="n">pred_flat</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">true_flat</span> <span class="o">=</span> <span class="n">true</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Residual sum of squares</span>
+    <span class="n">ss_res</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">true_flat</span> <span class="o">-</span> <span class="n">pred_flat</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Total sum of squares</span>
+    <span class="n">true_mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">true_flat</span><span class="p">)</span>
+    <span class="n">ss_tot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">true_flat</span> <span class="o">-</span> <span class="n">true_mean</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># R2 score</span>
+    <span class="n">r2_value</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">ss_res</span> <span class="o">/</span> <span class="p">(</span><span class="n">ss_tot</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">num_elements</span><span class="p">,</span> <span class="n">r2_value</span></div>
+
+
+
+<div class="viewcode-block" id="nmae_all">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.nmae_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">nmae_all</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">true</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute Normalized Mean Absolute Error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor</span>
+<span class="sd">        Predictions.</span>
+<span class="sd">    true : torch.Tensor</span>
+<span class="sd">        Ground truth.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (num_elements, nmae_value)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mae</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">true</span><span class="p">))</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">true</span><span class="p">))</span> <span class="o">+</span> <span class="mf">1e-8</span>
+    <span class="n">nmae</span> <span class="o">=</span> <span class="n">mae</span> <span class="o">/</span> <span class="n">norm</span>
+    <span class="k">return</span> <span class="n">pred</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">nmae</span></div>
+
+
+
+<div class="viewcode-block" id="nmse_all">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.nmse_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">nmse_all</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">true</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute Normalized Mean Squared Error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor</span>
+<span class="sd">        Predictions.</span>
+<span class="sd">    true : torch.Tensor</span>
+<span class="sd">        Ground truth.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (num_elements, nmse_value)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mse</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">pred</span> <span class="o">-</span> <span class="n">true</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">true</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span>
+    <span class="n">nmse</span> <span class="o">=</span> <span class="n">mse</span> <span class="o">/</span> <span class="n">norm</span>
+    <span class="k">return</span> <span class="n">pred</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">nmse</span></div>
+
+
+
+<div class="viewcode-block" id="mare_all">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.mare_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mare_all</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">true</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute Mean Absolute Relative Error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor</span>
+<span class="sd">        Predictions.</span>
+<span class="sd">    true : torch.Tensor</span>
+<span class="sd">        Ground truth.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (num_elements, mare_value)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">relative_error</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">true</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">true</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+    <span class="n">mare</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">relative_error</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pred</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">mare</span></div>
+
+
+
+<div class="viewcode-block" id="gmrae_all">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.gmrae_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gmrae_all</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">true</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute Geometric Mean Relative Absolute Error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pred : torch.Tensor</span>
+<span class="sd">        Predictions.</span>
+<span class="sd">    true : torch.Tensor</span>
+<span class="sd">        Ground truth.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (num_elements, gmrae_value)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-8</span>
+    <span class="n">relative_errors</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">true</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">true</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+    <span class="n">log_rel_errors</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">relative_errors</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+    <span class="n">gmrae</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log_rel_errors</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">pred</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">gmrae</span></div>
+
+
+
+<div class="viewcode-block" id="unnorm_mpas">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.unnorm_mpas">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unnorm_mpas</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">targ</span><span class="p">,</span> <span class="n">norm_mapping</span><span class="p">,</span> <span class="n">normalization_type</span><span class="p">,</span> <span class="n">idxmap</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reverse normalization for 5D tensors.</span>
+
+<span class="sd">    pred and targ shape: (batch, 4, n_pft, n_bands, seq_length)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">upred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">utarg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">targ</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># idxmap maps channel indices 0-3 to variable names</span>
+    <span class="k">for</span> <span class="n">var_idx</span><span class="p">,</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">idxmap</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">norm_type</span> <span class="o">=</span> <span class="n">normalization_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="s2">&quot;log1p_minmax&quot;</span><span class="p">)</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">norm_mapping</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+
+        <span class="c1"># Get slice for this variable: (batch, 1, n_pft, n_bands, seq)</span>
+        <span class="n">pred_var</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="n">targ_var</span> <span class="o">=</span> <span class="n">targ</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+        <span class="k">if</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;vmean&quot;</span><span class="p">]</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;vstd&quot;</span><span class="p">]</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="n">std</span> <span class="o">+</span> <span class="n">mean</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="n">std</span> <span class="o">+</span> <span class="n">mean</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;minmax&quot;</span><span class="p">:</span>
+            <span class="n">vmin</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;vmin&quot;</span><span class="p">]</span>
+            <span class="n">vmax</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;vmax&quot;</span><span class="p">]</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="p">(</span><span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">+</span> <span class="n">vmin</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="p">(</span><span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">+</span> <span class="n">vmin</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;robust&quot;</span><span class="p">:</span>
+            <span class="n">median</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;median&quot;</span><span class="p">]</span>
+            <span class="n">iqr</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">]</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="n">iqr</span> <span class="o">+</span> <span class="n">median</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="n">iqr</span> <span class="o">+</span> <span class="n">median</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_minmax&quot;</span><span class="p">:</span>
+            <span class="n">log_min</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;log_min&quot;</span><span class="p">]</span>
+            <span class="n">log_max</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;log_max&quot;</span><span class="p">]</span>
+            <span class="n">unnorm_pred</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="p">(</span><span class="n">log_max</span> <span class="o">-</span> <span class="n">log_min</span><span class="p">)</span> <span class="o">+</span> <span class="n">log_min</span>
+            <span class="n">unnorm_targ</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="p">(</span><span class="n">log_max</span> <span class="o">-</span> <span class="n">log_min</span><span class="p">)</span> <span class="o">+</span> <span class="n">log_min</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="n">unnorm_pred</span><span class="p">)</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="n">unnorm_targ</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_standard&quot;</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;log_mean&quot;</span><span class="p">]</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;log_std&quot;</span><span class="p">]</span>
+            <span class="n">unnorm_pred</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="n">std</span> <span class="o">+</span> <span class="n">mean</span>
+            <span class="n">unnorm_targ</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="n">std</span> <span class="o">+</span> <span class="n">mean</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="n">unnorm_pred</span><span class="p">)</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="n">unnorm_targ</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_robust&quot;</span><span class="p">:</span>
+            <span class="n">median</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;log_median&quot;</span><span class="p">]</span>
+            <span class="n">iqr</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;log_iqr&quot;</span><span class="p">]</span>
+            <span class="n">unnorm_pred</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="n">iqr</span> <span class="o">+</span> <span class="n">median</span>
+            <span class="n">unnorm_targ</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="n">iqr</span> <span class="o">+</span> <span class="n">median</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="n">unnorm_pred</span><span class="p">)</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="n">unnorm_targ</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_minmax&quot;</span><span class="p">:</span>
+            <span class="n">sqrt_min</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;sqrt_min&quot;</span><span class="p">]</span>
+            <span class="n">sqrt_max</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;sqrt_max&quot;</span><span class="p">]</span>
+            <span class="n">unnorm_pred</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="p">(</span><span class="n">sqrt_max</span> <span class="o">-</span> <span class="n">sqrt_min</span><span class="p">)</span> <span class="o">+</span> <span class="n">sqrt_min</span>
+            <span class="n">unnorm_targ</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="p">(</span><span class="n">sqrt_max</span> <span class="o">-</span> <span class="n">sqrt_min</span><span class="p">)</span> <span class="o">+</span> <span class="n">sqrt_min</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">unnorm_pred</span><span class="o">**</span><span class="mi">2</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">unnorm_targ</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_standard&quot;</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;sqrt_mean&quot;</span><span class="p">]</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;sqrt_std&quot;</span><span class="p">]</span>
+            <span class="n">unnorm_pred</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="n">std</span> <span class="o">+</span> <span class="n">mean</span>
+            <span class="n">unnorm_targ</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="n">std</span> <span class="o">+</span> <span class="n">mean</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">unnorm_pred</span><span class="o">**</span><span class="mi">2</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">unnorm_targ</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_robust&quot;</span><span class="p">:</span>
+            <span class="n">median</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;sqrt_median&quot;</span><span class="p">]</span>
+            <span class="n">iqr</span> <span class="o">=</span> <span class="n">norm</span><span class="p">[</span><span class="s2">&quot;sqrt_iqr&quot;</span><span class="p">]</span>
+            <span class="n">unnorm_pred</span> <span class="o">=</span> <span class="n">pred_var</span> <span class="o">*</span> <span class="n">iqr</span> <span class="o">+</span> <span class="n">median</span>
+            <span class="n">unnorm_targ</span> <span class="o">=</span> <span class="n">targ_var</span> <span class="o">*</span> <span class="n">iqr</span> <span class="o">+</span> <span class="n">median</span>
+            <span class="n">upred</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">unnorm_pred</span><span class="o">**</span><span class="mi">2</span>
+            <span class="n">utarg</span><span class="p">[:,</span> <span class="n">var_idx</span> <span class="p">:</span> <span class="n">var_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">unnorm_targ</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unsupported normalization type &#39;</span><span class="si">{</span><span class="n">norm_type</span><span class="si">}</span><span class="s2">&#39; for variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">upred</span><span class="p">,</span> <span class="n">utarg</span></div>
+
+
+
+<div class="viewcode-block" id="conservation_residual">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.conservation_residual">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">conservation_residual</span><span class="p">(</span><span class="n">alb</span><span class="p">,</span> <span class="n">tran</span><span class="p">,</span> <span class="n">abs_flux</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    alb, tran: shape (batch, 1, n_pft, n_bands, seq)</span>
+<span class="sd">    abs_flux: shape (batch, 1, n_pft, n_bands, seq-1)</span>
+<span class="sd">    Returns residual of shape (batch, 1, n_pft, n_bands, seq-1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Average fluxes to layer centers (N-1 layers)</span>
+    <span class="n">alb_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">alb</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">alb</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="n">tran_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">tran</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">tran</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="c1"># Conservation: alb + tran + abs = 1</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">alb_center</span> <span class="o">+</span> <span class="n">tran_center</span> <span class="o">+</span> <span class="n">abs_flux</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span></div>
+
+
+
+<div class="viewcode-block" id="calc_abs">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.calc_abs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calc_abs</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">targ</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate absorption rates from flux predictions.</span>
+
+<span class="sd">    pred and targ shape: (batch, 4, n_pft, n_bands, seq_length)</span>
+<span class="sd">    Returns absorption with shape (batch, 1, n_pft, n_bands, seq_length-1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Collimated (channels 0 and 1)</span>
+    <span class="n">abs12_pred</span> <span class="o">=</span> <span class="n">calc_hr</span><span class="p">(</span><span class="n">pred</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">abs12_targ</span> <span class="o">=</span> <span class="n">calc_hr</span><span class="p">(</span><span class="n">targ</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">targ</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="c1"># Isotropic (channels 2 and 3)</span>
+    <span class="n">abs34_pred</span> <span class="o">=</span> <span class="n">calc_hr</span><span class="p">(</span><span class="n">pred</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">abs34_targ</span> <span class="o">=</span> <span class="n">calc_hr</span><span class="p">(</span><span class="n">targ</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">targ</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="c1"># Conservation penalty</span>
+    <span class="n">collim_resid</span> <span class="o">=</span> <span class="n">conservation_residual</span><span class="p">(</span>
+        <span class="n">pred</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">abs12_pred</span>
+    <span class="p">)</span>
+    <span class="n">isotrop_resid</span> <span class="o">=</span> <span class="n">conservation_residual</span><span class="p">(</span>
+        <span class="n">pred</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">abs34_pred</span>
+    <span class="p">)</span>
+    <span class="n">conservation_penalty</span> <span class="o">=</span> <span class="p">(</span><span class="n">collim_resid</span> <span class="o">+</span> <span class="n">isotrop_resid</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">abs12_pred</span><span class="p">,</span> <span class="n">abs12_targ</span><span class="p">,</span> <span class="n">abs34_pred</span><span class="p">,</span> <span class="n">abs34_targ</span><span class="p">,</span> <span class="n">conservation_penalty</span></div>
+
+
+
+<div class="viewcode-block" id="calc_hr">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.calc_hr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calc_hr</span><span class="p">(</span><span class="n">up</span><span class="p">,</span> <span class="n">down</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate heating rate from upwelling and downwelling fluxes.</span>
+
+<span class="sd">    up and down shape: (batch, 1, n_pft, n_bands, seq_length)</span>
+<span class="sd">    Returns shape: (batch, 1, n_pft, n_bands, seq_length - 1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">net</span> <span class="o">=</span> <span class="n">up</span> <span class="o">-</span> <span class="n">down</span>
+    <span class="c1"># Roll along the last dimension (seq_length)</span>
+    <span class="n">dnet</span> <span class="o">=</span> <span class="n">net</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="mf">9.8066</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="mf">287.0</span>
+        <span class="n">cp</span> <span class="o">=</span> <span class="mf">7.0</span> <span class="o">*</span> <span class="n">r</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="n">fac</span> <span class="o">=</span> <span class="n">g</span> <span class="o">*</span> <span class="mf">8.64e4</span> <span class="o">/</span> <span class="p">(</span><span class="n">cp</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+
+        <span class="c1"># p shape: (seq_length,) or (batch, seq_length)</span>
+        <span class="c1"># Need to handle broadcasting</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dp</span> <span class="o">=</span> <span class="n">p</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dnet</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">/</span> <span class="n">dp</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">*</span> <span class="n">fac</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">dnet</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="run_validation">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.evaluater.run_validation">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_validation</span><span class="p">(</span>
+    <span class="n">loader</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">norm_mapping</span><span class="p">,</span>
+    <span class="n">normalization_type</span><span class="p">,</span>
+    <span class="n">index_mapping</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">,</span>
+    <span class="n">args</span><span class="p">,</span>
+    <span class="n">epoch</span><span class="p">,</span>
+    <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;./results&quot;</span><span class="p">,</span>
+    <span class="n">n_pft</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">n_bands</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">n_chans</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate model accuracy on LSM dataset.</span>
+
+<span class="sd">    Performs comprehensive evaluation including:</span>
+<span class="sd">    - Loss computation for main fluxes and absorption rates</span>
+<span class="sd">    - Metric calculation (NMAE, NMSE, R²)</span>
+<span class="sd">    - Optional plotting of predictions vs targets</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    loader : torch.utils.data.DataLoader</span>
+<span class="sd">        Data loader for evaluation dataset.</span>
+<span class="sd">    model : torch.nn.Module</span>
+<span class="sd">        Trained model to evaluate.</span>
+<span class="sd">    norm_mapping : dict</span>
+<span class="sd">        Normalization statistics for variables.</span>
+<span class="sd">    normalization_type : dict</span>
+<span class="sd">        Normalization types per variable.</span>
+<span class="sd">    index_mapping : dict</span>
+<span class="sd">        Mapping from channel indices to variable names.</span>
+<span class="sd">    device : torch.device</span>
+<span class="sd">        Device to run evaluation on.</span>
+<span class="sd">    args : argparse.Namespace</span>
+<span class="sd">        Arguments containing loss type, beta, etc.</span>
+<span class="sd">    epoch : int</span>
+<span class="sd">        Current epoch number (for plotting).</span>
+<span class="sd">    logger : logging.Logger, optional</span>
+<span class="sd">        Logger for informational messages. If None, no logging is performed.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (valid_loss, valid_metrics) where valid_metrics is a dictionary</span>
+<span class="sd">        containing computed metrics for fluxes, abs12, and abs34.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; valid_loss, metrics = run_validation(</span>
+<span class="sd">    ...     test_loader, model, norm_mapping, norm_type, idxmap, device, args, epoch</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; print(f&quot;Validation loss: {valid_loss:.4f}&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; print(f&quot;NMAE: {metrics[&#39;fluxes_NMAE&#39;]:.4f}&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="n">valid_loss_types</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;mse&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mae&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;nmae&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;nmse&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wmse&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;logcosh&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;smoothl1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;huber&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">loss_type</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">loss_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">loss_type</span> <span class="ow">in</span> <span class="n">valid_loss_types</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Invalid loss_type (should be one of </span><span class="si">{</span><span class="n">valid_loss_types</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="n">func</span> <span class="o">=</span> <span class="n">get_loss_function</span><span class="p">(</span><span class="n">loss_type</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="n">metric_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NMAE&quot;</span><span class="p">,</span> <span class="s2">&quot;NMSE&quot;</span><span class="p">,</span> <span class="s2">&quot;R2&quot;</span><span class="p">]</span>
+    <span class="n">metric_funcs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;NMAE&quot;</span><span class="p">:</span> <span class="n">nmae_all</span><span class="p">,</span> <span class="s2">&quot;NMSE&quot;</span><span class="p">:</span> <span class="n">nmse_all</span><span class="p">,</span> <span class="s2">&quot;R2&quot;</span><span class="p">:</span> <span class="n">r2_all</span><span class="p">}</span>
+    <span class="n">output_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;fluxes&quot;</span><span class="p">,</span> <span class="s2">&quot;abs12&quot;</span><span class="p">,</span> <span class="s2">&quot;abs34&quot;</span><span class="p">]</span>
+    <span class="n">valid_metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">MetricTracker</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">output_keys</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">metric_names</span>
+    <span class="p">}</span>
+
+    <span class="n">valid_loss</span> <span class="o">=</span> <span class="n">MetricTracker</span><span class="p">()</span>
+    <span class="n">save_plots</span> <span class="o">=</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">==</span> <span class="n">args</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">save_plots</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">logger</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Collecting data for final epoch&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Collecting data for final epoch&quot;</span><span class="p">)</span>
+
+        <span class="n">all_predicts_unnorm</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_targets_unnorm</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_abs12_predict</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_abs12_target</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_abs34_predict</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_abs34_target</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Progress bar for validation</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+        <span class="nb">enumerate</span><span class="p">(</span><span class="n">loader</span><span class="p">),</span>
+        <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">),</span>
+        <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Validation Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">leave</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span> <span class="ow">in</span> <span class="n">loop</span><span class="p">:</span>
+            <span class="n">feature_shape</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">target_shape</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">inner_batch_size</span> <span class="o">=</span> <span class="n">feature_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">feature_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">feature</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">inner_batch_size</span><span class="p">,</span> <span class="n">feature_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">feature_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">inner_batch_size</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="n">predicts</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+
+            <span class="c1"># Reshape to (batch, 4, n_pft, n_bands, seq)</span>
+            <span class="n">pred_reshaped</span> <span class="o">=</span> <span class="n">predicts</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">inner_batch_size</span><span class="p">,</span> <span class="n">n_chans</span><span class="p">,</span> <span class="n">n_pft</span><span class="p">,</span> <span class="n">n_bands</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">targ_reshaped</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">inner_batch_size</span><span class="p">,</span> <span class="n">n_chans</span><span class="p">,</span> <span class="n">n_pft</span><span class="p">,</span> <span class="n">n_bands</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="n">predicts_unnorm</span><span class="p">,</span> <span class="n">targets_unnorm</span> <span class="o">=</span> <span class="n">unnorm_mpas</span><span class="p">(</span>
+                <span class="n">pred_reshaped</span><span class="p">,</span>
+                <span class="n">targ_reshaped</span><span class="p">,</span>
+                <span class="n">norm_mapping</span><span class="p">,</span>
+                <span class="n">normalization_type</span><span class="p">,</span>
+                <span class="n">index_mapping</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">predicts_unnorm</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">pred_reshaped</span><span class="o">.</span><span class="n">shape</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected predicts_unnorm shape </span><span class="si">{</span><span class="n">pred_reshaped</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">predicts_unnorm</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">targets_unnorm</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">targ_reshaped</span><span class="o">.</span><span class="n">shape</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected targets_unnorm shape </span><span class="si">{</span><span class="n">targ_reshaped</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">targets_unnorm</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="p">(</span>
+                <span class="n">abs12_predict</span><span class="p">,</span>
+                <span class="n">abs12_target</span><span class="p">,</span>
+                <span class="n">abs34_predict</span><span class="p">,</span>
+                <span class="n">abs34_target</span><span class="p">,</span>
+                <span class="n">conservation_penalty</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="n">calc_abs</span><span class="p">(</span><span class="n">predicts_unnorm</span><span class="p">,</span> <span class="n">targets_unnorm</span><span class="p">)</span>
+
+            <span class="n">expected_abs_shape</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">inner_batch_size</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="n">n_pft</span><span class="p">,</span>
+                <span class="n">n_bands</span><span class="p">,</span>
+                <span class="n">target_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">abs12_predict</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_abs_shape</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected abs12_predict shape </span><span class="si">{</span><span class="n">expected_abs_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">abs12_predict</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">abs12_target</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_abs_shape</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected abs12_target shape </span><span class="si">{</span><span class="n">expected_abs_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">abs12_target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">abs34_predict</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_abs_shape</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected abs34_predict shape </span><span class="si">{</span><span class="n">expected_abs_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">abs34_predict</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">abs34_target</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_abs_shape</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected abs34_target shape </span><span class="si">{</span><span class="n">expected_abs_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">abs34_target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">if</span> <span class="n">batch_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Feature shape: </span><span class="si">{</span><span class="n">feature</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Targets shape: </span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;abs12_predict shape: </span><span class="si">{</span><span class="n">abs12_predict</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;abs12_target shape: </span><span class="si">{</span><span class="n">abs12_target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;abs34_predict shape: </span><span class="si">{</span><span class="n">abs34_predict</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;abs34_target shape: </span><span class="si">{</span><span class="n">abs34_target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Conservation penalty: </span><span class="si">{</span><span class="n">conservation_penalty</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">save_plots</span><span class="p">:</span>
+                <span class="n">all_predicts_unnorm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predicts_unnorm</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+                <span class="n">all_targets_unnorm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">targets_unnorm</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+                <span class="n">all_abs12_predict</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">abs12_predict</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+                <span class="n">all_abs12_target</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">abs12_target</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+                <span class="n">all_abs34_predict</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">abs34_predict</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+                <span class="n">all_abs34_target</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">abs34_target</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+
+            <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;fluxes&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">predicts</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+                <span class="s2">&quot;abs12&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">abs12_predict</span><span class="p">,</span> <span class="n">abs12_target</span><span class="p">),</span>
+                <span class="s2">&quot;abs34&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">abs34_predict</span><span class="p">,</span> <span class="n">abs34_target</span><span class="p">),</span>
+            <span class="p">}</span>
+
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">output_keys</span><span class="p">:</span>
+                <span class="n">pred</span><span class="p">,</span> <span class="n">tgt</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metric_names</span><span class="p">:</span>
+                    <span class="n">metric_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">metric_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_metrics</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Metric key &#39;</span><span class="si">{</span><span class="n">metric_key</span><span class="si">}</span><span class="s2">&#39; not found in valid_metrics&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">count</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">metric_funcs</span><span class="p">[</span><span class="n">metric</span><span class="p">](</span><span class="n">pred</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span>
+                    <span class="n">valid_metrics</span><span class="p">[</span><span class="n">metric_key</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">count</span><span class="p">)</span>
+
+            <span class="n">main_count</span><span class="p">,</span> <span class="n">main_val</span> <span class="o">=</span> <span class="n">predicts</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">func</span><span class="p">(</span><span class="n">predicts</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+            <span class="n">abs12_count</span><span class="p">,</span> <span class="n">abs12_val</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">abs12_predict</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">abs12_predict</span><span class="p">,</span> <span class="n">abs12_target</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">abs34_count</span><span class="p">,</span> <span class="n">abs34_val</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">abs34_predict</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">abs34_predict</span><span class="p">,</span> <span class="n">abs34_target</span><span class="p">),</span>
+            <span class="p">)</span>
+
+            <span class="n">weighted_loss</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">main_val</span> <span class="o">*</span> <span class="n">main_count</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="n">abs12_val</span> <span class="o">*</span> <span class="n">abs12_count</span> <span class="o">+</span> <span class="n">abs34_val</span> <span class="o">*</span> <span class="n">abs34_count</span>
+            <span class="p">)</span>
+
+            <span class="n">total_count</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">main_count</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="n">abs12_count</span> <span class="o">+</span> <span class="n">abs34_count</span>
+            <span class="p">)</span>
+            <span class="n">total_loss</span> <span class="o">=</span> <span class="n">weighted_loss</span> <span class="o">/</span> <span class="n">total_count</span>
+
+            <span class="n">valid_loss</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">total_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">loop</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="n">total_loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">save_plots</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">logger</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Doing plot for final epoch&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Doing plot for final epoch&quot;</span><span class="p">)</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">base_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">all_predicts_unnorm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_predicts_unnorm</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">all_targets_unnorm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_targets_unnorm</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">all_abs12_predict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_abs12_predict</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">all_abs12_target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_abs12_target</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">all_abs34_predict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_abs34_predict</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">all_abs34_target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_abs34_target</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">plot_all_diagnostics</span><span class="p">(</span>
+                <span class="n">all_predicts_unnorm</span><span class="p">,</span>
+                <span class="n">all_targets_unnorm</span><span class="p">,</span>
+                <span class="n">abs12_predict</span><span class="o">=</span><span class="n">all_abs12_predict</span><span class="p">,</span>
+                <span class="n">abs12_target</span><span class="o">=</span><span class="n">all_abs12_target</span><span class="p">,</span>
+                <span class="n">abs34_predict</span><span class="o">=</span><span class="n">all_abs34_predict</span><span class="p">,</span>
+                <span class="n">abs34_target</span><span class="o">=</span><span class="n">all_abs34_target</span><span class="p">,</span>
+                <span class="n">n_pft</span><span class="o">=</span><span class="n">n_pft</span><span class="p">,</span>
+                <span class="n">n_bands</span><span class="o">=</span><span class="n">n_bands</span><span class="p">,</span>
+                <span class="n">output_dir</span><span class="o">=</span><span class="n">base_dir</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;validation_epoch</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">valid_loss</span><span class="o">.</span><span class="n">getmean</span><span class="p">(),</span> <span class="p">{</span>
+        <span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="n">tracker</span><span class="o">.</span><span class="n">getsqrtmean</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;mse&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">tracker</span><span class="o">.</span><span class="n">getmean</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">tracker</span> <span class="ow">in</span> <span class="n">valid_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, IPSL / CNRS / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

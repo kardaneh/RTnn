@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neural Architectures &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "displayMath": [["$$", "$$"], ["\\[", "\\]"]], "processEscapes": true}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Training Strategy" href="training_strategy.html" />
+    <link rel="prev" title="Quick Start" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Neural Architectures</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#recurrent-neural-networks-rnn">Recurrent Neural Networks (RNN)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#lstm-long-short-term-memory">LSTM (Long Short-Term Memory)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gru-gated-recurrent-unit">GRU (Gated Recurrent Unit)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#transformer">Transformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fcn-fully-connected-network">FCN (Fully Connected Network)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#vertical-rt-column-network-physics-inspired">Vertical RT Column Network (Physics-Inspired)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-comparison">Model Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#choosing-an-architecture">Choosing an Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference_modes.html">Inference Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_handling.html">Data Handling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Neural Architectures</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/neural_architectures.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quick Start" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="training_strategy.html" class="btn btn-neutral float-right" title="Training Strategy" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="neural-architectures">
+<h1>Neural Architectures<a class="headerlink" href="#neural-architectures" title="Link to this heading"></a></h1>
+<p>RTnn supports multiple neural network architectures for radiative transfer modeling.</p>
+<section id="recurrent-neural-networks-rnn">
+<h2>Recurrent Neural Networks (RNN)<a class="headerlink" href="#recurrent-neural-networks-rnn" title="Link to this heading"></a></h2>
+<section id="lstm-long-short-term-memory">
+<h3>LSTM (Long Short-Term Memory)<a class="headerlink" href="#lstm-long-short-term-memory" title="Link to this heading"></a></h3>
+<p>Bidirectional LSTM with final Conv1d projection.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rtnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">RNN_LSTM</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">RNN_LSTM</span><span class="p">(</span>
+    <span class="n">feature_channel</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>    <span class="c1"># Input features</span>
+    <span class="n">output_channel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>     <span class="c1"># Output channels</span>
+    <span class="n">hidden_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>      <span class="c1"># Hidden state size</span>
+    <span class="n">num_layers</span><span class="o">=</span><span class="mi">3</span>          <span class="c1"># Number of LSTM layers</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Architecture:</strong>
+- Bidirectional LSTM: captures forward and backward dependencies
+- Conv1d output: projects hidden states to output channels</p>
+</section>
+<section id="gru-gated-recurrent-unit">
+<h3>GRU (Gated Recurrent Unit)<a class="headerlink" href="#gru-gated-recurrent-unit" title="Link to this heading"></a></h3>
+<p>Similar to LSTM but with fewer parameters.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rtnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">RNN_GRU</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">RNN_GRU</span><span class="p">(</span>
+    <span class="n">feature_channel</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+    <span class="n">output_channel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">hidden_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+    <span class="n">num_layers</span><span class="o">=</span><span class="mi">3</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="transformer">
+<h2>Transformer<a class="headerlink" href="#transformer" title="Link to this heading"></a></h2>
+<p>Self-attention based encoder for sequence processing.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rtnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerEncoder</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">TransformerEncoder</span><span class="p">(</span>
+    <span class="n">feature_channel</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+    <span class="n">output_channel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">embed_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>        <span class="c1"># Embedding dimension</span>
+    <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>         <span class="c1"># Number of transformer blocks</span>
+    <span class="n">heads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>              <span class="c1"># Attention heads</span>
+    <span class="n">forward_expansion</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>  <span class="c1"># Feed-forward expansion factor</span>
+    <span class="n">seq_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>        <span class="c1"># Input sequence length</span>
+    <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span>           <span class="c1"># Dropout rate</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Features:</strong>
+- Positional embeddings
+- Multi-head self-attention
+- Residual connections
+- Layer normalization</p>
+</section>
+<section id="fcn-fully-connected-network">
+<h2>FCN (Fully Connected Network)<a class="headerlink" href="#fcn-fully-connected-network" title="Link to this heading"></a></h2>
+<p>Deep fully connected network with batch normalization.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rtnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">FCN</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">FCN</span><span class="p">(</span>
+    <span class="n">feature_channel</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+    <span class="n">output_channel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">num_layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>         <span class="c1"># Number of hidden layers</span>
+    <span class="n">hidden_size</span><span class="o">=</span><span class="mi">196</span><span class="p">,</span>      <span class="c1"># Hidden layer size</span>
+    <span class="n">seq_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>        <span class="c1"># Input sequence length</span>
+    <span class="n">dim_expand</span><span class="o">=</span><span class="mi">0</span>          <span class="c1"># Optional sequence expansion</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Architecture:</strong>
+- Flattens input: (batch, channels, seq) → (batch, channels * seq)
+- FCBlock: Linear → BatchNorm → ReLU
+- Optional sequence length expansion</p>
+</section>
+<section id="vertical-rt-column-network-physics-inspired">
+<h2>Vertical RT Column Network (Physics-Inspired)<a class="headerlink" href="#vertical-rt-column-network-physics-inspired" title="Link to this heading"></a></h2>
+<p>A physics-inspired neural network that emulates the two-stream matrix-based
+radiative transfer solver. This architecture preserves the physical structure
+of the RT equations, making it particularly well-suited for vertical canopy
+radiative transfer modeling.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rtnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalRTColumnNet</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">VerticalRTColumnNet</span><span class="p">(</span>
+    <span class="n">feature_channel</span><span class="o">=</span><span class="mi">121</span><span class="p">,</span>   <span class="c1"># Input features (cosz + LAI + SSA + RS)</span>
+    <span class="n">hidden</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>            <span class="c1"># Hidden dimension size</span>
+    <span class="n">out_channel</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>       <span class="c1"># Output channels (4 vars × 15 PFTs × 2 bands)</span>
+    <span class="n">n_layers</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>           <span class="c1"># Number of vertical canopy layers</span>
+    <span class="n">layer_embed_dim</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>    <span class="c1"># Dimension of layer positional embedding</span>
+    <span class="n">mu_bar</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>            <span class="c1"># Average inverse diffuse optical depth</span>
+    <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span>            <span class="c1"># Dropout rate</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Physical Interpretation:</strong></p>
+<p>The architecture follows the analytical solution of the two-stream equations:</p>
+<div class="math notranslate nohighlight">
+\[F(\tau) = A \cdot e^{\lambda \tau} + B \cdot e^{-\lambda \tau} + C \cdot e^{-\tau / \mu_0}\]</div>
+<p>Where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\lambda = \sqrt{\gamma_1^2 - \gamma_2^2}\)</span> (eigenvalue)</p></li>
+<li><p><span class="math notranslate nohighlight">\(\Gamma = \gamma_2 / (\gamma_1 + \lambda)\)</span> (reflection/transmission ratio)</p></li>
+<li><p><span class="math notranslate nohighlight">\(C^+\)</span> and <span class="math notranslate nohighlight">\(C^-\)</span> are particular solutions for direct beam</p></li>
+</ul>
+<p><strong>Key Components:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Layer Positional Embedding</strong>: Adds vertical position information (depth awareness)</p></li>
+<li><p><strong>Optical Properties Predictor</strong>: Computes per-layer:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\omega\)</span> (single scattering albedo)</p></li>
+<li><p><span class="math notranslate nohighlight">\(\gamma_1, \gamma_2, \gamma_3, \gamma_4\)</span> (scattering coefficients)</p></li>
+<li><p><span class="math notranslate nohighlight">\(K = G(\mu)/\mu\)</span> (extinction coefficient for direct beam)</p></li>
+</ul>
+</li>
+<li><p><strong>Downward Sweep</strong> (Top → Bottom):</p>
+<ul class="simple">
+<li><p>Models downward diffuse flux propagation through the canopy</p></li>
+</ul>
+</li>
+<li><p><strong>Surface Boundary Condition</strong>:</p>
+<ul class="simple">
+<li><p>Reflects bottom flux based on surface albedo <span class="math notranslate nohighlight">\(R_s\)</span></p></li>
+</ul>
+</li>
+<li><p><strong>Upward Sweep</strong> (Bottom → Top):</p>
+<ul class="simple">
+<li><p>Models upward diffuse flux propagation</p></li>
+</ul>
+</li>
+<li><p><strong>Flux Reconstruction</strong>:</p>
+<ul class="simple">
+<li><p>Combines downward and upward fluxes with residual connections</p></li>
+</ul>
+</li>
+</ol>
+<p><strong>Advantages:</strong></p>
+<ul class="simple">
+<li><p>Preserves physical structure of RT equations</p></li>
+<li><p>Handles vertical heterogeneity naturally</p></li>
+<li><p>Learns layer-specific optical properties</p></li>
+<li><p>Physically interpretable parameters</p></li>
+<li><p>Efficient for multi-layer canopy problems</p></li>
+</ul>
+<p><strong>When to Use:</strong></p>
+<ul class="simple">
+<li><p>Modeling radiative transfer through vegetation canopies</p></li>
+<li><p>Problems with vertical structure (multiple layers)</p></li>
+<li><p>When physical interpretability is important</p></li>
+<li><p>Emulating two-stream RT solvers in Land Surface Models</p></li>
+</ul>
+</section>
+<section id="model-comparison">
+<h2>Model Comparison<a class="headerlink" href="#model-comparison" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Architecture</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Best For</p></th>
+<th class="head"><p>Pros/Cons</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LSTM/GRU</p></td>
+<td><p>Moderate</p></td>
+<td><p>Temporal dependencies</p></td>
+<td><p>Good for sequences, can be slow</p></td>
+</tr>
+<tr class="row-odd"><td><p>Transformer</p></td>
+<td><p>Large</p></td>
+<td><p>Long-range dependencies</p></td>
+<td><p>Parallel processing, memory intensive</p></td>
+</tr>
+<tr class="row-even"><td><p>FCN</p></td>
+<td><p>Moderate</p></td>
+<td><p>Simple relationships</p></td>
+<td><p>Fast, no temporal modeling</p></td>
+</tr>
+<tr class="row-odd"><td><p>VerticalRT</p></td>
+<td><p>Moderate-Large</p></td>
+<td><p>Vertical RT problems</p></td>
+<td><p>Physics-inspired, interpretable, specialized</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="choosing-an-architecture">
+<h2>Choosing an Architecture<a class="headerlink" href="#choosing-an-architecture" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>LSTM/GRU</strong>: Default choice for temporal sequences</p></li>
+<li><p><strong>Transformer</strong>: For long sequences or when attention is important</p></li>
+<li><p><strong>FCN</strong>: For simple regression tasks without temporal structure</p></li>
+<li><p><strong>VerticalRT</strong>: For vertical canopy radiative transfer problems (physics-inspired)</p></li>
+</ol>
+<p>See <a class="reference internal" href="training_strategy.html"><span class="doc">Training Strategy</span></a> for hyperparameter recommendations.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="training_strategy.html" class="btn btn-neutral float-right" title="Training Strategy" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, IPSL / CNRS / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

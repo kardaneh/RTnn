@@ -1,0 +1,705 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rtnn.dataset &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../inference_modes.html">Inference Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_handling.html">Data Handling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rtnn.dataset</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rtnn.dataset</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2026 IPSL / CNRS / Sorbonne University</span>
+<span class="c1"># Authors: Kazem Ardaneh</span>
+<span class="c1">#</span>
+<span class="c1"># This work is licensed under the Creative Commons</span>
+<span class="c1"># Attribution-NonCommercial-ShareAlike 4.0 International License.</span>
+<span class="c1"># To view a copy of this license, visit</span>
+<span class="c1"># http://creativecommons.org/licenses/by-nc-sa/4.0/</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+
+
+<div class="viewcode-block" id="DataPreprocessor">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.dataset.DataPreprocessor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataPreprocessor</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset class for preprocessing LSM (Land Surface Model) data.</span>
+
+<span class="sd">    This class handles loading and preprocessing of NetCDF files containing</span>
+<span class="sd">    climate data, with support for multiple years, spatial and temporal batching,</span>
+<span class="sd">    and various normalization techniques.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    logger : object</span>
+<span class="sd">        Logger instance for logging messages.</span>
+<span class="sd">    dfs : List[str]</span>
+<span class="sd">        List of file paths to NetCDF files.</span>
+<span class="sd">    stime : int</span>
+<span class="sd">        Start time index.</span>
+<span class="sd">    tstep : int</span>
+<span class="sd">        Number of time steps per file.</span>
+<span class="sd">    tbatch : int</span>
+<span class="sd">        Temporal batch size.</span>
+<span class="sd">    norm_mapping : Dict, optional</span>
+<span class="sd">        Dictionary containing normalization statistics for each variable.</span>
+<span class="sd">        Default is empty dict.</span>
+<span class="sd">    normalization_type : Dict, optional</span>
+<span class="sd">        Dictionary specifying normalization type for each variable.</span>
+<span class="sd">        Default is empty dict.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    logger : object</span>
+<span class="sd">        Logger instance.</span>
+<span class="sd">    stime : int</span>
+<span class="sd">        Start time index.</span>
+<span class="sd">    tstep : int</span>
+<span class="sd">        Time steps per file.</span>
+<span class="sd">    tbatch : int</span>
+<span class="sd">        Temporal batch size.</span>
+<span class="sd">    norm_mapping : Dict</span>
+<span class="sd">        Normalization statistics.</span>
+<span class="sd">    normalization_type : Dict</span>
+<span class="sd">        Normalization types per variable.</span>
+<span class="sd">    sbatch : int</span>
+<span class="sd">        Number of spatial batches.</span>
+<span class="sd">    years : List[int]</span>
+<span class="sd">        Sorted list of years in the dataset.</span>
+<span class="sd">    etime : int</span>
+<span class="sd">        End time index.</span>
+<span class="sd">    dfs : List[Tuple[int, int, str]]</span>
+<span class="sd">        List of (year, spatial_index, file_path) tuples.</span>
+<span class="sd">    time_blocks : np.ndarray</span>
+<span class="sd">        Shuffled time blocks.</span>
+<span class="sd">    min_dims : Dict[str, int]</span>
+<span class="sd">        Minimum dimensions across files.</span>
+<span class="sd">    cosz : List[str]</span>
+<span class="sd">        Cosine of solar zenith angle variable names.</span>
+<span class="sd">    lai : List[str]</span>
+<span class="sd">        Leaf area index variable names.</span>
+<span class="sd">    ssa : List[str]</span>
+<span class="sd">        Single scattering albedo variable names.</span>
+<span class="sd">    rs : List[str]</span>
+<span class="sd">        Surface reflectance variable names.</span>
+<span class="sd">    ov : List[str]</span>
+<span class="sd">        Output variable names.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from rtnn.logger import Logger</span>
+<span class="sd">    &gt;&gt;&gt; logger = Logger()</span>
+<span class="sd">    &gt;&gt;&gt; files = [&quot;data_1995.nc&quot;, &quot;data_1996.nc&quot;]</span>
+<span class="sd">    &gt;&gt;&gt; dataset = DataPreprocessor(</span>
+<span class="sd">    ...     logger=logger,</span>
+<span class="sd">    ...     dfs=files,</span>
+<span class="sd">    ...     stime=0,</span>
+<span class="sd">    ...     tstep=100,</span>
+<span class="sd">    ...     tbatch=24,</span>
+<span class="sd">    ...     norm_mapping={},</span>
+<span class="sd">    ...     normalization_type={}</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; len(dataset)</span>
+<span class="sd">    100</span>
+<span class="sd">    &gt;&gt;&gt; features, targets = dataset[0]</span>
+<span class="sd">    &gt;&gt;&gt; features.shape</span>
+<span class="sd">    torch.Size([schunk, feature_channels, seq_length])</span>
+<span class="sd">    &gt;&gt;&gt; targets.shape</span>
+<span class="sd">    torch.Size([schunk, output_channels, seq_length])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DataPreprocessor.__init__">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.dataset.DataPreprocessor.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">logger</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">dfs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">stime</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">tbatch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">sblock_perc</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span>
+        <span class="n">norm_mapping</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">normalization_type</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the DataPreprocessor.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        logger : Any</span>
+<span class="sd">            Logger instance for logging messages.</span>
+<span class="sd">        dfs : List[str]</span>
+<span class="sd">            List of file paths to NetCDF files.</span>
+<span class="sd">        stime : int</span>
+<span class="sd">            Start time index.</span>
+<span class="sd">        tbatch : int</span>
+<span class="sd">            Temporal batch size.</span>
+<span class="sd">        training : bool, optional</span>
+<span class="sd">            If True, use 60% of spatial batches (data augmentation).</span>
+<span class="sd">            If False, use 100% of spatial batches (full evaluation).</span>
+<span class="sd">        norm_mapping : Dict, optional</span>
+<span class="sd">            Dictionary containing normalization statistics for each variable.</span>
+<span class="sd">        normalization_type : Dict, optional</span>
+<span class="sd">            Dictionary specifying normalization type for each variable.</span>
+<span class="sd">        debug : bool, optional</span>
+<span class="sd">            If True, print debug information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stime</span> <span class="o">=</span> <span class="n">stime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tbatch</span> <span class="o">=</span> <span class="n">tbatch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="o">=</span> <span class="n">training</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_mapping</span> <span class="o">=</span> <span class="n">norm_mapping</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalization_type</span> <span class="o">=</span> <span class="n">normalization_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sblock_perc</span> <span class="o">=</span> <span class="n">sblock_perc</span>
+
+        <span class="c1"># Group files by year</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_sbatch_files_by_year</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">dfs</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;_(\d</span><span class="si">{4}</span><span class="s2">)\.nc$&quot;</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="n">year</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">train_sbatch_files_by_year</span><span class="p">[</span><span class="n">year</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># Determine number of spatial batches</span>
+        <span class="n">first_key</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_sbatch_files_by_year</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_sbatch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_sbatch_files_by_year</span><span class="p">[</span><span class="n">first_key</span><span class="p">])</span>
+
+        <span class="c1"># Set spatial batch size based on training mode</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="c1"># Training: use 60% of spatial batches</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sbatch</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_sbatch</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sblock_perc</span><span class="p">))</span>
+            <span class="c1"># Initialize tracking for random spatial mapping</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_tindex</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_spatial_mapping</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Validation/Testing: use 100% of spatial batches</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sbatch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_sbatch</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_sbatch_files_by_year</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">year_to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">y</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="p">)}</span>
+
+        <span class="c1"># Create list of (year, spatial_index, path) for all files</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">sindex</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">years</span>
+            <span class="k">for</span> <span class="n">sindex</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_sbatch_files_by_year</span><span class="p">[</span><span class="n">year</span><span class="p">]))</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Find minimum dimensions across all files</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+            <span class="s2">&quot;dim_1&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+            <span class="s2">&quot;dim_2&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+            <span class="s2">&quot;dim_3&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+            <span class="s2">&quot;dim_4&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dfs</span><span class="p">:</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="p">[</span><span class="n">dim</span><span class="p">],</span> <span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="n">dim</span><span class="p">])</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimum </span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2"> across files: </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tstep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">etime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tstep</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="p">)</span>
+
+        <span class="c1"># Create and shuffle time blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_blocks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">etime</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">stime</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">tbatch</span><span class="p">)</span>
+
+        <span class="c1"># Define variable groups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cosz</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;coszang&quot;</span><span class="p">]</span>  <span class="c1"># Cosine of solar zenith angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lai</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;laieff_collim&quot;</span><span class="p">,</span> <span class="s2">&quot;laieff_isotrop&quot;</span><span class="p">]</span>  <span class="c1"># Leaf area index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ssa</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;leaf_ssa&quot;</span><span class="p">,</span> <span class="s2">&quot;leaf_psd&quot;</span><span class="p">]</span>  <span class="c1"># Single scattering albedo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;rs_surface_emu&quot;</span><span class="p">]</span>  <span class="c1"># Surface reflectance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ov</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;collim_alb&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;collim_tran&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;isotrop_alb&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;isotrop_tran&quot;</span><span class="p">,</span>
+        <span class="p">]</span>  <span class="c1"># Output variables</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sindex_tracker</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Will store spatial indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tindex_tracker</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Will store temporal indices</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time range: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stime</span><span class="si">}</span><span class="s2"> ... </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">etime</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time steps per file: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tstep</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Temporal batch size: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tbatch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spatial batche size: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sbatch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time blocks: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time_blocks</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Years: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Year to index: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">year_to_index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Variable groups: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cosz</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lai</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ssa</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rs</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ov</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;The list of file info:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">sindex</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">year</span><span class="p">,</span> <span class="n">sindex</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dfs</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>  <span class="c1"># Set a fixed seed for reproducibility</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_random_spatial_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a random spatial mapping for training.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        List[int]</span>
+<span class="sd">            List of randomly selected processor ranks (size = self.sbatch).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_sbatch</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sbatch</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DataPreprocessor.normalize">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.dataset.DataPreprocessor.normalize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">var_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normalize data using the specified normalization method.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : np.ndarray</span>
+<span class="sd">            Input data array to normalize.</span>
+<span class="sd">        var_name : str</span>
+<span class="sd">            Name of the variable for which to retrieve normalization statistics.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray</span>
+<span class="sd">            Normalized data array.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the normalization type is not supported.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Supported normalization types:</span>
+<span class="sd">        - minmax: (x - min) / (max - min)</span>
+<span class="sd">        - standard: (x - mean) / std</span>
+<span class="sd">        - robust: (x - median) / IQR</span>
+<span class="sd">        - log1p_minmax: log1p(x) normalized</span>
+<span class="sd">        - log1p_standard: log1p(x) standardized</span>
+<span class="sd">        - log1p_robust: log1p(x) robust normalized</span>
+<span class="sd">        - sqrt_minmax: sqrt(x) normalized</span>
+<span class="sd">        - sqrt_standard: sqrt(x) standardized</span>
+<span class="sd">        - sqrt_robust: sqrt(x) robust normalized</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">norm_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalization_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="s2">&quot;log1p_minmax&quot;</span><span class="p">)</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_mapping</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Normalizing variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; using method &#39;</span><span class="si">{</span><span class="n">norm_type</span><span class="si">}</span><span class="s2">&#39; with stats: </span><span class="si">{</span><span class="n">stats</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;minmax&quot;</span><span class="p">:</span>
+            <span class="n">vmin</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vmin&quot;</span><span class="p">]</span>
+            <span class="n">vmax</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vmax&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vmean&quot;</span><span class="p">]</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vstd&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;robust&quot;</span><span class="p">:</span>
+            <span class="n">median</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;median&quot;</span><span class="p">]</span>
+            <span class="n">iqr</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span> <span class="o">/</span> <span class="n">iqr</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_minmax&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">log_min</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_min&quot;</span><span class="p">]</span>
+            <span class="n">log_max</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_max&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">log_min</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">log_max</span> <span class="o">-</span> <span class="n">log_min</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_standard&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_mean&quot;</span><span class="p">]</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_std&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_robust&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">median</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_median&quot;</span><span class="p">]</span>
+            <span class="n">iqr</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_iqr&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span> <span class="o">/</span> <span class="n">iqr</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_minmax&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">sqrt_min</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_min&quot;</span><span class="p">]</span>
+            <span class="n">sqrt_max</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_max&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">sqrt_min</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">sqrt_max</span> <span class="o">-</span> <span class="n">sqrt_min</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_standard&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_mean&quot;</span><span class="p">]</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_std&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_robust&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">median</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_median&quot;</span><span class="p">]</span>
+            <span class="n">iqr</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_iqr&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span> <span class="o">/</span> <span class="n">iqr</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unsupported normalization type &#39;</span><span class="si">{</span><span class="n">norm_type</span><span class="si">}</span><span class="s2">&#39; for variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the total number of samples in the dataset.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            Total number of samples (time blocks * spatial batches).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">etime</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">stime</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">tbatch</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sbatch</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a sample from the dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index : int</span>
+<span class="sd">            Index of the sample to retrieve.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">            A tuple containing:</span>
+<span class="sd">            - features: Input features tensor of shape (schunk, feature_channels, seq_length)</span>
+<span class="sd">            - targets: Target variables tensor of shape (schunk, output_channels, seq_length)</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The method loads data from the appropriate file based on the index,</span>
+<span class="sd">        applies normalization, and returns the processed features and targets.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Index </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2"> out of range [0, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Calculate spatial and temporal indices</span>
+        <span class="n">index_spatial_mapping</span> <span class="o">=</span> <span class="n">index</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">sbatch</span>
+        <span class="n">tblock</span> <span class="o">=</span> <span class="n">index</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">sbatch</span>
+
+        <span class="c1"># Calculate which year this block belongs to</span>
+        <span class="n">blocks_per_year</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tstep</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">tbatch</span>
+        <span class="k">if</span> <span class="n">blocks_per_year</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid blocks_per_year: </span><span class="si">{</span><span class="n">blocks_per_year</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;tstep=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tstep</span><span class="si">}</span><span class="s2">, tbatch=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tbatch</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">year_index</span> <span class="o">=</span> <span class="n">tblock</span> <span class="o">//</span> <span class="n">blocks_per_year</span>
+        <span class="c1"># Validate year_index</span>
+        <span class="k">if</span> <span class="n">year_index</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Year index </span><span class="si">{</span><span class="n">year_index</span><span class="si">}</span><span class="s2"> out of range [0, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">local_tblock</span> <span class="o">=</span> <span class="n">tblock</span> <span class="o">%</span> <span class="n">blocks_per_year</span>
+
+        <span class="c1"># Calculate time index (with random offset for training)</span>
+        <span class="n">tindex</span> <span class="o">=</span> <span class="n">local_tblock</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tbatch</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">stime</span>
+
+        <span class="c1"># For training: regenerate spatial mapping when time index changes</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_tindex</span> <span class="o">!=</span> <span class="n">tindex</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_spatial_mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_random_spatial_mapping</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_tindex</span> <span class="o">=</span> <span class="n">tindex</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;New spatial mapping for tindex </span><span class="si">{</span><span class="n">tindex</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_spatial_mapping</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># Map the spatial index to an actual processor rank</span>
+            <span class="n">sindex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_spatial_mapping</span><span class="p">[</span><span class="n">index_spatial_mapping</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># For validation/testing: use direct mapping (sindex = index_spatial_mapping)</span>
+            <span class="n">sindex</span> <span class="o">=</span> <span class="n">index_spatial_mapping</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">tindex</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tbatch</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tindex_tracker</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tblock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sindex_tracker</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sindex</span><span class="p">)</span>
+
+        <span class="c1"># Get the file path</span>
+        <span class="n">dfs_index</span> <span class="o">=</span> <span class="n">year_index</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sbatch</span> <span class="o">+</span> <span class="n">sindex</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dfs</span><span class="p">[</span><span class="n">dfs_index</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;------------------- GET ITEM INFO -------------------&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Torch batch index: </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Spatial index before mapping: </span><span class="si">{</span><span class="n">index_spatial_mapping</span><span class="si">}</span><span class="s2">, and Spatial index after mapping: </span><span class="si">{</span><span class="n">sindex</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Temporal block index: </span><span class="si">{</span><span class="n">tblock</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Year index: </span><span class="si">{</span><span class="n">year_index</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Local time block: </span><span class="si">{</span><span class="n">local_tblock</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Time index: </span><span class="si">{</span><span class="n">tindex</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Loading file: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># Open the dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="c1"># Get dimensions</span>
+        <span class="n">seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="p">[</span><span class="s2">&quot;dim_2&quot;</span><span class="p">]</span>  <span class="c1"># 10 (vertical levels)</span>
+        <span class="n">dim_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="p">[</span><span class="s2">&quot;dim_1&quot;</span><span class="p">]</span>  <span class="c1"># 263 (spatial points)</span>
+        <span class="n">n_pft</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="p">[</span><span class="s2">&quot;dim_3&quot;</span><span class="p">]</span>  <span class="c1"># 15</span>
+        <span class="n">n_bands</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_dims</span><span class="p">[</span><span class="s2">&quot;dim_4&quot;</span><span class="p">]</span>  <span class="c1"># 2</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Dimensions for processing:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;  |- sequence_length_dim: </span><span class="si">{</span><span class="n">seq_len</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;  |- dim_1: </span><span class="si">{</span><span class="n">dim_1</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;  |- n_pft: </span><span class="si">{</span><span class="n">n_pft</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;  |- n_bands: </span><span class="si">{</span><span class="n">n_bands</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># ================================================================</span>
+        <span class="c1"># FEATURES</span>
+        <span class="c1"># ================================================================</span>
+        <span class="c1"># Feature channels:</span>
+        <span class="c1"># - cosz: 1</span>
+        <span class="c1"># - lai: 2 vars × n_pft = 30</span>
+        <span class="c1"># - ssa: 2 vars × n_bands × n_pft = 60</span>
+        <span class="c1"># - rs: 1 var ×  n_bands × n_pft = 30</span>
+        <span class="c1"># Total: 121</span>
+
+        <span class="n">n_lai_features</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n_pft</span>  <span class="c1"># 30</span>
+        <span class="n">n_ssa_features</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span>  <span class="c1"># 60</span>
+        <span class="n">n_rs_features</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span>  <span class="c1"># 30</span>
+        <span class="n">n_features</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">n_lai_features</span> <span class="o">+</span> <span class="n">n_ssa_features</span> <span class="o">+</span> <span class="n">n_rs_features</span>  <span class="c1"># 121</span>
+
+        <span class="n">features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">dim_1</span><span class="p">,</span> <span class="n">n_features</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">f_idx</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># 1. COSZ - shape: (time, dim_1) -&gt; (dim_1, 1, seq_len)</span>
+        <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosz</span><span class="p">:</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">tindex</span><span class="p">,</span> <span class="n">dim_1</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim_1</span><span class="p">))</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (dim_1,)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
+            <span class="c1"># Tile to (dim_1, 1, seq_len) - same value for all vertical levels</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>  <span class="c1"># (dim_1, 1, 1)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">))</span>  <span class="c1"># (dim_1, 1, seq_len)</span>
+            <span class="n">features</span><span class="p">[:,</span> <span class="n">f_idx</span> <span class="p">:</span> <span class="n">f_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">temp</span>
+            <span class="n">f_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># 2. LAI - shape: (time, dim_3, dim_2, dim_1) -&gt; (dim_1, n_pft, seq_len)</span>
+        <span class="c1"># dim_2 is vertical level, we need ALL levels, so we loop over dim_2</span>
+        <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lai</span><span class="p">:</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+            <span class="c1"># Get all data for this time step</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">=</span><span class="n">tindex</span><span class="p">,</span> <span class="n">dim_1</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim_1</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (dim_3, dim_2, dim_1)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
+            <span class="c1"># For each vertical level (seq_len), we have a (dim_3, dim_1) matrix</span>
+            <span class="c1"># We want: (dim_1, dim_3, seq_len)</span>
+            <span class="c1"># Transpose to (dim_1, dim_3, dim_2)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (dim_1, dim_3, dim_2)</span>
+            <span class="c1"># Now temp has shape (dim_1, n_pft, seq_len) - perfect!</span>
+            <span class="n">features</span><span class="p">[:,</span> <span class="n">f_idx</span> <span class="p">:</span> <span class="n">f_idx</span> <span class="o">+</span> <span class="n">n_pft</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">temp</span>
+            <span class="n">f_idx</span> <span class="o">+=</span> <span class="n">n_pft</span>
+
+        <span class="c1"># 3. SSA (leaf_ssa, leaf_psd) - shape: (time, dim_4, dim_3) -&gt; (dim_1, n_bands, n_pft, seq_len)</span>
+        <span class="c1"># Note: SSA does NOT depend on dim_2 (vertical level), so same for all levels</span>
+        <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssa</span><span class="p">:</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">tindex</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (dim_4, dim_3)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
+            <span class="c1"># Expand to (dim_1, dim_4, dim_3, seq_len) by tiling</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>  <span class="c1"># (1, dim_4, dim_3, 1)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+                <span class="n">temp</span><span class="p">,</span> <span class="p">(</span><span class="n">dim_1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># (dim_1, dim_4, dim_3, seq_len)</span>
+            <span class="c1"># Reshape to (dim_1, dim_4 * dim_3, seq_len)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dim_1</span><span class="p">,</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+            <span class="n">features</span><span class="p">[:,</span> <span class="n">f_idx</span> <span class="p">:</span> <span class="n">f_idx</span> <span class="o">+</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">temp</span>
+            <span class="n">f_idx</span> <span class="o">+=</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span>
+
+        <span class="c1"># 4. RS (rs_surface_emu) - shape: (time, dim_4, dim_3, dim_1) -&gt; (dim_1, n_bands, n_pft, seq_len)</span>
+        <span class="c1"># Note: RS has dim_3 (PFT) dimension, we need all PFTs</span>
+        <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rs</span><span class="p">:</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">=</span><span class="n">tindex</span><span class="p">,</span> <span class="n">dim_1</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim_1</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (dim_4, dim_3, dim_1)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
+            <span class="c1"># Transpose to (dim_1, dim_4, dim_3)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (dim_1, dim_4, dim_3)</span>
+            <span class="c1"># Expand to (dim_1, dim_4, dim_3, seq_len) by tiling (same for all vertical levels)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>  <span class="c1"># (dim_1, dim_4, dim_3, 1)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">))</span>  <span class="c1"># (dim_1, dim_4, dim_3, seq_len)</span>
+            <span class="c1"># Reshape to (dim_1, dim_4 * dim_3, seq_len)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dim_1</span><span class="p">,</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+            <span class="n">features</span><span class="p">[:,</span> <span class="n">f_idx</span> <span class="p">:</span> <span class="n">f_idx</span> <span class="o">+</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">temp</span>
+            <span class="n">f_idx</span> <span class="o">+=</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span>
+
+        <span class="k">assert</span> <span class="n">f_idx</span> <span class="o">==</span> <span class="n">n_features</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Feature mismatch: </span><span class="si">{</span><span class="n">f_idx</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">n_features</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># ================================================================</span>
+        <span class="c1"># OUTPUTS - shape: (dim_1, n_outputs, seq_len)</span>
+        <span class="c1"># n_outputs = 4 vars × n_bands × n_pft = 120</span>
+        <span class="c1"># ================================================================</span>
+        <span class="n">n_outputs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ov</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span>  <span class="c1"># 120</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">dim_1</span><span class="p">,</span> <span class="n">n_outputs</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">o_idx</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ov</span><span class="p">:</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+            <span class="c1"># Shape: (time, dim_4, dim_2, dim_3, dim_1)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">=</span><span class="n">tindex</span><span class="p">,</span> <span class="n">dim_1</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim_1</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (dim_4, dim_2, dim_3, dim_1)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
+            <span class="c1"># We want: (dim_1, dim_4, dim_3, dim_2) - output per vertical level</span>
+            <span class="c1"># Transpose to (dim_1, dim_4, dim_3, dim_2)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (dim_1, dim_4, dim_3, dim_2)</span>
+            <span class="c1"># Now temp has shape (dim_1, n_bands, n_pft, seq_len) - perfect!</span>
+            <span class="c1"># Reshape to (dim_1, n_bands * n_pft, seq_len)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dim_1</span><span class="p">,</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+            <span class="n">outputs</span><span class="p">[:,</span> <span class="n">o_idx</span> <span class="p">:</span> <span class="n">o_idx</span> <span class="o">+</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">temp</span>
+            <span class="n">o_idx</span> <span class="o">+=</span> <span class="n">n_bands</span> <span class="o">*</span> <span class="n">n_pft</span>
+
+        <span class="k">assert</span> <span class="n">o_idx</span> <span class="o">==</span> <span class="n">n_outputs</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Output mismatch: </span><span class="si">{</span><span class="n">o_idx</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">n_outputs</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># Convert to torch tensors</span>
+        <span class="n">features_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">outputs_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">features_tensor</span><span class="p">,</span> <span class="n">outputs_tensor</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, IPSL / CNRS / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

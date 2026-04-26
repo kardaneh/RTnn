@@ -1,0 +1,221 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inference Modes &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Data Handling" href="data_handling.html" />
+    <link rel="prev" title="Training Strategy" href="training_strategy.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Inference Modes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#command-line">Command Line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sbatch-script-for-inference">SBATCH Script for Inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#loading-checkpoints">Loading Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#resume-training">Resume Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#inference-performance-tips">Inference Performance Tips</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data_handling.html">Data Handling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Inference Modes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/inference_modes.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="training_strategy.html" class="btn btn-neutral float-left" title="Training Strategy" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="data_handling.html" class="btn btn-neutral float-right" title="Data Handling" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="inference-modes">
+<h1>Inference Modes<a class="headerlink" href="#inference-modes" title="Link to this heading"></a></h1>
+<p>Running inference with trained models.</p>
+<section id="command-line">
+<h2>Command Line<a class="headerlink" href="#command-line" title="Link to this heading"></a></h2>
+<p>Set <cite>–run_type inference</cite> to run inference without training:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rtnn<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--run_type<span class="w"> </span>inference<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--load_checkpoint_name<span class="w"> </span>model.pth.tar<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--type<span class="w"> </span>verticalrt<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--feature_channel<span class="w"> </span><span class="m">121</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--output_channel<span class="w"> </span><span class="m">120</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--hidden_size<span class="w"> </span><span class="m">256</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--num_layers<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--seq_length<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--test_year<span class="w"> </span><span class="m">2000</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--test_data_files<span class="w"> </span>/path/to/data
+</pre></div>
+</div>
+<p><strong>Key inference arguments:</strong></p>
+<ul class="simple">
+<li><p><cite>–run_type inference</cite>: Enables inference mode (no training loop)</p></li>
+<li><p><cite>–load_checkpoint_name</cite>: Path to the trained model checkpoint</p></li>
+<li><p><cite>–save_model False</cite>: Disables checkpoint saving (default for inference)</p></li>
+<li><p><cite>–num_workers 0</cite>: Single worker for deterministic inference</p></li>
+</ul>
+</section>
+<section id="sbatch-script-for-inference">
+<h2>SBATCH Script for Inference<a class="headerlink" href="#sbatch-script-for-inference" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1">#SBATCH --partition=batch</span>
+<span class="c1">#SBATCH --gpus=1</span>
+<span class="c1">#SBATCH --ntasks-per-node=1</span>
+<span class="c1">#SBATCH --cpus-per-task=4</span>
+<span class="c1">#SBATCH --mem=48G</span>
+<span class="c1">#SBATCH --time=1:00:00</span>
+
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+
+rtnn<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--run_type<span class="w"> </span>inference<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--load_checkpoint_name<span class="w"> </span>model.pth.tar<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--type<span class="w"> </span>verticalrt<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--feature_channel<span class="w"> </span><span class="m">121</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--output_channel<span class="w"> </span><span class="m">120</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--test_year<span class="w"> </span><span class="m">2000</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--test_data_files<span class="w"> </span>/data/path<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--num_workers<span class="w"> </span><span class="m">0</span>
+</pre></div>
+</div>
+</section>
+<section id="loading-checkpoints">
+<h2>Loading Checkpoints<a class="headerlink" href="#loading-checkpoints" title="Link to this heading"></a></h2>
+<p>RTnn saves two types of files:</p>
+<ul class="simple">
+<li><p><cite>.pth.tar</cite>: Checkpoint with model, optimizer, and training history</p></li>
+<li><p><cite>.pth</cite>: Full model only</p></li>
+</ul>
+<p>To load a checkpoint for inference:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use --load_checkpoint_name with .pth.tar file</span>
+rtnn<span class="w"> </span>--run_type<span class="w"> </span>inference<span class="w"> </span>--load_checkpoint_name<span class="w"> </span>model.pth.tar<span class="w"> </span>...
+</pre></div>
+</div>
+</section>
+<section id="resume-training">
+<h2>Resume Training<a class="headerlink" href="#resume-training" title="Link to this heading"></a></h2>
+<p>To resume training from a checkpoint:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rtnn<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--run_type<span class="w"> </span>resume_train<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--load_checkpoint_name<span class="w"> </span>model.pth.tar<span class="w"> </span><span class="se">\\</span>
+<span class="w">    </span>--num_epochs<span class="w"> </span><span class="m">100</span>
+</pre></div>
+</div>
+</section>
+<section id="inference-performance-tips">
+<h2>Inference Performance Tips<a class="headerlink" href="#inference-performance-tips" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Use <cite>–num_workers 0</cite> for deterministic inference</p></li>
+<li><p>Reduce batch size if memory constrained (4-8 for 120 output channels)</p></li>
+<li><p>Ensure <cite>–save_model False</cite> to avoid writing checkpoints during inference</p></li>
+</ol>
+<p>See <a class="reference internal" href="training_strategy.html"><span class="doc">Training Strategy</span></a> for training configuration.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="training_strategy.html" class="btn btn-neutral float-left" title="Training Strategy" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="data_handling.html" class="btn btn-neutral float-right" title="Data Handling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, IPSL / CNRS / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -64,7 +64,7 @@ Quick Start
 .. code-block:: python
 
     from rtnn import DataPreprocessor, RNN_LSTM
-    from rtnn.evaluate_helper import check_accuracy_evaluate_lsm
+    from rtnn.evaluater import run_validation
 
     # Check version
     print(f"RTnn version: {rtnn.__version__}")
@@ -95,41 +95,126 @@ Command Line Interface
     rtnn --help
 
     # Train a model
-    rtnn train --data_path ./data --config config.yaml
+    rtnn \\
+        --root_dir "./" \\
+        --main_folder "Prod__lstm_h256_l3_d0d1_sb_4_ne_100" \\
+        --sub_folder "nrm_log1p_standard_lr_0d0001_beta_0d5" \\
+        --prefix "nrm_log1p_standard_lr_0d0001_beta_0d5" \\
+        --dataset_type "LSM" \\
+        --type "lstm" \\
+        --hidden_size "256" \\
+        --num_layers "3" \\
+        --output_channel "120" \\
+        --seq_length "10" \\
+        --feature_channel "121" \\
+        --embed_size "256" \\
+        --nhead "4" \\
+        --forward_expansion "4" \\
+        --dropout "0.1" \\
+        --model_name "lstm_h256_l3_d0d1" \\
+        --batch_size "4" \\
+        --num_epochs "100" \\
+        --learning_rate "0.0001" \\
+        --loss_type "huber" \\
+        --beta "0.5" \\
+        --beta_delta "1.0" \\
+        --train_data_files "/path/to/training/data" \\
+        --test_data_files "/path/to/testing/data" \\
+        --train_years "1995-1999" \\
+        --test_year "2000" \\
+        --norm "log1p_standard" \\
+        --num_workers "4" \\
+        --save_model "True" \\
+        --save_checkpoint_name "model" \\
+        --save_per_samples "10000" \\
+        --load_checkpoint_name "nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.tar" \\
+        --run_type "train" \\
+        --seed "42" \\
+        --debug "False"
 
     # Evaluate a model
-    rtnn evaluate --checkpoint model.pth --data ./data/test/
+    rtnn \\
+        --root_dir "./" \\
+        --main_folder "Prod__lstm_h256_l3_d0d1_sb_4_ne_100" \\
+        --sub_folder "nrm_log1p_standard_lr_0d0001_beta_0d5" \\
+        --prefix "nrm_log1p_standard_lr_0d0001_beta_0d5" \\
+        --dataset_type "LSM" \\
+        --type "lstm" \\
+        --hidden_size "256" \\
+        --num_layers "3" \\
+        --output_channel "120" \\
+        --seq_length "10" \\
+        --feature_channel "121" \\
+        --embed_size "256" \\
+        --nhead "4" \\
+        --forward_expansion "4" \\
+        --dropout "0.1" \\
+        --model_name "lstm_h256_l3_d0d1" \\
+        --batch_size "4" \\
+        --num_epochs "100" \\
+        --learning_rate "0.0001" \\
+        --loss_type "huber" \\
+        --beta "0.5" \\
+        --beta_delta "1.0" \\
+        --train_data_files "/path/to/training/data" \\
+        --test_data_files "/path/to/testing/data" \\
+        --train_years "1995-1999" \\
+        --test_year "2000" \\
+        --norm "log1p_standard" \\
+        --num_workers "4" \\
+        --save_model "True" \\
+        --save_checkpoint_name "model" \\
+        --save_per_samples "10000" \\
+        --load_checkpoint_name "nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.tar" \\
+        --run_type "inference" \\
+        --seed "42" \\
+        --debug "False"
 
 Project Structure
 -----------------
 
 ::
 
-    rtnn/
-    ├── src/
-    │   └── rtnn/                 # Main package
-    │       ├── __init__.py
-    │       ├── version.py
-    │       ├── main.py              # Command-line interface
-    │       ├── dataset.py           # LSM data preprocessing
-    │       ├── evaluater.py         # Evaluation metrics
-    │       ├── utils.py             # File utilities
-    │       ├── model_utils.py       # Model utilities
-    │       ├── model_loader.py      # Model preparation
-    │       ├── diagnostics.py       # Visualization
-    │       ├── stats.py             # Statistics computation
-    │       └── models/              # Model architectures
-    │           ├── __init__.py
-    │           ├── rnn.py           # LSTM/GRU models
-    │           ├── fcn.py           # Fully Connected Network
-    │           ├── Transformer.py   # Transformer model
-    │           └── DimChangeModule.py
-    ├── tests/               # Unit tests (unittest framework)
-    ├── docs/                # Documentation
-    ├── pyproject.toml
-    ├── .pre-commit-config.yaml
-    ├── LICENSE
-    └── README.rst
+   rtnn/
+   ├── src/rtnn/                 # Main package
+   │   ├── __init__.py
+   │   ├── __main__.py
+   │   ├── version.py
+   │   ├── dataset.py            # DataPreprocessor class
+   │   ├── evaluater.py          # Metrics and loss functions
+   │   ├── diagnostics.py        # Visualization tools
+   │   ├── logger.py             # Rich logging
+   │   ├── main.py               # Main training script
+   │   ├── model_loader.py       # Model factory
+   │   ├── model_utils.py        # Model utilities
+   │   ├── utils.py              # File and general utilities
+   │   └── models/               # Model architectures
+   │       ├── __init__.py
+   │       ├── rnn.py            # LSTM and GRU
+   │       ├── fcn.py            # Fully Connected Network
+   │       ├── Transformer.py    # Transformer encoder
+   │       ├── mlp.py            # Multi-Layer Perceptron
+   ├── tests/                    # Unit tests
+   │   ├── test_rnn.py
+   │   ├── test_fcn.py
+   │   ├── test_transformer.py
+   │   ├── test_mlp.py
+   │   ├── test_dataset.py
+   │   ├── test_evaluater.py
+   │   ├── test_model_loader.py
+   │   ├── test_diagnostics.py
+   │   ├── test_utils.py
+   │   ├── test_model_utils.py
+   │   └── test_runner.py
+   ├── docs/                     # Documentation
+   │   ├── source/
+   │   └── build/
+   ├── .github/workflows/        # CI/CD pipelines
+   │   ├── ci.yaml
+   │   └── docs.yml
+   ├── pyproject.toml            # Package configuration
+   ├── README.rst                # Project README
+   └── LICENSE                   # CC BY-NC-SA 4.0
 
 Dependencies
 ------------

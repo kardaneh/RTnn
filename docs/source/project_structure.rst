@@ -18,21 +18,23 @@ The RTnn package is organized as follows:
    │   ├── model_loader.py       # Model factory
    │   ├── model_utils.py        # Model utilities
    │   ├── utils.py              # File and general utilities
-   │   ├── stats.py              # Statistical computations
    │   └── models/               # Model architectures
    │       ├── __init__.py
    │       ├── rnn.py            # LSTM and GRU
    │       ├── fcn.py            # Fully Connected Network
    │       ├── Transformer.py    # Transformer encoder
-   │       ├── UNet1D.py         # 1D U-Net
-   │       └── DimChangeModule.py
+   │       ├── mlp.py            # Multi-Layer Perceptron
    ├── tests/                    # Unit tests
    │   ├── test_rnn.py
    │   ├── test_fcn.py
    │   ├── test_transformer.py
+   │   ├── test_mlp.py
    │   ├── test_dataset.py
    │   ├── test_evaluater.py
    │   ├── test_model_loader.py
+   │   ├── test_diagnostics.py
+   │   ├── test_utils.py
+   │   ├── test_model_utils.py
    │   └── test_runner.py
    ├── docs/                     # Documentation
    │   ├── source/

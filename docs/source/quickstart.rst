@@ -216,27 +216,32 @@ Note that `ntasks-per-node × cpus-per-task` is set to a maximum of 4.
 **Performance Analysis and Key Findings:**
 
 1. **Dramatic Impact of DataLoader Workers**:
+
    - Adding `num_workers=4` reduces total time by **68%** (Test 1→2: 1922s → 614s)
    - Without workers, all configurations perform poorly (1867-2148s total time)
    - Workers effectively overlap I/O with GPU computation
 
 2. **Optimal Configuration: Test 2 and Test 8**:
+
    - **Test 2** (default/4 workers): 614.2s total, 280.7s epoch 1
    - **Test 8** (ntasks=2, cpus=2, workers=4): 614.5s total, 275.9s epoch 1
    - Both achieve **3.1x speedup** over baseline (Test 1)
    - Simple configuration (Test 2) is easiest to implement
 
 3. **Poor Configurations to Avoid**:
+
    - **Test 5** (ntasks=4, no workers): 1898s epoch 0, incomplete - I/O saturation causes timeout
    - **Test 3 & 7** (workers=0): 1867-2148s total time - CPU cores wasted without workers
    - Adding CPU cores without workers provides **no benefit** (Test 1 vs 3 vs 7)
 
 4. **The Workers Effect**:
+
    - With workers (Tests 2,4,6,8): Epoch 0: 333-390s, Epoch 1: 276-287s
    - Without workers (Tests 1,3,5,7): Epoch 0: 1115-1898s, Epoch 1: 742-997s
    - Workers reduce epoch 0 time by **70-80%** and epoch 1 time by **62-71%**
 
 5. **CPU Core Allocation Impact**:
+
    - With workers, CPU core allocation has minimal effect (614-673s total)
    - Without workers, more cores actually hurt performance (Test 5: 1898s vs Test 1: 1922s)
    - Suggests I/O is the primary bottleneck, not CPU compute

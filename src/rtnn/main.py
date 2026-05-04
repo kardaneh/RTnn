@@ -321,6 +321,8 @@ def parse_args():
             "encodertorch",
             "vrtn",
             "verticalrt",
+            "mlp",
+            "mlp_residual",
         ],
         help="Model architecture type",
     )

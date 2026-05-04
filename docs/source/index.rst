@@ -47,6 +47,7 @@ accuracy.
    training_strategy
    inference_modes
    data_handling
+   experiments
 
 .. toctree::
    :maxdepth: 2

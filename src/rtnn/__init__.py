@@ -30,7 +30,6 @@ from rtnn.evaluater import (
 )
 from rtnn.models.rnn import RNN_LSTM, RNN_GRU
 from rtnn.models.fcn import FCN
-from rtnn.models.Transformer import Encoder as TransformerEncoder
 
 __all__ = [
     "__version__",
@@ -49,5 +48,4 @@ __all__ = [
     "RNN_LSTM",
     "RNN_GRU",
     "FCN",
-    "TransformerEncoder",
 ]

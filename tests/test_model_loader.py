@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from rtnn.model_loader import load_model
 from rtnn.models.rnn import RNN_LSTM, RNN_GRU
-from rtnn.models.Transformer import Encoder
+from rtnn.models.Transformer import EncoderTorch as Encoder
 from rtnn.models.fcn import FCN
 
 

@@ -22,7 +22,7 @@ DATA_PATH="/net/nfs/ssd1/kardaneh/Data_LSM_1995-2000_Large"                     
 # ======================
 # 1. Model Configuration
 # ======================
-type="transformer"
+type="mlp_residual"
 hidden_size=256
 
 # NUMBER OF LAYERS

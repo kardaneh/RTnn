@@ -7,10 +7,10 @@
 # http://creativecommons.org/licenses/by-nc-sa/4.0/
 
 from rtnn.models.rnn import RNN_LSTM, RNN_GRU
-from rtnn.models.Transformer import Encoder
 from rtnn.models.Transformer import EncoderTorch
 from rtnn.models.fcn import FCN
 from rtnn.models.fcn import VerticalRTColumnNet
+from rtnn.models.mlp import MLP, MLPResidual
 
 
 def load_model(args):
@@ -118,21 +118,7 @@ def load_model(args):
             num_layers=args.num_layers,
         )
 
-    elif model_type == "transformer":
-        model = Encoder(
-            feature_channel=args.feature_channel,
-            output_channel=args.output_channel,
-            embed_size=args.embed_size,
-            num_layers=args.num_layers,
-            heads=args.nhead,
-            forward_expansion=args.forward_expansion
-            if args.forward_expansion is not None
-            else 1,
-            seq_length=args.seq_length,
-            dropout=args.dropout,
-        )
-
-    elif model_type == "encodertorch":
+    elif model_type in ["encodertorch", "transformer"]:
         # New EncoderTorch implementation (PyTorch native transformer)
         model = EncoderTorch(
             feature_channel=args.feature_channel,
@@ -163,6 +149,37 @@ def load_model(args):
             hidden_size=args.hidden_size,
             seq_length=args.seq_length,
             dim_expand=0,
+        )
+
+    elif model_type in ["mlp"]:
+        # Standard MLP with configurable hidden layers
+        hidden_sizes = getattr(args, "hidden_sizes", [512, 256, 128])
+        if isinstance(hidden_sizes, str):
+            hidden_sizes = [int(x) for x in hidden_sizes.split(",")]
+
+        model = MLP(
+            feature_channel=args.feature_channel,
+            output_channel=args.output_channel,
+            seq_length=args.seq_length,
+            hidden_sizes=hidden_sizes,
+            dropout=getattr(args, "dropout", 0.1),
+            use_batch_norm=getattr(args, "use_batch_norm", True),
+            use_layer_norm=getattr(args, "use_layer_norm", False),
+            use_residual=getattr(args, "use_residual", False),
+            activation=getattr(args, "activation", "relu"),
+            use_positional_embedding=getattr(args, "use_positional_embedding", True),
+            positional_embed_dim=getattr(args, "positional_embed_dim", 16),
+        )
+
+    elif model_type in ["mlp_residual"]:
+        # MLP with residual connections between layers
+        model = MLPResidual(
+            feature_channel=args.feature_channel,
+            output_channel=args.output_channel,
+            seq_length=args.seq_length,
+            hidden_size=getattr(args, "hidden_size", 256),
+            num_layers=getattr(args, "num_layers", 4),
+            dropout=getattr(args, "dropout", 0.1),
         )
 
     else:

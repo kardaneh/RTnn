@@ -8,7 +8,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 # Project information
 project = "RTnn"
-copyright = f"{datetime.now().year}, IPSL / CNRS / Sorbonne University"
+copyright = f"{datetime.now().year}, K. Ardaneh / CNRS / IPSL / Sorbonne University"
 author = "Kazem Ardaneh"
 release = "0.1.0"
 version = "0.1"

@@ -231,3 +231,73 @@ Based on the comparison results across 10 vertical layers:
 2. **For balanced performance**: Use **GRU**
 3. **For real-time applications**: Use **FCN** as a lightweight baseline
 4. **For physics-constrained applications**: Use **PINN**
+
+
+Diagnostic Visualizations
+-------------------------
+
+This section presents diagnostic plots generated at epoch 99 for the LSTM model, showing prediction quality across different Plant Functional Types (PFTs) and spectral bands.
+
+Aggregated Results (All PFTs Combined)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following figure shows the density scatter plots (hexbin) for all PFTs combined, comparing predicted vs observed values for all four flux components and absorption channels. The diagonal red dashed line represents perfect prediction (y=x), and the R² score is displayed in each panel.
+
+.. figure:: ../../images/validation_epoch99_aggregated.png
+   :align: center
+   :figwidth: 90%
+
+   **Figure 1:** Aggregated validation results for LSTM model at epoch 99.
+   Top row: Direct flux upwelling (left) and downwelling (right).
+   Middle row: Diffusion flux upwelling (left) and downwelling (right).
+   Bottom row: Absorption for direct (left) and diffusion (right) channels.
+   The color scale represents the logarithm of point density.
+
+The aggregated results demonstrate excellent agreement between predictions and observations, with R² values exceeding 0.9999 for all flux components and above 0.9999 for absorption channels.
+
+Per-PFT Results: Example PFT 11
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Plant Functional Type 11 shows representative performance across the model. The following figures show both hexbin density plots and line plots for the VIS (Visible) and NIR (Near-Infrared) bands.
+
+VIS Band Results for PFT 11
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. figure:: ../../images/validation_epoch99_pft11_VIS_hexbin.png
+   :align: center
+   :figwidth: 90%
+
+   **Figure 2:** Hexbin validation results for PFT 11, VIS band.
+   Shows excellent prediction accuracy for this plant functional type
+   in the visible spectral band.
+
+.. figure:: ../../images/validation_epoch99_pft11_VIS_lines.png
+   :align: center
+   :figwidth: 90%
+
+   **Figure 3:** Line plot validation results for PFT 11, VIS band.
+   The figure shows predictions (solid lines) vs targets (dashed lines)
+   across 10 vertical layers for 10 randomly selected samples.
+   Top panels: Direct flux upwelling (left) and downwelling (right).
+   Middle panels: Diffusion flux upwelling (left) and downwelling (right).
+   Bottom panels: Absorption for direct (left) and diffusion (right) channels.
+
+NIR Band Results for PFT 11
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. figure:: ../../images/validation_epoch99_pft11_NIR_hexbin.png
+   :align: center
+   :figwidth: 90%
+
+   **Figure 4:** Hexbin validation results for PFT 11, NIR band.
+   Demonstrates consistent performance across the near-infrared
+   spectral band.
+
+.. figure:: ../../images/validation_epoch99_pft11_NIR_lines.png
+   :align: center
+   :figwidth: 90%
+
+   **Figure 5:** Line plot validation results for PFT 11, NIR band.
+   The figure shows predictions vs targets across vertical layers,
+   demonstrating accurate capture of vertical profiles for both
+   fluxes and absorption in the NIR band.

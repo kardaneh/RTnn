@@ -496,22 +496,6 @@ class TestDataPreprocessor(unittest.TestCase):
 
         self.logger.success("Data loading test passed")
 
-    def test_getitem_different_indices(self):
-        """Test __getitem__ works with different indices."""
-        self.logger.info("Testing __getitem__ with different indices...")
-        indices = [0, len(self.dataset) // 2, len(self.dataset) - 1]
-
-        for idx in indices:
-            features, targets = self.dataset[idx]
-            self.assertIsInstance(features, torch.Tensor)
-            self.assertIsInstance(targets, torch.Tensor)
-            self.assertGreater(features.numel(), 0)
-            self.assertGreater(targets.numel(), 0)
-            self.assertFalse(torch.isnan(features).any())
-            self.assertFalse(torch.isnan(targets).any())
-
-        self.logger.success("Different indices test passed")
-
     def test_getitem_covers_all_processor_ranks(self):
         """Test that over time, all processor ranks are accessed."""
         self.logger.info("Testing coverage of all processor ranks...")

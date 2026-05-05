@@ -6,6 +6,70 @@
 # To view a copy of this license, visit
 # http://creativecommons.org/licenses/by-nc-sa/4.0/
 
+"""
+Transformer-based encoder model for sequence modeling.
+
+This module implements a Transformer encoder architecture using PyTorch's
+native ``nn.TransformerEncoder`` components. It is designed for processing
+structured sequence data, such as time series or vertical profiles, where
+contextual relationships across positions are important.
+
+The model projects input features into an embedding space, adds learnable
+positional encodings, and processes the sequence through stacked self-attention
+layers before projecting to the desired output channels.
+
+Features
+--------
+- Learnable input projection to embedding space
+- Learnable positional embeddings for sequence order awareness
+- Multi-head self-attention via Transformer encoder layers
+- Configurable depth, attention heads, and feedforward expansion
+- Dropout for regularization
+- Final 1D convolution for channel-wise output projection
+- Support for attention masks and padding masks
+
+Notes
+-----
+- Inputs are expected in the shape (batch_size, feature_channel, seq_length).
+- Internally, inputs are permuted to (batch_size, seq_length, feature_channel)
+  to match Transformer expectations.
+- Positional embeddings are added to the projected input features.
+- The ``mask`` argument is used for attention masking (e.g., causal masking).
+- The ``src_key_padding_mask`` is used to ignore padded positions in sequences.
+- The final output preserves the sequence length and maps embeddings to
+  ``output_channel`` dimensions.
+
+Dependencies
+------------
+- torch
+- torch.nn
+- typing
+
+Examples
+--------
+Basic usage:
+
+>>> model = EncoderTorch(
+...     feature_channel=6,
+...     output_channel=4,
+...     embed_size=128,
+...     num_layers=3,
+...     heads=4,
+...     forward_expansion=4,
+...     seq_length=10,
+...     dropout=0.1
+... )
+>>> x = torch.randn(32, 6, 10)
+>>> y = model(x)
+>>> y.shape
+torch.Size([32, 4, 10])
+
+Using attention masks:
+
+>>> mask = torch.triu(torch.ones(10, 10), diagonal=1).bool()
+>>> y = model(x, mask=mask)
+"""
+
 import torch
 import torch.nn as nn
 from typing import Optional

@@ -6,6 +6,36 @@
 # To view a copy of this license, visit
 # http://creativecommons.org/licenses/by-nc-sa/4.0/
 
+"""
+Logging utilities for RTnn model training and evaluation.
+
+This module provides a rich, customizable logging system for radiative transfer
+neural network workflows. It combines Python's standard logging with the Rich
+library to deliver visually appealing, informative console output while
+maintaining file-based logging for archival purposes.
+
+The Logger class offers multiple log levels and specialized formatting for
+different types of messages:
+
+- **Info messages**: General information (cyan)
+- **Warning messages**: Non-critical issues (yellow with warning emoji)
+- **Success messages**: Successful completions (green with checkmark)
+- **Error messages**: Critical failures (red panels)
+- **Exception messages**: Full traceback displays (multi-panel format)
+- **Step messages**: Pipeline stage transitions (magenta)
+- **Task start messages**: Formatted task initiation banners
+
+Key features include:
+
+- Dual output: console (Rich-formatted) and file (plain text)
+- Progress bars for long-running operations
+- Structured task tracking with start/end logging
+- Metrics aggregation and display
+- Exception traceback visualization with code snippets
+- Configurable output (console/file/both)
+- Pretty printing support
+"""
+
 import logging
 import traceback
 from datetime import datetime

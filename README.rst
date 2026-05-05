@@ -22,6 +22,18 @@ transfer processes in climate science, particularly for Land Surface Models (LSM
    :target: https://rtnn.readthedocs.io/
    :alt: Documentation
 
+Background
+----------
+
+RTnn has been developed in the context of the **AI4PEX project** (Research Focus LAND). AI4PEX is focused on enhancing our understanding of how terrestrial ecosystems respond to climate change and the feedback of increased atmospheric CO2 levels to the climate system. The project aims to reduce uncertainties and enhance process representation, namely:
+
+- **Hybrid Modelling and History Matching**: to better predict the instantaneous vegetation responses to water and heat stress.
+- **Leverage Deep Learning**: approaches, such as Long-Short Term Memory networks, to simulate phenology and enhance online deep learning frameworks to represent plant carbon dynamics and explore tree mortality drivers.
+- **Temperature Sensitivity of Decomposition**: Address the challenge of understanding how temperature affects soil decomposition, which is crucial for ecosystem carbon turnover and land-atmosphere carbon responses to warming.
+- **Land-Atmosphere Feedbacks**: Improve the representation of processes that control energy feedbacks to the atmosphere, including regional climate extremes and land carbon uptake, to reduce uncertainties in projected warming trends.
+
+By focusing on these areas, AI4PEX aims to provide a more accurate representation of ecosystem dynamics and feedbacks in climate models.
+
 Features
 --------
 
@@ -331,4 +343,134 @@ If you use RTnn in your research, please cite:
         year = {2026},
         publisher = {GitHub},
         url = {https://github.com/kardaneh/rtnn}
+    }
+
+References
+----------
+
+The development of RTnn has been informed by the following foundational works in neural network-based radiative transfer emulation:
+
+.. code-block:: bibtex
+
+
+    @article{chevallier1998neural,
+        title={A Neural Network Approach for a Fast and Accurate Computation of a Longwave Radiative Budget},
+        author={Chevallier, F. and Chéruy, F. and Scott, N. A. and Chédin, A.},
+        journal={Journal of Applied Meteorology},
+        volume={37},
+        number={11},
+        pages={1385--1397},
+        year={1998}
+    }
+
+    @article{chevallier2000use,
+        title={Use of a Neural‐network‐based Long‐wave Radiative‐transfer Scheme in the ECMWF Atmospheric Model},
+        author={Chevallier, F. and Morcrette, J. ‐J. and Chéruy, F. and Scott, N. A.},
+        journal={Quarterly Journal of the Royal Meteorological Society},
+        volume={126},
+        number={563},
+        pages={761--776},
+        year={2000}
+    }
+
+
+    @techreport{krasnopolsky2014nn,
+        title={NN-TSV, NCEP Neural Network Training and Validation System: Brief Description of NN Background and Training Software},
+        author={Krasnopolʹsky, V. M.},
+        year={2014},
+        doi={10.7289/V5QR4V2Z}
+    }
+
+    @article{krasnopolsky2010accurate,
+        title={Accurate and Fast Neural Network Emulations of Model Radiation for the NCEP Coupled Climate Forecast System: Climate Simulations and Seasonal Predictions},
+        author={Krasnopolsky, V. M. and Fox-Rabinovitz, M. S. and Hou, Y. T. and Lord, S. J. and Belochitski, A. A.},
+        journal={Monthly Weather Review},
+        volume={138},
+        number={5},
+        pages={1822--1842},
+        year={2010}
+    }
+
+    @article{lagerquist2021using,
+        title={Using Deep Learning to Emulate and Accelerate a Radiative-Transfer Model},
+        author={Lagerquist, Ryan and Turner, David and Ebert-Uphoff, Imme and Stewart, Jebb and Hagerty, Venita},
+        journal={Journal of Atmospheric and Oceanic Technology},
+        year={2021}
+    }
+
+    @article{liang2022deep,
+        title={A Deep-Learning-Based Microwave Radiative Transfer Emulator for Data Assimilation and Remote Sensing},
+        author={Liang, Xingming and Garrett, Kevin and Liu, Quanhua and Maddy, Eric S. and Ide, Kayo and Boukabara, Sid},
+        journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
+        volume={15},
+        pages={8819--8833},
+        year={2022}
+    }
+
+    @article{liu2020radnet,
+        title={RadNet 1.0: Exploring Deep Learning Architectures for Longwave Radiative Transfer},
+        author={Liu, Ying and Caballero, Rodrigo and Monteiro, Joy Merwin},
+        journal={Geoscientific Model Development},
+        volume={13},
+        number={9},
+        pages={4399--4412},
+        year={2020}
+    }
+
+    @article{mishra2021physics,
+        title={Physics Informed Neural Networks for Simulating Radiative Transfer},
+        author={Mishra, Siddhartha and Molinaro, Roberto},
+        journal={Journal of Quantitative Spectroscopy and Radiative Transfer},
+        volume={270},
+        pages={107705},
+        year={2021}
+    }
+
+    @article{mu2023radiative,
+        title={A Radiative Transfer Deep Learning Model Coupled into WRF with a Generic Fortran Torch Adaptor},
+        author={Mu, Bin and Chen, Lu and Yuan, Shijin and Qin, Bo},
+        journal={Frontiers in Earth Science},
+        volume={11},
+        pages={1149566},
+        year={2023}
+    }
+
+    @article{pal2019using,
+        title={Using Deep Neural Networks as Cost‐Effective Surrogate Models for Super‐Parameterized E3SM Radiative Transfer},
+        author={Pal, Anikesh and Mahajan, Salil and Norman, Matthew R.},
+        journal={Geophysical Research Letters},
+        volume={46},
+        number={11},
+        pages={6069--6079},
+        year={2019}
+    }
+
+    @article{song2021improved,
+        title={Improved Weather Forecasting Using Neural Network Emulation for Radiation Parameterization},
+        author={Song, Hwan‐Jin and Roh, Soonyoung},
+        journal={Journal of Advances in Modeling Earth Systems},
+        volume={13},
+        number={10},
+        pages={e2021MS002609},
+        year={2021}
+    }
+
+    @article{ukkonen2022exploring,
+        title={Exploring Pathways to More Accurate Machine Learning Emulation of Atmospheric Radiative Transfer},
+        author={Ukkonen, Peter},
+        journal={Journal of Advances in Modeling Earth Systems},
+        volume={14},
+        number={4},
+        pages={e2021MS002875},
+        year={2022}
+    }
+
+    @article{yao2023physics,
+        title={A Physics‐Incorporated Deep Learning Framework for Parameterization of Atmospheric Radiative Transfer},
+        author={Yao, Yichen and Zhong, Xiaohui and Zheng, Yongjun and Wang, Zhibin},
+        journal={Journal of Advances in Modeling Earth Systems},
+        volume={15},
+        number={5},
+        pages={e2022MS003445},
+        year={2023}
     }

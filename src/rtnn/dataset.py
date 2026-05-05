@@ -6,6 +6,87 @@
 # To view a copy of this license, visit
 # http://creativecommons.org/licenses/by-nc-sa/4.0/
 
+"""
+Dataset module for RTnn radiative transfer neural network framework.
+
+This module provides the DataPreprocessor class for loading, preprocessing,
+and normalizing NetCDF climate data for training and evaluating neural network
+emulators of atmospheric radiative transfer. The module handles complex data
+structures including multiple years, spatial and temporal batching, and various
+normalization techniques.
+
+The DataPreprocessor is designed to work with Land Surface Model (LSM) data
+containing variables such as:
+- Cosine of solar zenith angle (cosz)
+- Leaf area index (lai)
+- Single scattering albedo (ssa)
+- Surface reflectance (rs)
+- Radiative transfer outputs (collimated albedo/transmittance, isotropic albedo/transmittance)
+
+The module supports data augmentation through random spatial sampling during
+training and provides flexible normalization methods including min-max scaling,
+standardization, robust scaling, and transformations like log1p and sqrt.
+
+Notes
+-----
+The expected input data structure consists of NetCDF4 files with dimensions:
+- time: Temporal dimension
+- dim_1: Spatial points (e.g., grid cells)
+- dim_2: Vertical levels (sequence length, typically 10)
+- dim_3: Plant functional types (PFTs, typically 15)
+- dim_4: Spectral bands (typically 2)
+
+Feature channels (121 total):
+- cosz: 1 channel
+- lai: 2 variables × 15 PFTs = 30 channels
+- ssa: 2 variables × 2 bands × 15 PFTs = 60 channels
+- rs: 1 variable × 2 bands × 15 PFTs = 30 channels
+
+Output channels (120 total):
+- 4 variables × 2 bands × 15 PFTs = 120 channels
+
+Examples
+--------
+Basic usage for training:
+
+>>> from rtnn.logger import Logger
+>>> logger = Logger()
+>>> train_files = ["data_1995.nc", "data_1996.nc", "data_1997.nc"]
+>>> dataset = DataPreprocessor(
+...     logger=logger,
+...     dfs=train_files,
+...     stime=0,
+...     tbatch=24,
+...     training=True,
+...     sblock_perc=0.6,
+...     norm_mapping=norm_stats,
+...     normalization_type=norm_types
+... )
+>>> features, targets = dataset[0]
+>>> features.shape
+torch.Size([158, 121, 10])
+>>> targets.shape
+torch.Size([158, 120, 10])
+
+For validation/testing:
+
+>>> val_dataset = DataPreprocessor(
+...     logger=logger,
+...     dfs=val_files,
+...     stime=0,
+...     tbatch=24,
+...     training=False,
+...     norm_mapping=norm_stats,
+...     normalization_type=norm_types
+... )
+
+See Also
+--------
+rtnn.models : Contains the neural network architectures for radiative transfer
+rtnn.evaluater : Provides metrics and loss functions for model evaluation
+rtnn.diagnostics : Visualization tools for model predictions
+"""
+
 import torch
 from torch.utils.data import Dataset
 import numpy as np
@@ -368,13 +449,45 @@ class DataPreprocessor(Dataset):
         -------
         Tuple[torch.Tensor, torch.Tensor]
             A tuple containing:
-            - features: Input features tensor of shape (schunk, feature_channels, seq_length)
-            - targets: Target variables tensor of shape (schunk, output_channels, seq_length)
+            - **features** : torch.Tensor
+                Input features tensor of shape (schunk, feature_channels, seq_length)
+                where schunk is the spatial batch size (dim_1 dimension)
+            - **targets** : torch.Tensor
+                Target variables tensor of shape (schunk, output_channels, seq_length)
+
+        Raises
+        ------
+        IndexError
+            If the index is out of range or if year_index calculation fails.
 
         Notes
         -----
         The method loads data from the appropriate file based on the index,
         applies normalization, and returns the processed features and targets.
+
+        **Data loading strategy:**
+        1. Calculate spatial and temporal indices from the sample index
+        2. Determine which year and file to load based on the indices
+        3. Load the appropriate NetCDF file and extract the required time step
+        4. Process and normalize each variable group (cosz, lai, ssa, rs, outputs)
+        5. Reshape and combine into feature and target tensors
+
+        **Feature processing details:**
+        - COSZ: Single value tiled across all vertical levels
+        - LAI: (dim_1, n_pft, seq_len) - varies with vertical level
+        - SSA: (dim_1, n_bands × n_pft, seq_len) - constant across vertical levels
+        - RS: (dim_1, n_bands × n_pft, seq_len) - constant across vertical levels
+        - Outputs: (dim_1, 4 × n_bands × n_pft, seq_len)
+
+        Examples
+        --------
+        >>> features, targets = dataset[42]
+        >>> features.shape
+        torch.Size([158, 121, 10])
+        >>> targets.shape
+        torch.Size([158, 120, 10])
+        >>> features.dtype
+        torch.float32
         """
         if index >= len(self):
             raise IndexError(f"Index {index} out of range [0, {len(self)})")

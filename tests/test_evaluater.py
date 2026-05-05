@@ -29,7 +29,7 @@ from rtnn.evaluater import (
     mare_all,
     gmrae_all,
     unnorm_mpas,
-    calc_hr,
+    heating_rate,
 )
 
 
@@ -508,7 +508,7 @@ class TestUnnormMpas(unittest.TestCase):
 
 
 class TestCalcHr(unittest.TestCase):
-    """Unit tests for calc_hr function with 5D tensors."""
+    """Unit tests for heating_rate function with 5D tensors."""
 
     def setUp(self):
         """Set up test fixtures with 5D tensors."""
@@ -521,9 +521,9 @@ class TestCalcHr(unittest.TestCase):
         self.batch_size = 1
         self.n_chans = 1
 
-    def test_calc_hr_no_pressure(self):
-        """Test calc_hr without pressure levels."""
-        hr = calc_hr(self.up, self.down, p=None)
+    def test_heating_rate_no_pressure(self):
+        """Test heating_rate without pressure levels."""
+        hr = heating_rate(self.up, self.down, p=None)
 
         # net = up - down = [0.5, 1.0, 1.5, 2.0]
         # dnet = net - roll(net) = [-1.5, 0.5, 0.5, 0.5]
@@ -534,28 +534,28 @@ class TestCalcHr(unittest.TestCase):
         self.assertEqual(hr.shape, (1, 1, 1, 1, 3))
         torch.testing.assert_close(hr, expected, rtol=1e-6, atol=1e-6)
 
-    def test_calc_hr_zero_net(self):
-        """Test calc_hr when up equals down."""
+    def test_heating_rate_zero_net(self):
+        """Test heating_rate when up equals down."""
         up = torch.tensor([[[[[1.0, 2.0, 3.0, 4.0]]]]])
         down = torch.tensor([[[[[1.0, 2.0, 3.0, 4.0]]]]])
-        hr = calc_hr(up, down)
+        hr = heating_rate(up, down)
 
         expected = torch.tensor([[[[[0.0, 0.0, 0.0]]]]])
 
         self.assertTrue(torch.all(hr == 0))
         torch.testing.assert_close(hr, expected)
 
-    def test_calc_hr_with_constant_net(self):
-        """Test calc_hr when net flux is constant."""
+    def test_heating_rate_with_constant_net(self):
+        """Test heating_rate when net flux is constant."""
         up = torch.tensor([[[[[2.0, 2.0, 2.0, 2.0]]]]])
         down = torch.tensor([[[[[1.0, 1.0, 1.0, 1.0]]]]])
-        hr = calc_hr(up, down)
+        hr = heating_rate(up, down)
 
         expected = torch.tensor([[[[[0.0, 0.0, 0.0]]]]])
         torch.testing.assert_close(hr, expected, rtol=1e-6, atol=1e-6)
 
-    def test_calc_hr_with_pft_and_bands(self):
-        """Test calc_hr with multiple PFTs and bands."""
+    def test_heating_rate_with_pft_and_bands(self):
+        """Test heating_rate with multiple PFTs and bands."""
         # Shape: (batch=1, channels=1, n_pft=2, n_bands=2, seq=4)
         up = torch.zeros(1, 1, 2, 2, 4)
         down = torch.zeros(1, 1, 2, 2, 4)
@@ -565,7 +565,7 @@ class TestCalcHr(unittest.TestCase):
                 up[0, 0, pft, band, :] = torch.tensor([1.0, 2.0, 3.0, 4.0])
                 down[0, 0, pft, band, :] = torch.tensor([0.5, 1.0, 1.5, 2.0])
 
-        hr = calc_hr(up, down, p=None)
+        hr = heating_rate(up, down, p=None)
 
         # Each PFT and band should have the same result
         self.assertEqual(hr.shape, (1, 1, 2, 2, 3))
@@ -577,8 +577,8 @@ class TestCalcHr(unittest.TestCase):
                     hr[0, 0, pft, band, :], expected_val, rtol=1e-6, atol=1e-6
                 )
 
-    def test_calc_hr_2d_batch(self):
-        """Test calc_hr with 2D batch (batch_size=2, channels=2, n_pft=1, n_bands=1)."""
+    def test_heating_rate_2d_batch(self):
+        """Test heating_rate with 2D batch (batch_size=2, channels=2, n_pft=1, n_bands=1)."""
         # Shape: (batch=2, channels=2, n_pft=1, n_bands=1, seq=3)
         up = torch.zeros(2, 2, 1, 1, 3)
         down = torch.zeros(2, 2, 1, 1, 3)
@@ -596,7 +596,7 @@ class TestCalcHr(unittest.TestCase):
         up[1, 1, 0, 0, :] = torch.tensor([2.5, 3.5, 4.5])
         down[1, 1, 0, 0, :] = torch.tensor([1.5, 2.5, 3.5])
 
-        hr = calc_hr(up, down, p=None)
+        hr = heating_rate(up, down, p=None)
 
         # Expected shape: (2, 2, 1, 1, 2)
         self.assertEqual(hr.shape, (2, 2, 1, 1, 2))
@@ -614,17 +614,17 @@ class TestCalcHr(unittest.TestCase):
             hr[0, 1, 0, 0, :], expected_second, rtol=1e-6, atol=1e-6
         )
 
-    def test_calc_hr_single_element(self):
-        """Test calc_hr with single element sequence (should return empty)."""
+    def test_heating_rate_single_element(self):
+        """Test heating_rate with single element sequence (should return empty)."""
         up = torch.tensor([[[[[1.0]]]]])
         down = torch.tensor([[[[[0.5]]]]])
-        hr = calc_hr(up, down, p=None)
+        hr = heating_rate(up, down, p=None)
 
         # With seq_length=1, there are no valid derivatives
         self.assertEqual(hr.shape, (1, 1, 1, 1, 0))
 
-    def test_calc_hr_multiple_pft_bands_different_values(self):
-        """Test calc_hr with different values across PFTs and bands."""
+    def test_heating_rate_multiple_pft_bands_different_values(self):
+        """Test heating_rate with different values across PFTs and bands."""
         # Shape: (batch=1, channels=1, n_pft=2, n_bands=2, seq=4)
         up = torch.zeros(1, 1, 2, 2, 4)
         down = torch.zeros(1, 1, 2, 2, 4)
@@ -642,7 +642,7 @@ class TestCalcHr(unittest.TestCase):
         up[0, 0, 1, 1, :] = torch.tensor([3.0, 6.0, 9.0, 12.0])
         down[0, 0, 1, 1, :] = torch.tensor([1.5, 3.0, 4.5, 6.0])
 
-        hr = calc_hr(up, down, p=None)
+        hr = heating_rate(up, down, p=None)
 
         self.assertEqual(hr.shape, (1, 1, 2, 2, 3))
 

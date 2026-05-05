@@ -7,25 +7,80 @@
 # http://creativecommons.org/licenses/by-nc-sa/4.0/
 
 """
-Plotting utilities for RTnn model visualization.
+Diagnostics and visualization utilities for RTnn radiative transfer model.
 
-This module provides functions for visualizing model predictions, training metrics,
-and data statistics. It includes tools for creating line plots, hexbin plots,
-histograms, and metric history plots using matplotlib.
+This module provides comprehensive visualization tools for analyzing and
+evaluating neural network emulators of atmospheric radiative transfer. It
+includes functions for creating diagnostic plots of model predictions,
+training histories, and data statistics.
 
-The module supports:
-- Visualization of radiative transfer model predictions vs targets
-- Absorption rate plotting for different channels
-- Training and validation metric histories
-- Statistical distributions of input variables
-- Various normalization scheme visualizations
+The module is designed to support:
+- Comparison of model predictions against ground truth targets
+- Visualization of radiative fluxes (direct/diffuse, upwelling/downwelling)
+- Absorption rate analysis across vertical levels and spectral bands
+- Per-plant functional type (PFT) and per-spectral band diagnostics
+- Training and validation metric tracking over epochs
+- Spatial and temporal sampling distribution analysis
+- Statistical characterization of input variables for normalization
 
-Dependencies
-------------
-matplotlib : For plotting
-mpltex : For line styles
-scikit-learn : For R² score calculation
-xarray : For NetCDF data handling
+Key visualization types
+-----------------------
+- **Hexbin plots**: Density scatter plots with color mapping for high-volume data
+- **Line plots**: Time series or vertical profile comparisons
+- **Histograms**: Distribution analysis with optional log scaling
+- **Marginal histograms**: 2D density plots with side distributions
+- **Multi-panel layouts**: Systematic comparison across flux channels
+
+The module follows the matplotlib architecture using Figure and FigureCanvasAgg
+for non-interactive, file-based rendering suitable for batch processing and
+headless environments.
+
+Notes
+-----
+All plotting functions are designed to work with PyTorch tensors or numpy arrays
+and save figures directly to disk. The module uses custom matplotlib parameters
+optimized for scientific publication quality.
+
+Default figure parameters:
+- Font family: DejaVu Sans
+- Font sizes: axes labels (15), titles (15), ticks (12), legends (15)
+- Line widths: 2
+- Tick direction: outward
+- Legend: frame off, best location
+
+Examples
+--------
+Basic usage for generating diagnostic plots:
+
+>>> import torch
+>>> from rtnn.diagnostics import plot_flux_and_abs, plot_metric_histories
+>>>
+>>> # Assuming you have model predictions and targets
+>>> predicts = torch.randn(32, 4, 10)  # (batch, channels, levels)
+>>> targets = torch.randn(32, 4, 10)
+>>>
+>>> # Create hexbin plot
+>>> plot_flux_and_abs(
+...     predicts=predicts,
+...     targets=targets,
+...     filename="diagnostics.png",
+...     logger=logger
+... )
+>>>
+>>> # Plot training history
+>>> train_history = {"nmae": [0.1, 0.08, 0.06], "r2": [0.85, 0.88, 0.91]}
+>>> valid_history = {"nmae": [0.12, 0.10, 0.08], "r2": [0.82, 0.85, 0.89]}
+>>> plot_metric_histories(
+...     train_history=train_history,
+...     valid_history=valid_history,
+...     filename="metrics.png"
+... )
+
+See Also
+--------
+rtnn.dataset.DataPreprocessor : Data loading and preprocessing
+rtnn.evaluater : Metrics and loss functions for evaluation
+rtnn.models : Neural network architectures for radiative transfer
 """
 
 from matplotlib.figure import Figure
@@ -86,6 +141,9 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
     norm_mapping : dict, optional
         Dictionary to update with computed statistics. If None, a new dictionary
         is created. Default is None.
+    plots : bool, optional
+        If True, generate and save histogram plots for each variable.
+        Default is False.
 
     Returns
     -------
@@ -95,15 +153,23 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
 
         Raw statistics:
             - vmin : float
+                Minimum value
             - vmax : float
+                Maximum value
             - vmean : float
+                Mean value
             - vstd : float
+                Standard deviation
 
         Robust statistics:
             - q1 : float
+                First quartile (25th percentile)
             - q3 : float
+                Third quartile (75th percentile)
             - iqr : float
+                Interquartile range (q3 - q1)
             - median : float
+                Median value
 
         Log-transformed statistics (log1p):
             - log_min : float
@@ -130,10 +196,19 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
     >>> norm_mapping = stats(
     ...     file_list=["data_1995.nc", "data_1996.nc"],
     ...     logger=logger,
-    ...     output_dir="./stats"
+    ...     output_dir="./stats",
+    ...     plots=True
     ... )
     >>> norm_mapping["coszang"]["vmean"]
     0.5
+    >>> norm_mapping["lai"]["log_median"]
+    1.23
+
+    Notes
+    -----
+    - Log transformation uses np.log1p (log(1+x)) to handle zero values
+    - Square root transformation uses np.sqrt with clipping to non-negative
+    - Histograms use 200 bins and log-scaled y-axis
     """
     variable_data = collections.defaultdict(list)
 
@@ -235,7 +310,28 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
 
 
 def subplots(nrows, ncols, figsize):
-    """Replacement for plt.subplots() using Figure and FigureCanvasAgg."""
+    """
+    Create a figure and grid of subplots without pyplot.
+
+    This is a replacement for matplotlib.pyplot.subplots() that uses the
+    Figure and FigureCanvasAgg API directly, suitable for headless environments.
+
+    Parameters
+    ----------
+    nrows : int
+        Number of rows in the subplot grid.
+    ncols : int
+        Number of columns in the subplot grid.
+    figsize : tuple
+        Figure size in inches as (width, height).
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The created figure object.
+    axes : numpy.ndarray
+        Array of axes objects with shape (nrows, ncols).
+    """
     fig = Figure(figsize=figsize)
     FigureCanvasAgg(fig)
     axes = []
@@ -262,22 +358,23 @@ def plot_flux_and_abs_lines(
     Create line plots for fluxes and absorption rates.
 
     Generates a multi-panel figure with line plots for four flux channels and
-    optionally two absorption panels. Each panel shows predictions vs targets.
+    optionally two absorption panels. Each panel shows predictions vs targets
+    across vertical levels.
 
     Parameters
     ----------
-    predicts : torch.Tensor
+    predicts : torch.Tensor or np.ndarray
         Model predictions for fluxes of shape (batch_size, 4, seq_length).
-    targets : torch.Tensor
-        Ground truth fluxes.
-    abs12_predict : torch.Tensor, optional
-        Predicted absorption for channels 1-2.
-    abs12_target : torch.Tensor, optional
-        True absorption for channels 1-2.
-    abs34_predict : torch.Tensor, optional
-        Predicted absorption for channels 3-4.
-    abs34_target : torch.Tensor, optional
-        True absorption for channels 3-4.
+    targets : torch.Tensor or np.ndarray
+        Ground truth fluxes of shape (batch_size, 4, seq_length).
+    abs12_predict : torch.Tensor or np.ndarray, optional
+        Predicted absorption for channels 1-2 (direct beam).
+    abs12_target : torch.Tensor or np.ndarray, optional
+        True absorption for channels 1-2 (direct beam).
+    abs34_predict : torch.Tensor or np.ndarray, optional
+        Predicted absorption for channels 3-4 (diffuse).
+    abs34_target : torch.Tensor or np.ndarray, optional
+        True absorption for channels 3-4 (diffuse).
     filename : str, optional
         Output filename. Default is "output_lines.png".
     logger : logging.Logger, optional
@@ -286,8 +383,26 @@ def plot_flux_and_abs_lines(
     Notes
     -----
     Figure layout:
-        - 2x2 grid for fluxes (upwelling/downwelling for two channels)
-        - Optional 1x2 grid for absorption rates (if provided)
+        - 2x2 grid for fluxes:
+            - (0,0): Direct upwelling (Flux_direct^u)
+            - (0,1): Direct downwelling (Flux_direct^d)
+            - (1,0): Diffuse upwelling (Flux_diffusion^u)
+            - (1,1): Diffuse downwelling (Flux_diffusion^d)
+        - Optional 1x2 grid for absorption rates (if provided):
+            - (2,0): Direct absorption (Abs_direct)
+            - (2,1): Diffuse absorption (Abs_diffusion)
+
+    The function randomly selects 10 samples from the batch for plotting.
+    Each sample is shown with a different line style.
+
+    Examples
+    --------
+    >>> plot_flux_and_abs_lines(
+    ...     predicts=model_outputs,
+    ...     targets=ground_truth,
+    ...     filename="line_comparison.png",
+    ...     logger=logger
+    ... )
     """
 
     include_abs12 = abs12_predict is not None and abs12_target is not None
@@ -420,18 +535,18 @@ def plot_flux_and_abs(
 
     Parameters
     ----------
-    predicts : torch.Tensor
+    predicts : torch.Tensor or np.ndarray
         Model predictions for fluxes of shape (batch_size, 4, seq_length).
-    targets : torch.Tensor
-        Ground truth fluxes.
-    abs12_predict : torch.Tensor, optional
-        Predicted absorption for channels 1-2.
-    abs12_target : torch.Tensor, optional
-        True absorption for channels 1-2.
-    abs34_predict : torch.Tensor, optional
-        Predicted absorption for channels 3-4.
-    abs34_target : torch.Tensor, optional
-        True absorption for channels 3-4.
+    targets : torch.Tensor or np.ndarray
+        Ground truth fluxes of shape (batch_size, 4, seq_length).
+    abs12_predict : torch.Tensor or np.ndarray, optional
+        Predicted absorption for channels 1-2 (direct beam).
+    abs12_target : torch.Tensor or np.ndarray, optional
+        True absorption for channels 1-2 (direct beam).
+    abs34_predict : torch.Tensor or np.ndarray, optional
+        Predicted absorption for channels 3-4 (diffuse).
+    abs34_target : torch.Tensor or np.ndarray, optional
+        True absorption for channels 3-4 (diffuse).
     filename : str, optional
         Output filename. Default is "output.png".
     logger : logging.Logger, optional
@@ -439,10 +554,23 @@ def plot_flux_and_abs(
 
     Notes
     -----
-    - Hexbin plots use logarithmic color scale
-    - Includes diagonal reference line (y=x)
+    - Hexbin plots use logarithmic color scale (bins='log')
+    - Includes diagonal reference line (y=x) in red dotted style
     - Displays R² score in the top-left corner of each panel
-    - Shared colorbar on the right
+    - Shared colorbar on the right with log10(count) label
+    - Grid size of 100 bins for density calculation
+
+    The hexbin representation is particularly effective for large datasets
+    where scatter plots would suffer from overplotting.
+
+    Examples
+    --------
+    >>> plot_flux_and_abs(
+    ...     predicts=predictions,
+    ...     targets=targets,
+    ...     filename="hexbin_diagnostics.png",
+    ...     logger=logger
+    ... )
     """
 
     include_abs12 = abs12_predict is not None and abs12_target is not None
@@ -564,11 +692,55 @@ def plot_all_diagnostics(
     """
     Generate all diagnostic plots: aggregated, per PFT, per band.
 
-    This will create:
-    - 1 aggregated plot (all PFTs, all bands)
-    - 2 per-band plots (VIS, NIR)
-    - 15 per-PFT plots
-    Total: 18 plots, each with 6 panels
+    This function creates a comprehensive set of diagnostic plots including
+    one aggregated plot (all PFTs, all bands combined), per-band plots for
+    each selected PFT (VIS and NIR bands), and line plots and hexbin plots
+    for each combination.
+
+    Parameters
+    ----------
+    predicts : torch.Tensor or np.ndarray
+        Model predictions for fluxes. Shape: (batch, 4, n_pft, n_bands, seq_length)
+    targets : torch.Tensor or np.ndarray
+        Ground truth targets. Same shape as predicts.
+    abs12_predict : torch.Tensor or np.ndarray, optional
+        Predicted absorption for channels 1-2 (direct beam).
+    abs12_target : torch.Tensor or np.ndarray, optional
+        True absorption for channels 1-2.
+    abs34_predict : torch.Tensor or np.ndarray, optional
+        Predicted absorption for channels 3-4 (diffuse).
+    abs34_target : torch.Tensor or np.ndarray, optional
+        True absorption for channels 3-4.
+    n_pft : int, optional
+        Number of Plant Functional Types. Default is 15.
+    n_bands : int, optional
+        Number of spectral bands. Default is 2 (VIS and NIR).
+    n_chans : int, optional
+        Number of output channels. Default is 4.
+    output_dir : str, optional
+        Directory to save diagnostic plots. Default is "./results".
+    prefix : str, optional
+        Prefix for output filenames. Default is "diagnostics".
+    logger : logging.Logger, optional
+        Logger instance for logging messages. If None, no logging is performed.
+
+    Notes
+    -----
+    The function generates 1 aggregated hexbin plot, 1 aggregated line plot,
+    and for each selected PFT (up to 8 randomly selected): hexbin and line
+    plots per band (VIS and NIR). Total plots = 1 + (selected_pfts * n_bands * 2)
+    where selected_pfts = min(8, n_pft).
+
+    Examples
+    --------
+    >>> plot_all_diagnostics(
+    ...     predicts=model_outputs,
+    ...     targets=targets,
+    ...     n_pft=15,
+    ...     n_bands=2,
+    ...     output_dir="./diagnostics",
+    ...     prefix="experiment_1"
+    ... )
     """
 
     predicts_np = predicts.detach().numpy()
@@ -671,14 +843,16 @@ def plot_metric_histories(
     Plot training and validation metrics over epochs.
 
     Creates a multi-panel figure showing the evolution of various metrics
-    (e.g., NMAE, NMSE, R2) over training epochs.
+    (e.g., NMAE, NMSE, R2, bias) over training epochs.
 
     Parameters
     ----------
     train_history : dict
         Dictionary with metric names as keys and lists of training values.
+        Example: {"nmae": [0.1, 0.08, 0.06], "r2": [0.85, 0.88, 0.91]}
     valid_history : dict
         Dictionary with metric names as keys and lists of validation values.
+        Same structure as train_history.
     filename : str, optional
         Output filename. Default is "training_validation_metrics.png".
     logger : logging.Logger, optional
@@ -686,10 +860,24 @@ def plot_metric_histories(
 
     Notes
     -----
-    - Metrics are plotted on a logarithmic scale
-    - Each metric gets its own panel
-    - Panels are arranged in a grid (3 columns)
-    - Blue lines: training, Orange lines: validation
+    - Metrics are plotted on a logarithmic scale for better visualization of convergence
+    - Each metric gets its own panel arranged in a grid (3 columns)
+    - Blue lines: training metrics
+    - Orange lines: validation metrics
+    - Grid is enabled for all panels
+
+    Examples
+    --------
+    >>> train_history = {"nmae": [0.15, 0.12, 0.09, 0.07],
+    ...                  "nmse": [0.08, 0.06, 0.04, 0.03]}
+    >>> valid_history = {"nmae": [0.16, 0.13, 0.10, 0.08],
+    ...                  "nmse": [0.09, 0.07, 0.05, 0.04]}
+    >>> plot_metric_histories(
+    ...     train_history=train_history,
+    ...     valid_history=valid_history,
+    ...     filename="metrics.png",
+    ...     logger=logger
+    ... )
     """
     num_metrics = len(train_history)
     if num_metrics == 0:
@@ -746,10 +934,22 @@ def plot_loss_histories(
 
     Notes
     -----
-    - Uses logarithmic scale for y-axis
+    - Uses logarithmic scale for y-axis to visualize exponential decay
     - Blue line: training loss
     - Orange line: validation loss
     - Includes grid for better readability
+    - Both lines share the same x-axis (epoch number)
+
+    Examples
+    --------
+    >>> train_losses = [0.5, 0.3, 0.2, 0.15, 0.12]
+    >>> valid_losses = [0.55, 0.35, 0.25, 0.18, 0.15]
+    >>> plot_loss_histories(
+    ...     train_loss=train_losses,
+    ...     valid_loss=valid_losses,
+    ...     filename="loss_curves.png",
+    ...     logger=logger
+    ... )
     """
     fig = Figure(figsize=(8, 5))
     canvas = FigureCanvasAgg(fig)
@@ -785,8 +985,8 @@ def plot_spatial_temporal_density(
     This function creates a 2D density scatter plot (hexbin) showing the
     distribution of spatial indices (processor ranks) across temporal indices,
     with:
-    - Right plot: Histogram of temporal index distribution
-    - Top plot: Histogram of spatial index distribution
+    - Right plot: Histogram of temporal index distribution (horizontal bars)
+    - Top plot: Histogram of spatial index distribution (vertical bars)
 
     Parameters
     ----------
@@ -795,20 +995,47 @@ def plot_spatial_temporal_density(
     tindex_tracker : list or array-like
         List of temporal indices for each data sample.
     mode : str, optional
-        Dataset mode identifier ("train", "validation", "test").
+        Dataset mode identifier ("train", "validation", "test"). Used in filename.
+        Default is "train".
     save_dir : str, optional
-        Directory path where the plot will be saved.
+        Directory path where the plot will be saved. Default is "./tests_plots".
     filename : str, optional
-        Base name for the output file.
+        Base name for the output file. Default is "density_scatter".
     figsize : tuple, optional
-        Figure size as (width, height) in inches.
+        Figure size as (width, height) in inches. Default is (10, 10).
     logger : logging.Logger, optional
         Logger instance for logging messages. If None, no logging is performed.
 
     Returns
     -------
-    str
-        Path to the saved plot file.
+    str or None
+        Path to the saved plot file, or None if no data to plot.
+
+    Notes
+    -----
+    The plot layout uses GridSpec with the following structure:
+    - Top-left: Histogram of spatial index distribution (vertical bars)
+    - Top-right: Empty (no plot)
+    - Bottom-left: Main hexbin density scatter plot
+    - Bottom-right: Histogram of temporal index distribution (horizontal bars)
+
+    A colorbar is placed below the main plot with log-scaled counts.
+
+    This visualization is useful for:
+    - Verifying uniform sampling across spatial processors
+    - Checking temporal coverage of the dataset
+    - Detecting sampling biases in training/validation splits
+
+    Examples
+    --------
+    >>> # After training, check sampling distribution
+    >>> plot_spatial_temporal_density(
+    ...     sindex_tracker=dataset.sindex_tracker,
+    ...     tindex_tracker=dataset.tindex_tracker,
+    ...     mode="train",
+    ...     save_dir="./analysis",
+    ...     logger=logger
+    ... )
     """
 
     if len(sindex_tracker) == 0 or len(tindex_tracker) == 0:

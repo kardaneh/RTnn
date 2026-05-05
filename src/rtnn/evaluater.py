@@ -11,20 +11,105 @@ Evaluation utilities for RTnn model assessment.
 
 This module provides comprehensive evaluation tools for radiative transfer
 neural network models, including custom loss functions, metric computation,
-and visualization helpers.
+and visualization helpers. It is designed to support both training diagnostics
+and rigorous model validation against physical constraints.
 
-The module includes:
-- Custom loss functions (NMSE, NMAE, combined MSE-MAE, LogCosh, Weighted MSE)
-- Metric calculators for evaluation (MSE, MAE, MBE, R², NMSE, NMAE, MARE, GMRAE)
-- Data normalization/de-normalization utilities
-- Absorption rate calculations
-- Main evaluation loop for LSM models
+The module implements several key capabilities:
 
-Dependencies
-------------
-torch : For tensor operations and loss functions
-numpy : For numerical operations
-plot_helper : For visualization utilities
+**Custom Loss Functions**
+    - Normalized losses (NMAE, NMSE) for scale-invariant error measurement
+    - Standard losses (MSE, MAE, Huber, Smooth L1) for baseline comparison
+    - Weighted and physics-informed losses for multi-objective optimization
+
+**Evaluation Metrics**
+    - NMAE: Normalized Mean Absolute Error
+    - NMSE: Normalized Mean Squared Error
+    - R²: Coefficient of determination
+    - MBE: Mean Bias Error
+    - MARE: Mean Absolute Relative Error
+    - GMRAE: Geometric Mean Relative Absolute Error
+
+**Physical Consistency**
+    - Absorption rate calculation from flux divergence
+    - Energy conservation penalty (albedo + transmittance + absorptance = 1)
+    - Heating rate computation from net flux profiles
+
+**Data Handling**
+    - Normalization/de-normalization for all supported transformation types
+    - Multi-dimensional tensor reshaping (batch, channels, PFTs, bands, levels)
+    - Metric tracking with running statistics
+
+The module follows a modular design where loss functions and metrics are
+implemented as separate callable classes/functions, allowing easy extension
+and composition.
+
+Notes
+-----
+**Flux Variable Ordering**
+
+    - Channel 0: collimated albedo (direct upwelling)
+    - Channel 1: collimated transmittance (direct downwelling)
+    - Channel 2: isotropic albedo (diffuse upwelling)
+    - Channel 3: isotropic transmittance (diffuse downwelling)
+
+This ordering matches the ``ov`` list in :class:`rtnn.dataset.DataPreprocessor`.
+
+**Absorption Calculation**
+
+    - For collimated: absorption = -d(net_flux)/dz
+    - For isotropic: absorption = -d(net_flux)/dz
+
+
+**Supported Normalization Types**
+
+    - Linear: minmax, standard, robust
+    - Log1p-based: log1p_minmax, log1p_standard, log1p_robust
+    - Sqrt-based: sqrt_minmax, sqrt_standard, sqrt_robust
+
+Examples
+--------
+Basic usage for model evaluation:
+
+>>> import torch
+>>> from rtnn.evaluater import get_loss_function, run_validation
+>>>
+>>> # Create loss function
+>>> args = argparse.Namespace(loss_type='huber', beta_delta=1.0)
+>>> criterion = get_loss_function('huber', args)
+>>>
+>>> # Evaluate model
+>>> valid_loss, metrics = run_validation(
+...     loader=val_loader,
+...     model=my_model,
+...     norm_mapping=norm_stats,
+...     normalization_type=norm_types,
+...     index_mapping=idxmap,
+...     device=device,
+...     args=args,
+...     epoch=10,
+...     logger=logger
+... )
+>>>
+>>> print(f"Validation NMAE: {metrics['fluxes_NMAE']:.4f}")
+>>> print(f"R² score: {metrics['fluxes_R2']:.4f}")
+
+Using custom metric tracking:
+
+>>> from rtnn.evaluater import MetricTracker, nmae_all
+>>>
+>>> tracker = MetricTracker()
+>>> for batch in dataloader:
+...     pred, target = model(batch)
+...     count, value = nmae_all(pred, target)
+...     tracker.update(value.item(), count)
+>>>
+>>> mean_nmae = tracker.getmean()
+
+See Also
+--------
+rtnn.dataset.DataPreprocessor : Data loading and normalization
+rtnn.diagnostics : Visualization tools for model predictions
+rtnn.models : Neural network architectures
 """
 
 import torch
@@ -45,17 +130,31 @@ class NMSELoss(nn.Module):
     Normalized Mean Squared Error Loss.
 
     Computes MSE normalized by the mean square of the target values.
-    Useful when the scale of the target variable varies.
+    Useful when the scale of the target variable varies across samples
+    or when comparing models trained on different datasets.
 
     Parameters
     ----------
     eps : float, optional
         Small constant for numerical stability. Default is 1e-8.
 
+    Notes
+    -----
+    The loss is calculated as:
+
+        NMSE = MSE(pred, target) / (mean(target²) + eps)
+
+    This normalization makes the loss scale-invariant, with values
+    typically in the range [0, 1].
+
     Examples
     --------
     >>> criterion = NMSELoss()
+    >>> predictions = torch.tensor([[2.0, 3.0], [1.0, 2.0]])
+    >>> targets = torch.tensor([[2.0, 4.0], [1.0, 2.5]])
     >>> loss = criterion(predictions, targets)
+    >>> print(loss.item())
+    0.0625  # approximates 0.0625 for this example
     """
 
     def __init__(self, eps=1e-8):
@@ -74,12 +173,28 @@ class NMAELoss(nn.Module):
     Normalized Mean Absolute Error Loss.
 
     Computes MAE normalized by the mean absolute value of the target.
-    Provides a scale-invariant error metric.
+    Provides a scale-invariant error metric that is more robust to
+    outliers than NMSE.
 
     Parameters
     ----------
     eps : float, optional
         Small constant for numerical stability. Default is 1e-8.
+
+    Notes
+    -----
+    Values typically range from 0 to 1, with 0 representing perfect
+    predictions and values >1 indicating predictions worse than the
+    trivial zero predictor.
+
+    Examples
+    --------
+    >>> criterion = NMAELoss()
+    >>> predictions = torch.tensor([[2.0, 3.0], [1.0, 2.0]])
+    >>> targets = torch.tensor([[2.0, 4.0], [1.0, 2.5]])
+    >>> loss = criterion(predictions, targets)
+    >>> print(loss.item())
+    0.0833  # approximates 0.0833 for this example
     """
 
     def __init__(self, eps=1e-8):
@@ -93,9 +208,6 @@ class NMAELoss(nn.Module):
         return mae / norm
 
 
-# =============================================================================
-# E  Physics-informed loss (energy conservation)
-# =============================================================================
 def physics_loss(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -145,8 +257,10 @@ class MetricTracker:
     """
     A utility class for tracking and computing statistics of metric values.
 
-    This class maintains a running average of metric values and provides
-    methods to compute mean and root mean squared values.
+    This class maintains running sums of metric values and their squares,
+    allowing incremental updates and computation of mean and standard
+    deviation. It is particularly useful for aggregating metrics across
+    multiple batches during evaluation.
 
     Attributes
     ----------
@@ -154,6 +268,8 @@ class MetricTracker:
         Cumulative weighted sum of metric values
     count : int
         Total number of samples processed
+    value_sq : float
+        Cumulative weighted sum of squared metric values
 
     Examples
     --------
@@ -162,7 +278,9 @@ class MetricTracker:
     >>> tracker.update(20.0, 3)  # value=20.0, count=3 samples
     >>> print(tracker.getmean())  # (10*5 + 20*3) / (5+3) = 110/8 = 13.75
     13.75
-    >>> print(tracker.getsqrtmean())  # sqrt(13.75)
+    >>> print(tracker.getstd())
+    5.0  # computed from variance
+    >>> print(tracker.getsqrtmean())
     3.7080992435478315
     """
 
@@ -267,16 +385,26 @@ def get_loss_function(loss_type, args, logger=None):
     ----------
     loss_type : str
         Type of loss function. Options:
-        - 'mse': Mean Squared Error
-        - 'mae': Mean Absolute Error
-        - 'nmae': Normalized Mean Absolute Error
-        - 'nmse': Normalized Mean Squared Error
-        - 'wmse': Weighted Mean Squared Error
-        - 'logcosh': Log-Cosh loss
-        - 'smoothl1': Smooth L1 Loss (Huber-like)
-        - 'huber': Huber Loss
+
+        **Standard losses:**
+            - 'mse': Mean Squared Error
+            - 'mae': Mean Absolute Error
+
+        **Normalized losses:**
+            - 'nmae': Normalized Mean Absolute Error
+            - 'nmse': Normalized Mean Squared Error
+
+        **Robust losses:**
+            - 'smoothl1': Smooth L1 Loss (Huber with beta)
+            - 'huber': Huber Loss with delta parameter
+
     args : argparse.Namespace
-        Arguments containing loss-specific parameters (e.g., beta_delta for Huber).
+        Arguments containing loss-specific parameters:
+        - For 'huber'/'smoothl1': requires `args.beta_delta`
+        - For composite losses: may require `args.beta`
+
+    logger : logging.Logger, optional
+        Logger for informational messages. If None, no logging occurs.
 
     Returns
     -------
@@ -290,8 +418,13 @@ def get_loss_function(loss_type, args, logger=None):
 
     Examples
     --------
+    >>> import argparse
     >>> args = argparse.Namespace(beta_delta=1.0)
     >>> criterion = get_loss_function('huber', args)
+    >>> loss = criterion(predictions, targets)
+
+    >>> args = argparse.Namespace()
+    >>> criterion = get_loss_function('mse', args)
     """
     if loss_type == "mse":
         if logger:
@@ -527,7 +660,43 @@ def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
     """
     Reverse normalization for 5D tensors.
 
-    pred and targ shape: (batch, 4, n_pft, n_bands, seq_length)
+    This function converts normalized predictions and targets back to
+    physical units using stored normalization statistics. It supports
+    all normalization types defined in DataPreprocessor.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Normalized predictions. Shape: (batch, 4, n_pft, n_bands, seq_length)
+    targ : torch.Tensor
+        Normalized targets. Same shape as pred.
+    norm_mapping : dict
+        Dictionary containing normalization statistics for each variable.
+    normalization_type : dict
+        Dictionary specifying normalization type for each variable.
+    idxmap : dict
+        Mapping from channel indices (0-3) to variable names.
+
+    Returns
+    -------
+    tuple
+        (upred, utarg) where:
+        - upred (torch.Tensor): Unnormalized predictions
+        - utarg (torch.Tensor): Unnormalized targets
+
+    Raises
+    ------
+    ValueError
+        If normalization type is not supported.
+
+    Notes
+    -----
+    The function handles the following transformations:
+        - Linear: x' = (x - mean)/std or (x - min)/(max - min)
+        - Log1p: x_norm = (log(1+x) - log_mean)/log_std
+        - Sqrt: x_norm = (sqrt(x) - sqrt_mean)/sqrt_std
+
+    The reverse operation is applied to recover physical values.
     """
     device = pred.device
     upred = torch.zeros_like(pred, device=device)
@@ -617,9 +786,29 @@ def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
 
 def conservation_residual(alb, tran, abs_flux):
     """
-    alb, tran: shape (batch, 1, n_pft, n_bands, seq)
-    abs_flux: shape (batch, 1, n_pft, n_bands, seq-1)
-    Returns residual of shape (batch, 1, n_pft, n_bands, seq-1)
+    Compute energy conservation residual for a given level.
+
+    Parameters
+    ----------
+    alb : torch.Tensor
+        Albedo (upwelling flux). Shape (batch, 1, n_pft, n_bands, seq)
+    tran : torch.Tensor
+        Transmittance (downwelling flux). Same shape as alb.
+    abs_flux : torch.Tensor
+        Absorptance (absorbed flux). Shape (batch, 1, n_pft, n_bands, seq-1)
+
+    Returns
+    -------
+    torch.Tensor
+        Squared conservation residual. Shape (batch, 1, n_pft, n_bands, seq-1)
+
+    Notes
+    -----
+    The function averages alb and tran to layer centers before computing:
+        residual = (alb_center + tran_center + abs_flux - 1)²
+
+    This enforces the physical constraint that:
+        upwelling + downwelling + absorption = total incoming radiation = 1
     """
     # Average fluxes to layer centers (N-1 layers)
     alb_center = (alb[..., :-1] + alb[..., 1:]) / 2.0
@@ -632,16 +821,32 @@ def calc_abs(pred, targ, p=None):
     """
     Calculate absorption rates from flux predictions.
 
-    pred and targ shape: (batch, 4, n_pft, n_bands, seq_length)
-    Returns absorption with shape (batch, 1, n_pft, n_bands, seq_length-1)
+    Computes absorption rates for both collimated (direct) and isotropic
+    (diffuse) components by calculating the divergence of net flux.
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predicted fluxes. Shape (batch, 4, n_pft, n_bands, seq_length)
+        Channel order: [collim_alb, collim_tran, isotrop_alb, isotrop_tran]
+    targ : torch.Tensor
+        Target fluxes. Same shape as pred.
+    p : torch.Tensor, optional
+        Pressure levels. If provided, computes heating rates. Shape can be
+        (seq_length,) or (batch, seq_length). Default is None.
+
+    Returns
+    -------
+    tuple
+        (abs12_pred, abs12_targ, abs34_pred, abs34_targ, conservation_penalty)
     """
     # Collimated (channels 0 and 1)
-    abs12_pred = calc_hr(pred[:, 0:1, :, :, :], pred[:, 1:2, :, :, :], p)
-    abs12_targ = calc_hr(targ[:, 0:1, :, :, :], targ[:, 1:2, :, :, :], p)
+    abs12_pred = heating_rate(pred[:, 0:1, :, :, :], pred[:, 1:2, :, :, :], p)
+    abs12_targ = heating_rate(targ[:, 0:1, :, :, :], targ[:, 1:2, :, :, :], p)
 
     # Isotropic (channels 2 and 3)
-    abs34_pred = calc_hr(pred[:, 2:3, :, :, :], pred[:, 3:4, :, :, :], p)
-    abs34_targ = calc_hr(targ[:, 2:3, :, :, :], targ[:, 3:4, :, :, :], p)
+    abs34_pred = heating_rate(pred[:, 2:3, :, :, :], pred[:, 3:4, :, :, :], p)
+    abs34_targ = heating_rate(targ[:, 2:3, :, :, :], targ[:, 3:4, :, :, :], p)
 
     # Conservation penalty
     collim_resid = conservation_residual(
@@ -655,12 +860,33 @@ def calc_abs(pred, targ, p=None):
     return abs12_pred, abs12_targ, abs34_pred, abs34_targ, conservation_penalty
 
 
-def calc_hr(up, down, p=None):
+def heating_rate(up, down, p=None):
     """
     Calculate heating rate from upwelling and downwelling fluxes.
 
-    up and down shape: (batch, 1, n_pft, n_bands, seq_length)
-    Returns shape: (batch, 1, n_pft, n_bands, seq_length - 1)
+    Parameters
+    ----------
+    up : torch.Tensor
+        Upwelling flux. Shape (batch, 1, n_pft, n_bands, seq_length)
+    down : torch.Tensor
+        Downwelling flux. Same shape as up.
+    p : torch.Tensor, optional
+        Pressure levels. If provided, computes heating rate in K/day.
+        If None, computes negative flux divergence. Default is None.
+
+    Returns
+    -------
+    torch.Tensor
+        Heating rate or flux divergence. Shape (batch, 1, n_pft, n_bands, seq_length-1)
+
+    Notes    -----
+    The calculation involves:
+        1. net = up - down (net flux)
+        2. dnet = net - roll(net, 1) (vertical flux divergence)
+        3. If p is provided, convert to heating rate using:
+           hr = -dnet/dp * (g * 8.64e4) / (cp * 100)
+           where g = 9.8066 m/s², cp ≈ 1004 J/(kg·K)
+           The factor 8.64e4 converts from W/m²/Pa to K/day
     """
     net = up - down
     # Roll along the last dimension (seq_length)
@@ -701,9 +927,11 @@ def run_validation(
     Evaluate model accuracy on LSM dataset.
 
     Performs comprehensive evaluation including:
+
     - Loss computation for main fluxes and absorption rates
-    - Metric calculation (NMAE, NMSE, R²)
-    - Optional plotting of predictions vs targets
+    - Metric calculation (NMAE, NMSE, R²) for fluxes and absorption
+    - Optional plotting of predictions vs targets (every 10 epochs)
+    - Energy conservation verification
 
     Parameters
     ----------
@@ -716,29 +944,57 @@ def run_validation(
     normalization_type : dict
         Normalization types per variable.
     index_mapping : dict
-        Mapping from channel indices to variable names.
+        Mapping from channel indices (0-3) to variable names.
     device : torch.device
-        Device to run evaluation on.
+        Device to run evaluation on (cuda or cpu).
     args : argparse.Namespace
-        Arguments containing loss type, beta, etc.
+        Arguments containing loss_type, beta, beta_delta, and num_epochs.
     epoch : int
-        Current epoch number (for plotting).
+        Current epoch number (for plotting schedule).
     logger : logging.Logger, optional
-        Logger for informational messages. If None, no logging is performed.
+        Logger for informational messages. If None, no logging occurs.
+    base_dir : str, optional
+        Directory to save diagnostic plots. Default is "./results".
+    n_pft : int, optional
+        Number of Plant Functional Types. Default is 15.
+    n_bands : int, optional
+        Number of spectral bands. Default is 2 (VIS, NIR).
+    n_chans : int, optional
+        Number of output channels. Default is 4.
 
     Returns
     -------
     tuple
-        (valid_loss, valid_metrics) where valid_metrics is a dictionary
-        containing computed metrics for fluxes, abs12, and abs34.
+        (valid_loss, valid_metrics)
+
+    Notes
+    -----
+    The evaluation performs the following steps:
+    1. Iterates through validation loader
+    2. Computes predictions and reshapes to 5D tensors
+    3. De-normalizes predictions and targets to physical units
+    4. Calculates absorption rates and conservation penalties
+    5. Computes metrics for fluxes and absorption
+    6. Optionally generates diagnostic plots (epoch % 10 == 0 or final epoch)
+
+    The combined loss includes both flux and absorption terms weighted by β:
+        total_loss = (1-β)*loss_fluxes + β*(loss_abs12 + loss_abs34)
 
     Examples
     --------
     >>> valid_loss, metrics = run_validation(
-    ...     test_loader, model, norm_mapping, norm_type, idxmap, device, args, epoch
+    ...     loader=val_loader,
+    ...     model=my_model,
+    ...     norm_mapping=norm_stats,
+    ...     normalization_type=norm_types,
+    ...     index_mapping=idxmap,
+    ...     device=torch.device('cuda'),
+    ...     args=args,
+    ...     epoch=10,
+    ...     logger=logger
     ... )
-    >>> print(f"Validation loss: {valid_loss:.4f}")
-    >>> print(f"NMAE: {metrics['fluxes_NMAE']:.4f}")
+    >>> print(f"Validation NMAE: {metrics['fluxes_NMAE']:.4f}")
+    >>> print(f"R² score: {metrics['fluxes_R2']:.4f}")
     """
 
     model.eval()

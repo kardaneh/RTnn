@@ -6,6 +6,86 @@
 # To view a copy of this license, visit
 # http://creativecommons.org/licenses/by-nc-sa/4.0/
 
+"""
+Neural network building blocks and radiative transfer-inspired models.
+
+This module implements a collection of PyTorch modules for fully connected
+architectures and physics-inspired neural networks designed for structured
+data, particularly vertical profile modeling such as atmospheric or canopy
+radiative transfer.
+
+The module includes:
+
+- ``FCBlock``: A reusable fully connected block with normalization and activation.
+- ``FCN``: A configurable fully connected network for sequence-like inputs.
+- ``LayerPositionalEmbedding``: Learnable positional embeddings for layer-wise data.
+- ``VerticalRTColumnNet``: A two-stream neural architecture inspired by radiative
+  transfer equations, modeling coupled upward and downward flux propagation.
+
+Features
+--------
+
+- Modular fully connected components with batch normalization
+- Flexible depth and width configuration for dense networks
+- Support for sequence reshaping and optional dimension expansion
+- Learnable positional embeddings for structured vertical data
+- Physics-inspired bidirectional coupling between latent streams
+- Residual connections and separate output heads for improved expressiveness
+- Compatible with batched inputs and GPU acceleration via PyTorch
+
+Notes
+-----
+
+- ``FCN`` expects inputs shaped as (batch_size, feature_channel, seq_length)
+  and internally flattens them before processing.
+- ``VerticalRTColumnNet`` is designed for layer-wise computations where each
+  position corresponds to a physical layer (e.g., canopy or atmosphere).
+- The two-stream formulation in ``VerticalRTColumnNet`` mimics radiative
+  transfer processes with downward and upward flux interactions.
+- Sigmoid activations are used in coupling and transmission terms to enforce
+  physically meaningful constraints (e.g., coefficients in [0, 1]).
+
+Dependencies
+------------
+
+- torch
+- torch.nn
+
+Examples
+--------
+
+Using FCBlock::
+
+    >>> block = FCBlock(128, 64)
+    >>> x = torch.randn(32, 128)
+    >>> y = block(x)
+
+Using FCN::
+
+    >>> model = FCN(
+    ...     feature_channel=6,
+    ...     output_channel=4,
+    ...     num_layers=3,
+    ...     hidden_size=196,
+    ...     seq_length=10
+    ... )
+    >>> x = torch.randn(32, 6, 10)
+    >>> y = model(x)
+
+Using VerticalRTColumnNet::
+
+    >>> model = VerticalRTColumnNet(
+    ...     feature_channel=6,
+    ...     hidden=64,
+    ...     out_channel=4,
+    ...     n_layers=10
+    ... )
+    >>> x = torch.randn(16, 6, 10)
+    >>> y = model(x)
+    >>> y.shape
+    torch.Size([16, 4, 10])
+"""
+
 import torch
 import torch.nn as nn
 
@@ -98,7 +178,7 @@ class FCN(nn.Module):
     hidden_size : int
         Size of hidden layers.
     seq_length : int, optional
-        Length of the input sequence. Default is 55.
+        Length of the input sequence. Default is 10.
     dim_expand : int, optional
         Number of time steps to expand the output sequence by.
         Default is 0 (no expansion).
@@ -143,7 +223,7 @@ class FCN(nn.Module):
         output_channel: int,
         num_layers: int,
         hidden_size: int,
-        seq_length: int = 55,
+        seq_length: int = 10,
         dim_expand: int = 0,
     ) -> None:
         """
@@ -160,7 +240,7 @@ class FCN(nn.Module):
         hidden_size : int
             Size of hidden layers.
         seq_length : int, optional
-            Length of the input sequence. Default is 55.
+            Length of the input sequence. Default is 10.
         dim_expand : int, optional
             Number of time steps to expand the output sequence by.
             Default is 0 (no expansion).
@@ -258,7 +338,7 @@ class VerticalRTColumnNet(nn.Module):
     """
     Two-stream RT emulator for vegetation canopies.
 
-    Changes vs your original
+    This architecture is inspired by the coupled radiative transfer equations
     ------------------------
     1.  Coupled sweep: D and U interact at every layer via C_down/C_up,
         mirroring the γ2 cross-coupling in Eq.(2) of the paper.

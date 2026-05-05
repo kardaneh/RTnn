@@ -13,7 +13,7 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from rtnn.models.Transformer import EncoderTorch
+from rtnn.models.transformer import EncoderTorch
 from rtnn.model_utils import ModelUtils
 
 

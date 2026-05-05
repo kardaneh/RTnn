@@ -6,6 +6,73 @@
 # To view a copy of this license, visit
 # http://creativecommons.org/licenses/by-nc-sa/4.0/
 
+"""
+Model utility functions for PyTorch training workflows.
+
+This module provides a collection of helper utilities for inspecting models,
+analyzing parameter distributions, and managing checkpoints during training.
+It is designed to standardize common operations such as saving/loading model
+states, logging architecture details, and maintaining reproducible training
+artifacts.
+
+The utilities support both single-GPU and multi-GPU (DataParallel) setups and
+include safeguards for compatibility when loading checkpoints across different
+hardware configurations.
+
+Features
+--------
+- Parameter counting (total and trainable)
+- Layer-wise parameter inspection
+- Model structure logging
+- Checkpoint saving and loading
+- Full training state persistence
+- Emergency checkpointing for crash recovery
+- DataParallel-aware state dictionary handling
+
+Notes
+-----
+- Checkpoints include both model weights and optimizer states to enable
+  seamless training resumption.
+- File naming conventions are automatically adapted based on checkpoint type
+  (e.g., epoch, best, final, emergency).
+- When using torch.nn.DataParallel, the module automatically adjusts state
+  dictionary keys to ensure compatibility between wrapped and unwrapped models.
+
+Dependencies
+------------
+- torch
+- os
+- datetime
+
+Examples
+--------
+Basic usage:
+
+>>> from model_utils import ModelUtils
+>>> counts = ModelUtils.get_parameter_number(model)
+>>> ModelUtils.print_model_layers(model)
+
+Saving and loading checkpoints:
+
+>>> state = {
+...     "state_dict": model.state_dict(),
+...     "optimizer": optimizer.state_dict(),
+...     "epoch": epoch,
+... }
+>>> ModelUtils.save_checkpoint(state, "checkpoint.pth.tar")
+>>> checkpoint = torch.load("checkpoint.pth.tar")
+>>> ModelUtils.load_checkpoint(checkpoint, model, optimizer)
+
+Saving a full training checkpoint:
+
+>>> ModelUtils.save_training_checkpoint(
+...     model, optimizer, epoch, samples_processed, batches_processed,
+...     train_loss_history, valid_loss_history, valid_metrics_history,
+...     best_val_loss, best_epoch, avg_val_loss, avg_epoch_loss,
+...     args, paths, logger, checkpoint_type="best"
+... )
+"""
+
 import torch
 import datetime
 import os

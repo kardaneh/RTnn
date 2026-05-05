@@ -20,10 +20,10 @@ rtnn.models.fcn module
    :undoc-members:
    :show-inheritance:
 
-rtnn.models.Transformer module
+rtnn.models.transformer module
 ------------------------------
 
-.. automodule:: rtnn.models.Transformer
+.. automodule:: rtnn.models.transformer
    :members:
    :undoc-members:
    :show-inheritance:

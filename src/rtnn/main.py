@@ -15,12 +15,74 @@ for radiative transfer calculations in climate modeling. It supports various
 model architectures including LSTM, GRU, Transformer, and FCN.
 
 The training pipeline includes:
+
 - Data loading and preprocessing from NetCDF files
 - Model initialization and configuration
 - Training loop with progress tracking
 - Validation and metric computation
 - Checkpoint saving and model persistence
 - Visualization and logging
+
+Module Overview
+---------------
+This module implements a complete machine learning pipeline for radiative
+transfer modeling in climate science. The pipeline is designed to handle
+spatio-temporal data from NetCDF files, apply appropriate normalization,
+train various neural network architectures, and evaluate model performance
+using physics-informed metrics.
+
+Key Features
+------------
+1. **Data Handling**
+
+   - Automatic reading of NetCDF files with year-based filtering
+   - Support for multiple normalization schemes (log1p_standard, standard, minmax)
+   - Temporal batching and sequence generation
+   - Multi-year training and held-out year testing
+
+2. **Model Architectures**
+
+   - LSTM (Long Short-Term Memory)
+   - GRU (Gated Recurrent Unit)
+   - Transformer with attention mechanism
+   - FCN (Fully Connected Networks)
+   - MLP with residual connections
+   - Custom RT-specific architectures
+
+3. **Training Features**
+
+   - Configurable loss functions (MSE, MAE, NMSE, NMAE, SmoothL1, Huber)
+   - Physics-informed weighted loss combining flux and absorption terms
+   - Learning rate scheduling with ReduceLROnPlateau
+   - Multi-GPU support with DataParallel
+   - Checkpoint saving and resumption
+
+4. **Evaluation Metrics**
+
+   - NMAE (Normalized Mean Absolute Error)
+   - NMSE (Normalized Mean Squared Error)
+   - R² (Coefficient of Determination)
+   - Conservation penalty for physical consistency
+
+5. **Output and Visualization**
+
+   - TensorBoard integration for real-time monitoring
+   - Training/validation loss plots
+   - Metric history visualization
+   - Spatial-temporal density scatter plots
+   - Automatic checkpoint saving (best, epoch, final)
+
+Data Flow
+---------
+1. Parse command-line arguments (parse_args)
+2. Setup directory structure and logging (setup_directories_and_logging)
+3. Configure device and random seeds (setup_device_and_seed)
+4. Load and preprocess data (get_data_files, create_datasets_and_loaders)
+5. Compute normalization statistics (create_normalization_mapping)
+6. Initialize model architecture (initialize_model)
+7. Load checkpoint if resuming (load_checkpoint_if_requested)
+8. Run inference or training loop
+9. Generate plots and save results
 """
 
 import os

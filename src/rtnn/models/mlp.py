@@ -6,6 +6,83 @@
 # To view a copy of this license, visit
 # http://creativecommons.org/licenses/by-nc-sa/4.0/
 
+"""
+Multi-layer perceptron architectures for structured and sequence-based modeling.
+
+This module provides flexible and extensible implementations of multi-layer
+perceptrons (MLPs) tailored for tasks such as radiative transfer emulation
+and other scientific machine learning applications involving structured inputs.
+
+The module includes:
+- ``MLPBlock``: A configurable fully connected block with optional normalization,
+  activation, and dropout.
+- ``MLP``: A flexible MLP architecture supporting positional embeddings,
+  residual connections, and customizable depth.
+- ``MLPResidual``: A residual MLP with skip connections across all hidden layers
+  for improved gradient flow and training stability.
+
+Features
+--------
+- Configurable hidden layer sizes and depth
+- Support for multiple normalization strategies (batch norm, layer norm)
+- Choice of activation functions (ReLU, GELU, SiLU)
+- Optional dropout for regularization
+- Residual connections for improved optimization
+- Learnable positional embeddings for sequence-aware modeling
+- Designed for flattened sequence inputs and structured data
+
+Notes
+-----
+- Inputs are expected in the shape (batch_size, feature_channel, seq_length)
+  and are internally flattened before processing.
+- Positional embeddings, when enabled, are concatenated to the input features
+  before passing through the network.
+- Residual connections in ``MLP`` are applied globally, while ``MLPResidual``
+  applies residual connections at every hidden layer.
+- Layer normalization is applied to outputs for improved numerical stability.
+
+Dependencies
+------------
+- torch
+- torch.nn
+- typing
+
+Examples
+--------
+Basic MLP usage:
+
+>>> model = MLP(
+...     feature_channel=6,
+...     output_channel=4,
+...     seq_length=10,
+...     hidden_sizes=[512, 256, 128]
+... )
+>>> x = torch.randn(32, 6, 10)
+>>> y = model(x)
+
+Using MLP with positional embeddings and residuals:
+
+>>> model = MLP(
+...     feature_channel=6,
+...     output_channel=4,
+...     seq_length=10,
+...     use_positional_embedding=True,
+...     use_residual=True
+... )
+
+Using MLPResidual:
+
+>>> model = MLPResidual(
+...     feature_channel=6,
+...     output_channel=4,
+...     seq_length=10,
+...     hidden_size=256,
+...     num_layers=4
+... )
+>>> x = torch.randn(16, 6, 10)
+>>> y = model(x)
+"""
+
 import torch
 import torch.nn as nn
 from typing import List

@@ -10,17 +10,42 @@ Set `--run_type inference` to run inference without training:
 
 .. code-block:: bash
 
-   rtnn \\
-       --run_type inference \\
-       --load_checkpoint_name model.pth.tar \\
-       --type verticalrt \\
-       --feature_channel 121 \\
-       --output_channel 120 \\
-       --hidden_size 256 \\
-       --num_layers 3 \\
-       --seq_length 10 \\
-       --test_year 2000 \\
-       --test_data_files /path/to/data
+      rtnn \
+        --root_dir "./" \  # Project root directory
+        --main_folder "Prod__lstm_h256_l3_d0d1_sb_4_ne_100" \  # Main experiment folder
+        --sub_folder "nrm_log1p_standard_lr_0d0001_beta_0d5" \  # Run-specific subfolder
+        --prefix "nrm_log1p_standard_lr_0d0001_beta_0d5" \  # Output/checkpoint prefix
+        --dataset_type "LSM" \  # Dataset type
+        --type "lstm" \  # Model type
+        --hidden_size "256" \  # Hidden layer size
+        --num_layers "3" \  # Number of layers
+        --output_channel "120" \  # Output feature dimension
+        --seq_length "10" \  # Input sequence length
+        --feature_channel "121" \  # Input feature dimension
+        --embed_size "256" \  # Embedding size
+        --nhead "4" \  # Number of attention heads (if applicable)
+        --forward_expansion "4" \  # Feed-forward expansion factor
+        --dropout "0.1" \  # Dropout rate
+        --model_name "lstm_h256_l3_d0d1" \  # Model identifier
+        --batch_size "4" \  # Batch size
+        --num_epochs "100" \  # Number of epochs (used for config consistency)
+        --learning_rate "0.0001" \  # Learning rate
+        --loss_type "huber" \  # Loss function
+        --beta "0.5" \  # Loss weighting parameter
+        --beta_delta "1.0" \  # Secondary loss scaling factor
+        --train_data_files "/path/to/training/data" \  # Training data path (optional for inference context)
+        --test_data_files "/path/to/testing/data" \  # Test data path
+        --train_years "1995-1999" \  # Training time range
+        --test_year "2000" \  # Test year
+        --norm "log1p_standard" \  # Normalization method
+        --num_workers "4" \  # DataLoader workers
+        --save_model "True" \  # Save outputs
+        --save_checkpoint_name "model" \  # Output checkpoint name
+        --save_per_samples "10000" \  # Save interval
+        --load_checkpoint_name "nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.tar" \  # Model checkpoint to load
+        --run_type "inference" \  # Run mode: inference
+        --seed "42" \  # Random seed
+        --debug "False"  # Debug mode
 
 **Key inference arguments:**
 
@@ -29,29 +54,6 @@ Set `--run_type inference` to run inference without training:
 - `--save_model False`: Disables checkpoint saving (default for inference)
 - `--num_workers 0`: Single worker for deterministic inference
 
-SBATCH Script for Inference
----------------------------
-
-.. code-block:: bash
-
-   #SBATCH --partition=batch
-   #SBATCH --gpus=1
-   #SBATCH --ntasks-per-node=1
-   #SBATCH --cpus-per-task=4
-   #SBATCH --mem=48G
-   #SBATCH --time=1:00:00
-
-   source .venv/bin/activate
-
-   rtnn \\
-       --run_type inference \\
-       --load_checkpoint_name model.pth.tar \\
-       --type verticalrt \\
-       --feature_channel 121 \\
-       --output_channel 120 \\
-       --test_year 2000 \\
-       --test_data_files /data/path \\
-       --num_workers 0
 
 Loading Checkpoints
 -------------------

@@ -8,8 +8,8 @@ Requirements
 - PyTorch 2.0+ (provided by cineca-ai module)
 - CUDA-capable GPU (optional, for GPU acceleration)
 
-Installation on Leonardo (CINECA)
----------------------------------
+Installation using module load
+------------------------------
 
 1. **Load required modules**:
 
@@ -17,8 +17,7 @@ Installation on Leonardo (CINECA)
 
    .. code-block:: bash
 
-      module load profile/deeplrn
-      module load cineca-ai
+      module load pytorch # This loads PyTorch with CUDA and other dependencies
 
 2. **Clone the repository**:
 
@@ -31,7 +30,7 @@ Installation on Leonardo (CINECA)
 
    .. code-block:: bash
 
-      uv venv --python 3.11
+      uv venv --python 3.8
       source .venv/bin/activate
 
 4. **Install missing dependencies**:
@@ -53,10 +52,11 @@ Installation on Leonardo (CINECA)
       python -c "import rtnn; print(rtnn.__version__)"
       rtnn --version
 
-Installation on other systems
------------------------------
+Installation from zero (recommended)
+------------------------------------
 
-If you're not on Leonardo, you can install all dependencies via pip (remember to uncomment the dependencies in ``pyproject.toml``):
+If you have issue on module load and your virtual environment, you can install all dependencies via pip (remember to uncomment the dependencies in ``pyproject.toml``).
+follow the steps 2-3 from the previous section, then install all dependencies and the package itself:
 
 .. code-block:: bash
 
@@ -110,18 +110,3 @@ To build the HTML documentation locally:
 
       # Or serve with Python
       python -m http.server --directory build/html 8000
-
-
-Dependencies
-------------
-
-The following packages are provided by the cineca-ai module:
-
-- PyTorch 2.0.0a0 with CUDA 12.1
-- NumPy, SciPy, Pandas, Matplotlib
-- scikit-learn, seaborn, rich, tqdm, tensorboard
-
-Only these need to be installed:
-
-- xarray
-- mpltex

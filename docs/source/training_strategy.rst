@@ -6,7 +6,7 @@ This section describes the training configuration, data preparation pipeline, an
 Data Preparation
 ----------------
 
-RTnn processes NetCDF files containing Land Surface Model (LSM) data with the naming convention:
+RTnn processes NetCDF files containing LSM data with the naming convention:
 `rtnetcdf_{processor_rank:03d}_{year}.nc`
 
 .. figure:: ../../images/canopy.png
@@ -21,7 +21,7 @@ The model simulates radiative transfer through multiple vertical layers (default
 
 **Processor Rank Distribution:**
 
-Data is distributed across multiple processor ranks (typically 16 ranks). For training, a random subset (60%) is selected to reduce bias and improve generalization.
+Data is distributed across multiple processor ranks (for example 16 ranks). For training, a random subset (60%) is selected in each epoch to reduce bias and improve generalization.
 
 .. figure:: ../../images/random_rank.png
    :width: 70%
@@ -108,7 +108,7 @@ Learning Rate
 
 .. code-block:: bash
 
-   --learning_rate 0.001
+   --learning_rate 0.0001
 
 **Recommendations:**
 
@@ -121,8 +121,8 @@ Batch Size
 
 .. code-block:: bash
 
-   --batch_size 32
-   --tbatch 24  # Temporal batch size
+   --batch_size 4
+   --tbatch 24  # 24 temporal batch size for the validation, and 1 for inference
 
 **Note:** For VerticalRT with 120 output channels, reduce batch size to 4-8 due to memory constraints.
 
@@ -198,9 +198,7 @@ Adam optimizer with default parameters:
 
    optimizer = torch.optim.Adam(
        model.parameters(),
-       lr=learning_rate,
-       betas=(0.9, 0.999),
-       eps=1e-8
+       lr=learning_rate
    )
 
 Training Tips
@@ -223,7 +221,6 @@ Training Tips
 
 - Hidden size: 256
 - Layer embedding dimension: 16
-- mu_bar: 0.5 (average inverse diffuse optical depth)
 - Dropout: 0.1
 
 **General Tips:**

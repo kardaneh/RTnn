@@ -12,7 +12,7 @@ RTnn provides a flexible and efficient framework for:
 
 - **Emulating radiative transfer**: Replace expensive physical RT models with fast neural networks
 - **Data preprocessing**: Handle large climate datasets with multiple dimensions
-- **Multiple architectures**: Support for LSTM, GRU, Transformer, and FCN models
+- **Multiple architectures**: Support for LSTM, GRU, Transformer, FCN, MLP models
 - **GPU acceleration**: Leverage CUDA for fast training and inference
 - **Comprehensive evaluation**: Built-in metrics and visualization tools
 
@@ -41,7 +41,7 @@ mapping of radiative transfer processes:
 - Solar zenith angle (coszang)
 - Leaf area index (LAI) - collimated and isotropic
 - Leaf single scattering albedo (SSA) and phase function asymmetry (PSD)
-- Surface reflectance (rs_surface_emu)
+- Surface reflectance
 
 **Output variables:**
 
@@ -68,7 +68,7 @@ Key Components
    multi-year and multi-processor data
 
 2. **Model Architectures**: Multiple neural network options including LSTM, GRU,
-   Transformer, and FCN
+   Transformer, FCN, MLP
 
 3. **Evaluation Framework**: Comprehensive metrics and loss functions for
    radiative transfer applications
@@ -79,7 +79,7 @@ Performance Highlights
 ----------------------
 
 - **Speed**: Up to YYYx faster than physical RT models
-- **Accuracy**: R² > 0.95 across all output variables
+- **Accuracy**: R² > 0.9999 across all output variables
 - **Scalability**: Efficient on multi-GPU and distributed systems
 - **Data efficiency**: Trained on ~5 years of data, validated on independent years
 

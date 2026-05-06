@@ -44,21 +44,45 @@ Basic Usage
 Command Line Interface
 ----------------------
 
-Train a model:
+Train a LSTM Model with 121 input features, 256 hidden units, 3 layers, and 120 output channels:
 
 .. code-block:: bash
 
-   rtnn \\
-       --type lstm \\
-       --hidden_size 256 \\
-       --num_layers 3 \\
-       --batch_size 32 \\
-       --num_epochs 100 \\
-       --learning_rate 0.001 \\
-       --train_years "1995-1999" \\
-       --test_year 2000 \\
-       --main_folder results \\
-       --sub_folder experiment_1
+      rtnn \
+        --root_dir "./" \  # Project root directory
+        --main_folder "Prod__lstm_h256_l3_d0d1_sb_4_ne_100" \  # Main experiment folder
+        --sub_folder "nrm_log1p_standard_lr_0d0001_beta_0d5" \  # Run-specific subfolder
+        --prefix "nrm_log1p_standard_lr_0d0001_beta_0d5" \  # Output/checkpoint prefix
+        --dataset_type "LSM" \  # Dataset type
+        --type "lstm" \  # Model type
+        --hidden_size "256" \  # Hidden layer size
+        --num_layers "3" \  # Number of layers
+        --output_channel "120" \  # Output feature dimension
+        --seq_length "10" \  # Input sequence length
+        --feature_channel "121" \  # Input feature dimension
+        --embed_size "256" \  # Embedding size (just for transformer)
+        --nhead "4" \  # Number of attention heads (just for transformer)
+        --forward_expansion "4" \  # Feed-forward expansion factor (just for transformer)
+        --dropout "0.1" \  # Dropout rate
+        --model_name "lstm_h256_l3_d0d1" \  # Model identifier
+        --batch_size "4" \  # Batch size
+        --num_epochs "100" \  # Number of training epochs
+        --learning_rate "0.0001" \  # Learning rate
+        --loss_type "huber" \  # Loss function
+        --beta "0.5" \  # Loss weighting parameter
+        --beta_delta "1.0" \  # Secondary loss scaling factor
+        --train_data_files "/path/to/training/data" \  # Training NetCDF4 dataset path
+        --test_data_files "/path/to/testing/data" \  # Testing NetCDF4 dataset path
+        --train_years "1995-1999" \  # Training time range
+        --test_year "2000" \  # Test year
+        --norm "log1p_standard" \  # Normalization method
+        --num_workers "4" \  # DataLoader worker threads
+        --save_model "True" \  # Save final model
+        --save_checkpoint_name "model" \  # Checkpoint filename
+        --save_per_samples "10000" \  # Save interval (samples)
+        --run_type "train" \  # Run mode: training
+        --seed "42" \  # Random seed
+        --debug "False"  # Debug mode
 
 Show version:
 
@@ -72,58 +96,10 @@ Show help:
 
    rtnn --help
 
-Example: Training an LSTM Model
--------------------------------
-
-For quick testing with 121 input features and 120 output channels:
-
-.. code-block:: bash
-
-   #!/bin/bash
-   #SBATCH --partition=batch
-   #SBATCH --gpus=1
-   #SBATCH --ntasks-per-node=1
-   #SBATCH --cpus-per-task=4
-   #SBATCH --mem=48G
-   #SBATCH --time=00:30:00
-
-   source .venv/bin/activate
-
-   rtnn \\
-       --type lstm \\
-       --hidden_size 64 \\
-       --num_layers 2 \\
-       --output_channel 120 \\
-       --seq_length 10 \\
-       --feature_channel 121 \\
-       --batch_size 4 \\
-       --num_epochs 2 \\
-       --learning_rate 0.001 \\
-       --loss_type huber \\
-       --beta 0.2 \\
-       --train_years 1999 \\
-       --test_year 2000 \\
-       --norm log1p_standard \\
-       --num_workers 4 \\
-       --save_model False \\
-       --main_folder RapidTest \\
-       --sub_folder quick_run
-
-**Key settings for speed:**
-
-- `--num_epochs 2`: Only 2 epochs
-- `--train_years 1999`: Single year of data
-- `--hidden_size 64`: Smaller hidden dimension
-- `--num_layers 2`: Fewer layers
-- `--batch_size 8`: Larger batch size
-- `--save_model False`: No checkpoint overhead
-- `--num_workers 4`: Parallel data loading
-
 Performance Optimization
-------------------------------------
-
-For optimal performance, different configurations of SLURM parameters
-and PyTorch DataLoader workers were tested. The following table summarizes the results.
+------------------------
+RTnn is desinged to be efficient on single GPU systems, but performance can vary significantly based on how you configure SLURM parameters and PyTorch DataLoader workers.
+For optimal performance, different configurations of SLURM parameters and PyTorch DataLoader workers were tested. The following table summarizes the results.
 Note that `ntasks-per-node × cpus-per-task` is set to a maximum of 4.
 
 .. list-table:: Performance Comparison on HAL Machine

@@ -1,7 +1,7 @@
 Neural Architectures
 ====================
 
-RTnn supports multiple neural network architectures for radiative transfer modeling.
+RTnn supports multiple neural network architectures for radiative transfer emulation.
 
 Recurrent Neural Networks (RNN)
 -------------------------------
@@ -16,13 +16,14 @@ Bidirectional LSTM with final Conv1d projection.
    from rtnn import RNN_LSTM
 
    model = RNN_LSTM(
-       feature_channel=6,    # Input features
-       output_channel=4,     # Output channels
-       hidden_size=128,      # Hidden state size
+       feature_channel=121,    # Input features
+       output_channel=120,     # Output channels
+       hidden_size=256,      # Hidden state size
        num_layers=3          # Number of LSTM layers
    )
 
 **Architecture:**
+
 - Bidirectional LSTM: captures forward and backward dependencies
 - Conv1d output: projects hidden states to output channels
 
@@ -36,9 +37,9 @@ Similar to LSTM but with fewer parameters.
    from rtnn import RNN_GRU
 
    model = RNN_GRU(
-       feature_channel=6,
-       output_channel=4,
-       hidden_size=128,
+       feature_channel=121,
+       output_channel=120,
+       hidden_size=256,
        num_layers=3
    )
 
@@ -52,10 +53,10 @@ Self-attention based encoder for sequence processing.
    from rtnn import TransformerEncoder
 
    model = TransformerEncoder(
-       feature_channel=6,
-       output_channel=4,
-       embed_size=64,        # Embedding dimension
-       num_layers=2,         # Number of transformer blocks
+       feature_channel=121,
+       output_channel=120,
+       embed_size=256,        # Embedding dimension
+       num_layers=3,         # Number of transformer blocks
        heads=4,              # Attention heads
        forward_expansion=4,  # Feed-forward expansion factor
        seq_length=10,        # Input sequence length
@@ -63,6 +64,7 @@ Self-attention based encoder for sequence processing.
    )
 
 **Features:**
+
 - Positional embeddings
 - Multi-head self-attention
 - Residual connections
@@ -78,15 +80,16 @@ Deep fully connected network with batch normalization.
    from rtnn import FCN
 
    model = FCN(
-       feature_channel=6,
-       output_channel=4,
+       feature_channel=121,
+       output_channel=120,
        num_layers=3,         # Number of hidden layers
-       hidden_size=196,      # Hidden layer size
+       hidden_size=256,      # Hidden layer size
        seq_length=10,        # Input sequence length
        dim_expand=0          # Optional sequence expansion
    )
 
 **Architecture:**
+
 - Flattens input: (batch, channels, seq) → (batch, channels * seq)
 - FCBlock: Linear → BatchNorm → ReLU
 - Optional sequence length expansion
@@ -109,99 +112,86 @@ radiative transfer modeling.
        out_channel=120,       # Output channels (4 vars × 15 PFTs × 2 bands)
        n_layers=10,           # Number of vertical canopy layers
        layer_embed_dim=16,    # Dimension of layer positional embedding
-       mu_bar=0.5,            # Average inverse diffuse optical depth
        dropout=0.1            # Dropout rate
    )
 
-**Physical Interpretation:**
+Physical Interpretation
+-----------------------
 
-The architecture follows the analytical solution of the two-stream equations:
+This model is a discrete, layer-wise approximation of the two-stream radiative
+transfer system, where upward and downward fluxes are coupled at each canopy layer.
+
+Instead of solving a closed-form continuous equation, the network learns the
+iterative propagation:
 
 .. math::
 
-   F(\tau) = A \cdot e^{\lambda \tau} + B \cdot e^{-\lambda \tau} + C \cdot e^{-\tau / \mu_0}
+   d_l = T_l^{\downarrow} \, d_{l-1} + C_l^{\downarrow} \, u_{l-1} + S_l^{\downarrow}
 
-Where:
+   u_l = T_l^{\uparrow} \, u_{l-1} + C_l^{\uparrow} \, d_{l-1} + S_l^{\uparrow}
 
-- :math:`\lambda = \sqrt{\gamma_1^2 - \gamma_2^2}` (eigenvalue)
-- :math:`\Gamma = \gamma_2 / (\gamma_1 + \lambda)` (reflection/transmission ratio)
-- :math:`C^+` and :math:`C^-` are particular solutions for direct beam
+where:
 
-**Key Components:**
+- :math:`d_l` is the downward flux at layer :math:`l`
+- :math:`u_l` is the upward flux at layer :math:`l`
+- :math:`T^{\downarrow}, T^{\uparrow} \in (0,1)` are learned transmittance terms
+- :math:`C^{\downarrow}, C^{\uparrow} \in (0,1)` are coupling (scattering) terms
+- :math:`S^{\downarrow}, S^{\uparrow}` are source terms (direct + diffuse forcing)
 
-1. **Layer Positional Embedding**: Adds vertical position information (depth awareness)
+Surface Boundary Condition
+--------------------------
 
-2. **Optical Properties Predictor**: Computes per-layer:
+At the bottom of the canopy, the upward flux is initialized using a learned
+surface reflection operator:
 
-   - :math:`\omega` (single scattering albedo)
-   - :math:`\gamma_1, \gamma_2, \gamma_3, \gamma_4` (scattering coefficients)
-   - :math:`K = G(\mu)/\mu` (extinction coefficient for direct beam)
+.. math::
 
-3. **Downward Sweep** (Top → Bottom):
+   u_{L-1} = f_{\text{surface}}(d_{L-1})
 
-   - Models downward diffuse flux propagation through the canopy
+This corresponds to:
 
-4. **Surface Boundary Condition**:
+- reflection of downward flux at the surface
+- implicit dependence on surface albedo encoded in features
 
-   - Reflects bottom flux based on surface albedo :math:`R_s`
+Upward Sweep Refinement
+-----------------------
 
-5. **Upward Sweep** (Bottom → Top):
+After computing downward fluxes, the upward pass refines radiation propagation:
 
-   - Models upward diffuse flux propagation
+.. math::
 
-6. **Flux Reconstruction**:
+   u_l = T_l^{\uparrow} \, u_{l+1} + C_l^{\uparrow} \, d_l + S_l^{\uparrow}
 
-   - Combines downward and upward fluxes with residual connections
+Flux Reconstruction
+-------------------
 
-**Advantages:**
+The final radiative output at each layer is computed as:
 
-- Preserves physical structure of RT equations
-- Handles vertical heterogeneity naturally
-- Learns layer-specific optical properties
-- Physically interpretable parameters
-- Efficient for multi-layer canopy problems
+.. math::
 
-**When to Use:**
+   y_l = f_D(d_l) + f_U(u_l) + f_{\text{skip}}(h_l)
 
-- Modeling radiative transfer through vegetation canopies
-- Problems with vertical structure (multiple layers)
-- When physical interpretability is important
-- Emulating two-stream RT solvers in Land Surface Models
+where:
 
-Model Comparison
-----------------
+- :math:`f_D` = downward projection head
+- :math:`f_U` = upward projection head
+- :math:`f_{\text{skip}}` = residual connection from encoder state :math:`h_l`
 
-.. list-table::
-   :widths: 20 25 25 30
-   :header-rows: 1
+Interpretation
+--------------
 
-   * - Architecture
-     - Parameters
-     - Best For
-     - Pros/Cons
-   * - LSTM/GRU
-     - Moderate
-     - Temporal dependencies
-     - Good for sequences, can be slow
-   * - Transformer
-     - Large
-     - Long-range dependencies
-     - Parallel processing, memory intensive
-   * - FCN
-     - Moderate
-     - Simple relationships
-     - Fast, no temporal modeling
-   * - VerticalRT
-     - Moderate-Large
-     - Vertical RT problems
-     - Physics-inspired, interpretable, specialized
+This formulation explicitly mirrors the Python implementation:
 
-Choosing an Architecture
-------------------------
+- Sequential **downward recurrence** (top → bottom)
+- Surface-driven initialization of upward flux
+- Sequential **upward recurrence** (bottom → top)
+- Final per-layer mixing of both flux streams
 
-1. **LSTM/GRU**: Default choice for temporal sequences
-2. **Transformer**: For long sequences or when attention is important
-3. **FCN**: For simple regression tasks without temporal structure
-4. **VerticalRT**: For vertical canopy radiative transfer problems (physics-inspired)
+This structure preserves:
 
-See :doc:`training_strategy` for hyperparameter recommendations.
+- Energy exchange between streams (via coupling terms)
+- Vertical dependency of canopy radiative transfer
+- Physical consistency with two-stream discrete RT solvers
+
+-  See :doc:`training_strategy` for hyperparameter recommendations.
+-  See :doc:`experiments` for performance comparisons between architectures.

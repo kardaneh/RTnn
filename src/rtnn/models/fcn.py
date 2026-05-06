@@ -338,8 +338,8 @@ class VerticalRTColumnNet(nn.Module):
     """
     Two-stream RT emulator for vegetation canopies.
 
-    This architecture is inspired by the coupled radiative transfer equations
-    ------------------------
+    This architecture is inspired by the coupled radiative transfer equations:
+
     1.  Coupled sweep: D and U interact at every layer via C_down/C_up,
         mirroring the γ2 cross-coupling in Eq.(2) of the paper.
         d_new = T_down * d  +  C_down * u  +  S_down

@@ -3,8 +3,15 @@ RTnn
 
 |License| |CI Status| |Documentation Status| |Documentation|
 
-RTnn is a PyTorch-based framework for training neural networks to model radiative
-transfer processes in climate science, particularly for Land Surface Models (LSM).
+RTnn is a PyTorch library for training neural networks to model radiative transfer in climate science.
+RTnn has been developed in the context of the **AI4PEX project** (Research Focus LAND). AI4PEX is focused on enhancing our understanding of how terrestrial ecosystems respond to climate change and the feedback of increased atmospheric CO2 levels to the climate system. The project aims to reduce uncertainties and enhance process representation, namely:
+
+- **Hybrid Modelling and History Matching**: to better predict the instantaneous vegetation responses to water and heat stress.
+- **Leverage Deep Learning**: approaches, such as Long-Short Term Memory networks, to simulate phenology and enhance online deep learning frameworks to represent plant carbon dynamics and explore tree mortality drivers.
+- **Temperature Sensitivity of Decomposition**: Address the challenge of understanding how temperature affects soil decomposition, which is crucial for ecosystem carbon turnover and land-atmosphere carbon responses to warming.
+- **Land-Atmosphere Feedbacks**: Improve the representation of processes that control energy feedbacks to the atmosphere, including regional climate extremes and land carbon uptake, to reduce uncertainties in projected warming trends.
+
+By focusing on these areas, AI4PEX aims to provide a more accurate representation of ecosystem dynamics and feedbacks in climate models.
 
 .. |License| image:: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-blue.svg
    :target: https://creativecommons.org/licenses/by-nc-sa/4.0/
@@ -22,27 +29,15 @@ transfer processes in climate science, particularly for Land Surface Models (LSM
    :target: https://rtnn.readthedocs.io/
    :alt: Documentation
 
-Background
-----------
-
-RTnn has been developed in the context of the **AI4PEX project** (Research Focus LAND). AI4PEX is focused on enhancing our understanding of how terrestrial ecosystems respond to climate change and the feedback of increased atmospheric CO2 levels to the climate system. The project aims to reduce uncertainties and enhance process representation, namely:
-
-- **Hybrid Modelling and History Matching**: to better predict the instantaneous vegetation responses to water and heat stress.
-- **Leverage Deep Learning**: approaches, such as Long-Short Term Memory networks, to simulate phenology and enhance online deep learning frameworks to represent plant carbon dynamics and explore tree mortality drivers.
-- **Temperature Sensitivity of Decomposition**: Address the challenge of understanding how temperature affects soil decomposition, which is crucial for ecosystem carbon turnover and land-atmosphere carbon responses to warming.
-- **Land-Atmosphere Feedbacks**: Improve the representation of processes that control energy feedbacks to the atmosphere, including regional climate extremes and land carbon uptake, to reduce uncertainties in projected warming trends.
-
-By focusing on these areas, AI4PEX aims to provide a more accurate representation of ecosystem dynamics and feedbacks in climate models.
-
 Features
 --------
 
-* **Multiple Neural Architectures**: LSTM, GRU, Transformer, FCN
+* **Multiple Neural Architectures**: LSTM, GRU, Transformer, FCN, MLP
 * **Climate Data Support**: NetCDF4 format with multi-year and multi-processor handling
 * **GPU Acceleration**: CUDA support with multi-GPU training
 * **Comprehensive Metrics**: NMAE, NMSE, R², and custom loss functions
-* **Visualization Tools**: Built-in plotting for predictions, metrics, and absorption rates
-* **CLI Interface**: Easy training and evaluation from command line
+* **Visualization Tools**: Built-in plotting for predictions, metrics, absorption rates, etc.
+* **CLI Interface**: Easy command-line training and evaluation
 
 Documentation
 -------------
@@ -56,44 +51,50 @@ Using uv (recommended):
 
 .. code-block:: bash
 
-    # Install uv if you haven't already
+    # Install uv (via pip or curl)
     pip install uv
+    # or (Linux/macOS)
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
     # Clone the repository
     git clone https://github.com/kardaneh/rtnn.git
     cd rtnn
 
-    # Create virtual environment and install
-    uv venv
+    # Create virtual environment and activate
+    uv venv --python 3.8
+    source .venv/bin/activate
+
+    # Install RTnn in editable mode
     uv pip install -e .
 
-    # Install with development dependencies
-    uv pip install -e ".[dev]"
+    # Optional: install extra dependencies
+    uv pip install -e ".[dev]"   # development
+    uv pip install -e ".[docs]"  # documentation (Sphinx)
 
 Quick Start
 -----------
 
 .. code-block:: python
 
-    from rtnn import DataPreprocessor, RNN_LSTM
-    from rtnn.evaluater import run_validation
+    import rtnn
 
-    # Check version
+    # Version info
     print(f"RTnn version: {rtnn.__version__}")
     print(f"Author: {rtnn.__author__}")
 
-    # Initialize your model
-    model = RNN_LSTM(
+    # Initialize model
+    model = rtnn.RNN_LSTM(
         feature_channel=6,
         output_channel=4,
         hidden_size=256,
-        num_layers=3
+        num_layers=3,
     )
 
-    # Prepare your data
-    # dataset = DataPreprocessor(...)
+    # Prepare data
+    # dataset = rtnn.DataPreprocessor(...)
 
-    # Train or evaluate...
+    # Train or evaluate
 
 Command Line Interface
 ----------------------
@@ -107,131 +108,134 @@ Command Line Interface
     rtnn --help
 
     # Train a model
-    rtnn \\
-        --root_dir "./" \\
-        --main_folder "Prod__lstm_h256_l3_d0d1_sb_4_ne_100" \\
-        --sub_folder "nrm_log1p_standard_lr_0d0001_beta_0d5" \\
-        --prefix "nrm_log1p_standard_lr_0d0001_beta_0d5" \\
-        --dataset_type "LSM" \\
-        --type "lstm" \\
-        --hidden_size "256" \\
-        --num_layers "3" \\
-        --output_channel "120" \\
-        --seq_length "10" \\
-        --feature_channel "121" \\
-        --embed_size "256" \\
-        --nhead "4" \\
-        --forward_expansion "4" \\
-        --dropout "0.1" \\
-        --model_name "lstm_h256_l3_d0d1" \\
-        --batch_size "4" \\
-        --num_epochs "100" \\
-        --learning_rate "0.0001" \\
-        --loss_type "huber" \\
-        --beta "0.5" \\
-        --beta_delta "1.0" \\
-        --train_data_files "/path/to/training/data" \\
-        --test_data_files "/path/to/testing/data" \\
-        --train_years "1995-1999" \\
-        --test_year "2000" \\
-        --norm "log1p_standard" \\
-        --num_workers "4" \\
-        --save_model "True" \\
-        --save_checkpoint_name "model" \\
-        --save_per_samples "10000" \\
-        --load_checkpoint_name "nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.tar" \\
-        --run_type "train" \\
-        --seed "42" \\
-        --debug "False"
+    rtnn \
+        --root_dir "./" \  # Project root directory
+        --main_folder "Prod__lstm_h256_l3_d0d1_sb_4_ne_100" \  # Main experiment folder
+        --sub_folder "nrm_log1p_standard_lr_0d0001_beta_0d5" \  # Run-specific subfolder
+        --prefix "nrm_log1p_standard_lr_0d0001_beta_0d5" \  # Output/checkpoint prefix
+        --dataset_type "LSM" \  # Dataset type
+        --type "lstm" \  # Model type
+        --hidden_size "256" \  # Hidden layer size
+        --num_layers "3" \  # Number of layers
+        --output_channel "120" \  # Output feature dimension
+        --seq_length "10" \  # Input sequence length
+        --feature_channel "121" \  # Input feature dimension
+        --embed_size "256" \  # Embedding size (just for transformer)
+        --nhead "4" \  # Number of attention heads (just for transformer)
+        --forward_expansion "4" \  # Feed-forward expansion factor (just for transformer)
+        --dropout "0.1" \  # Dropout rate
+        --model_name "lstm_h256_l3_d0d1" \  # Model identifier
+        --batch_size "4" \  # Batch size
+        --num_epochs "100" \  # Number of training epochs
+        --learning_rate "0.0001" \  # Learning rate
+        --loss_type "huber" \  # Loss function
+        --beta "0.5" \  # Loss weighting parameter
+        --beta_delta "1.0" \  # Secondary loss scaling factor
+        --train_data_files "/path/to/training/data" \  # Training NetCDF4 dataset path
+        --test_data_files "/path/to/testing/data" \  # Testing NetCDF4 dataset path
+        --train_years "1995-1999" \  # Training time range
+        --test_year "2000" \  # Test year
+        --norm "log1p_standard" \  # Normalization method
+        --num_workers "4" \  # DataLoader worker threads
+        --save_model "True" \  # Save final model
+        --save_checkpoint_name "model" \  # Checkpoint filename
+        --save_per_samples "10000" \  # Save interval (samples)
+        --run_type "train" \  # Run mode: training
+        --seed "42" \  # Random seed
+        --debug "False"  # Debug mode
 
-    # Evaluate a model
-    rtnn \\
-        --root_dir "./" \\
-        --main_folder "Prod__lstm_h256_l3_d0d1_sb_4_ne_100" \\
-        --sub_folder "nrm_log1p_standard_lr_0d0001_beta_0d5" \\
-        --prefix "nrm_log1p_standard_lr_0d0001_beta_0d5" \\
-        --dataset_type "LSM" \\
-        --type "lstm" \\
-        --hidden_size "256" \\
-        --num_layers "3" \\
-        --output_channel "120" \\
-        --seq_length "10" \\
-        --feature_channel "121" \\
-        --embed_size "256" \\
-        --nhead "4" \\
-        --forward_expansion "4" \\
-        --dropout "0.1" \\
-        --model_name "lstm_h256_l3_d0d1" \\
-        --batch_size "4" \\
-        --num_epochs "100" \\
-        --learning_rate "0.0001" \\
-        --loss_type "huber" \\
-        --beta "0.5" \\
-        --beta_delta "1.0" \\
-        --train_data_files "/path/to/training/data" \\
-        --test_data_files "/path/to/testing/data" \\
-        --train_years "1995-1999" \\
-        --test_year "2000" \\
-        --norm "log1p_standard" \\
-        --num_workers "4" \\
-        --save_model "True" \\
-        --save_checkpoint_name "model" \\
-        --save_per_samples "10000" \\
-        --load_checkpoint_name "nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.tar" \\
-        --run_type "inference" \\
-        --seed "42" \\
-        --debug "False"
+    # Evaluate / inference a model
+    rtnn \
+        --root_dir "./" \  # Project root directory
+        --main_folder "Prod__lstm_h256_l3_d0d1_sb_4_ne_100" \  # Main experiment folder
+        --sub_folder "nrm_log1p_standard_lr_0d0001_beta_0d5" \  # Run-specific subfolder
+        --prefix "nrm_log1p_standard_lr_0d0001_beta_0d5" \  # Output/checkpoint prefix
+        --dataset_type "LSM" \  # Dataset type
+        --type "lstm" \  # Model type
+        --hidden_size "256" \  # Hidden layer size
+        --num_layers "3" \  # Number of layers
+        --output_channel "120" \  # Output feature dimension
+        --seq_length "10" \  # Input sequence length
+        --feature_channel "121" \  # Input feature dimension
+        --embed_size "256" \  # Embedding size
+        --nhead "4" \  # Number of attention heads (if applicable)
+        --forward_expansion "4" \  # Feed-forward expansion factor
+        --dropout "0.1" \  # Dropout rate
+        --model_name "lstm_h256_l3_d0d1" \  # Model identifier
+        --batch_size "4" \  # Batch size
+        --num_epochs "100" \  # Number of epochs (used for config consistency)
+        --learning_rate "0.0001" \  # Learning rate
+        --loss_type "huber" \  # Loss function
+        --beta "0.5" \  # Loss weighting parameter
+        --beta_delta "1.0" \  # Secondary loss scaling factor
+        --train_data_files "/path/to/training/data" \  # Training data path (optional for inference context)
+        --test_data_files "/path/to/testing/data" \  # Test data path
+        --train_years "1995-1999" \  # Training time range
+        --test_year "2000" \  # Test year
+        --norm "log1p_standard" \  # Normalization method
+        --num_workers "4" \  # DataLoader workers
+        --save_model "True" \  # Save outputs
+        --save_checkpoint_name "model" \  # Output checkpoint name
+        --save_per_samples "10000" \  # Save interval
+        --load_checkpoint_name "nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.tar" \  # Model checkpoint to load
+        --run_type "inference" \  # Run mode: inference
+        --seed "42" \  # Random seed
+        --debug "False"  # Debug mode
 
 Project Structure
 -----------------
 
 ::
 
-   rtnn/
-   ├── src/rtnn/                 # Main package
-   │   ├── __init__.py
-   │   ├── __main__.py
-   │   ├── version.py
-   │   ├── dataset.py            # DataPreprocessor class
-   │   ├── evaluater.py          # Metrics and loss functions
-   │   ├── diagnostics.py        # Visualization tools
-   │   ├── logger.py             # Rich logging
-   │   ├── main.py               # Main training script
-   │   ├── model_loader.py       # Model factory
-   │   ├── model_utils.py        # Model utilities
-   │   ├── utils.py              # File and general utilities
-   │   └── models/               # Model architectures
-   │       ├── __init__.py
-   │       ├── rnn.py            # LSTM and GRU
-   │       ├── fcn.py            # Fully Connected Network
-   │       ├── Transformer.py    # Transformer encoder
-   │       ├── mlp.py            # Multi-Layer Perceptron
-   ├── tests/                    # Unit tests
-   │   ├── test_rnn.py
-   │   ├── test_fcn.py
-   │   ├── test_transformer.py
-   │   ├── test_mlp.py
-   │   ├── test_dataset.py
-   │   ├── test_evaluater.py
-   │   ├── test_model_loader.py
-   │   ├── test_diagnostics.py
-   │   ├── test_utils.py
-   │   ├── test_model_utils.py
-   │   └── test_runner.py
-   ├── docs/                     # Documentation
-   │   ├── source/
-   │   └── build/
-   ├── .github/workflows/        # CI/CD pipelines
-   │   ├── ci.yaml
-   │   └── docs.yml
-   ├── pyproject.toml            # Package configuration
-   ├── README.rst                # Project README
-   └── LICENSE                   # CC BY-NC-SA 4.0
+    rtnn/
+    ├── src/rtnn/                 # Main package
+    │   ├── __init__.py
+    │   ├── __main__.py           # CLI entry point
+    │   ├── version.py            # Package version
+    │   ├── dataset.py            # DataPreprocessor and dataset utilities
+    │   ├── evaluater.py          # Metrics, loss, and evaluation logic
+    │   ├── diagnostics.py        # Visualization and diagnostics tools
+    │   ├── logger.py             # Logging utilities
+    │   ├── main.py               # Training / inference pipeline
+    │   ├── model_loader.py       # Model factory and loading utilities
+    │   ├── model_utils.py        # Model helper functions
+    │   ├── utils.py              # General utilities
+    │   └── models/               # Neural network architectures
+    │       ├── rnn.py            # LSTM / GRU models
+    │       ├── fcn.py            # Fully connected networks
+    │       ├── transformer.py    # Transformer encoder
+    │       ├── mlp.py            # Multi-layer perceptron
+    │
+    ├── tests/                    # Unit tests
+    │   ├── test_rnn.py
+    │   ├── test_fcn.py
+    │   ├── test_transformer.py
+    │   ├── test_mlp.py
+    │   ├── test_dataset.py
+    │   ├── test_evaluater.py
+    │   ├── test_model_loader.py
+    │   ├── test_diagnostics.py
+    │   ├── test_model_utils.py
+    │   ├── test_utils.py
+    │   └── test_runner.py
+    │
+    ├── docs/                    # Documentation (Sphinx)
+    │   ├── source/
+    │   └── build/
+    │
+    ├── .github/workflows/       # CI/CD pipelines
+    │   ├── ci.yaml
+    │   └── docs.yml
+    │
+    ├── pyproject.toml           # Package configuration
+    ├── README.rst               # Project overview
+    └── LICENSE                  # CC BY-NC-SA 4.0
 
 Dependencies
 ------------
 
 Core dependencies:
+
 - PyTorch >= 2.0.0
 - NumPy
 - Xarray
@@ -249,7 +253,7 @@ For full list, see ``pyproject.toml``.
 Testing
 -------
 
-RTnn uses Python's built-in `unittest` framework for testing.
+RTnn uses Python's built-in unittest framework for testing.
 
 Running all tests
 ~~~~~~~~~~~~~~~~~

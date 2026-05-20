@@ -1,11 +1,19 @@
-import torch
-import torch.nn as nn
+# Copyright 2026 IPSL / CNRS / Sorbonne University
+# Authors: Kazem Ardaneh
+#
+# This work is licensed under the Creative Commons
+# Attribution-NonCommercial-ShareAlike 4.0 International License.
+# To view a copy of this license, visit
+# http://creativecommons.org/licenses/by-nc-sa/4.0/
 
 """
 Physics-inspired neural network architectures for vertical profile modeling.
 These models are designed to capture the structured interactions in radiative transfer processes, particularly in vegetation canopies. The key innovation is the
 two-stream formulation that mimics the coupled upward and downward fluxes in radiative transfer, with learnable coupling coefficients and separate output heads for each stream.
 """
+
+import torch
+import torch.nn as nn
 
 
 class LayerPositionalEmbedding(nn.Module):

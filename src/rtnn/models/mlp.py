@@ -14,11 +14,12 @@ perceptrons (MLPs) tailored for tasks such as radiative transfer emulation
 and other scientific machine learning applications involving structured inputs.
 
 The module includes:
-- ``MLPBlock``: A configurable fully connected block with optional normalization,
+
+- MLPBlock: A configurable fully connected block with optional normalization,
   activation, and dropout.
-- ``MLP``: A flexible MLP architecture supporting positional embeddings,
+- MLP: A flexible MLP architecture supporting positional embeddings,
   residual connections, and customizable depth.
-- ``MLPResidual``: A residual MLP with skip connections across all hidden layers
+- MLPResidual: A residual MLP with skip connections across all hidden layers
   for improved gradient flow and training stability.
 
 Features

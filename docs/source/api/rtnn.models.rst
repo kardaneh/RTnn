@@ -27,3 +27,19 @@ rtnn.models.transformer module
    :members:
    :undoc-members:
    :show-inheritance:
+
+rtnn.models.mlp module
+----------------------
+
+.. automodule:: rtnn.models.mlp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+rtnn.models.pinn module
+-----------------------
+
+.. automodule:: rtnn.models.pinn
+   :members:
+   :undoc-members:
+   :show-inheritance:

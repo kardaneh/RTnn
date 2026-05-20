@@ -22,7 +22,7 @@ DATA_PATH="/net/nfs/ssd1/kardaneh/Data_LSM_1995-2000_Large"                     
 # ======================
 # 1. Model Configuration
 # ======================
-type="mlp_residual"
+type="lstm" # options: "lstm", "gru", "fullyconnected", "transformer", "encodertorch", "pinn", "mlp", "mlp_residual".
 hidden_size=256
 
 # NUMBER OF LAYERS
@@ -104,8 +104,8 @@ batch_size=4       # On HAL
 
 num_epochs=100
 learning_rate=0.0001
-loss_type="huber"
-beta=0.5
+loss_type="mae" # options: "mse", "mae", "huber", "smoothl1", etc
+beta=0.25
 beta_delta=1.0
 num_workers=$current_workers
 run_type="train" # options: "train", "resume_train", "inference".
@@ -164,12 +164,15 @@ else
 fi
 model_name=$(IFS=_ ; echo "${model_parts[*]}")
 
-tag="${model_name}_nrm_${norm}_l_${loss_type}_sb_${batch_size}_ne_${num_epochs}"
-
-main_folder=$([ "$debug" == "True" ] && echo "Debug" || echo "Prod")"__${model_name}_sb_${batch_size}_ne_${num_epochs}"
-
-sub_folder="nrm_${norm}_lr_${lr_str}_beta_${beta_str}"
-prefix="$sub_folder"
+tag="experiment"
+main_folder="$([ "$debug" == "True" ] && echo "Debug" || echo "Prod")__${model_name}_sb_${batch_size}_nw_${num_workers}_ne_${num_epochs}_ds_${dataset_type}_tr_${train_years}_te_${test_year}"
+sub_folder="nrm_${norm}_lr_${lr_str}_l_${loss_type}"
+if [ "$loss_type" == "huber" ] || [ "$loss_type" == "smoothl1" ]; then
+    beta_delta_str="${beta_delta//./d}"
+    sub_folder="${sub_folder}_bd_${beta_delta_str}"
+fi
+sub_folder="${sub_folder}_beta_${beta_str}_seed_${seed}"
+prefix="$tag"
 
 # ======================
 # Generate SBATCH Script Only (removed run script)

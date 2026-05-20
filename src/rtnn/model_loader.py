@@ -38,7 +38,7 @@ Supported Model Architectures
 3. **Fully Connected Networks (FCN)**
 
    - Standard FCN: Multi-layer perceptron with configurable depth
-   - VerticalRTColumnNet: Specialized for vertical column processing
+   - PINN: Physics-Informed Neural Network with two-stream architecture for vertical profiles
    - Best for: Non-sequential, feature-based inputs
 
 4. **Multi-Layer Perceptrons (MLP)**
@@ -74,7 +74,7 @@ Data Flow
 from rtnn.models.rnn import RNN_LSTM, RNN_GRU
 from rtnn.models.transformer import EncoderTorch
 from rtnn.models.fcn import FCN
-from rtnn.models.fcn import VerticalRTColumnNet
+from rtnn.models.pinn import PINN
 from rtnn.models.mlp import MLP, MLPResidual
 
 
@@ -132,8 +132,8 @@ def load_model(args):
             dropout=args.dropout,
         )
 
-    elif model_type in ["vrtn", "verticalrt", "vertical"]:
-        model = VerticalRTColumnNet(
+    elif model_type in ["pinn"]:
+        model = PINN(
             feature_channel=args.feature_channel,
             hidden=args.hidden_size,
             out_channel=args.output_channel,

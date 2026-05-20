@@ -15,7 +15,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from rtnn.models.fcn import FCN, FCBlock
-from rtnn.models.fcn import VerticalRTColumnNet
+from rtnn.models.pinn import PINN
 
 
 class TestFCBlock(unittest.TestCase):
@@ -379,8 +379,8 @@ class TestFCN(unittest.TestCase):
             self.assertTrue(y.is_cuda)
 
 
-class TestVerticalRTColumnNet(unittest.TestCase):
-    """Unit tests for VerticalRTColumnNet."""
+class TestPINN(unittest.TestCase):
+    """Unit tests for PINN."""
 
     def setUp(self):
         self.batch_size = 32
@@ -394,14 +394,14 @@ class TestVerticalRTColumnNet(unittest.TestCase):
     # ------------------------------------------------------------------------
 
     def test_initialization(self):
-        model = VerticalRTColumnNet(
+        model = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
             n_layers=self.seq_length,
         )
 
-        self.assertIsInstance(model, VerticalRTColumnNet)
+        self.assertIsInstance(model, PINN)
         self.assertIsNotNone(model.encoder)
         self.assertIsNotNone(model.T_down)
         self.assertIsNotNone(model.S_up)
@@ -411,7 +411,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
     # ------------------------------------------------------------------------
 
     def test_forward_shape(self):
-        model = VerticalRTColumnNet(
+        model = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -427,7 +427,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
         )
 
     def test_forward_values(self):
-        model = VerticalRTColumnNet(
+        model = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -440,7 +440,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
         self.assertGreater(y.abs().sum(), 0)
 
     def test_forward_different_batch_sizes(self):
-        model = VerticalRTColumnNet(
+        model = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -457,7 +457,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
     # ------------------------------------------------------------------------
 
     def test_gradient_flow(self):
-        model = VerticalRTColumnNet(
+        model = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -479,7 +479,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
                 self.assertIsNotNone(param.grad)
 
     def test_gradient_accumulation(self):
-        model = VerticalRTColumnNet(
+        model = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -512,7 +512,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
     # ------------------------------------------------------------------------
 
     def test_model_parameters_count(self):
-        model = VerticalRTColumnNet(
+        model = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -537,7 +537,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
         import tempfile
         import os
 
-        model1 = VerticalRTColumnNet(
+        model1 = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -548,7 +548,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
             torch.save(model1.state_dict(), f.name)
             temp_file = f.name
 
-        model2 = VerticalRTColumnNet(
+        model2 = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -574,7 +574,7 @@ class TestVerticalRTColumnNet(unittest.TestCase):
     # ------------------------------------------------------------------------
 
     def test_device_transfer(self):
-        model = VerticalRTColumnNet(
+        model = PINN(
             feature_channel=self.feature_channel,
             hidden=self.hidden_size,
             out_channel=self.output_channel,
@@ -655,7 +655,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestFCBlock))
     suite.addTests(loader.loadTestsFromTestCase(TestFCN))
     suite.addTests(loader.loadTestsFromTestCase(TestFCNIntegration))
-    suite.addTests(loader.loadTestsFromTestCase(TestVerticalRTColumnNet))
+    suite.addTests(loader.loadTestsFromTestCase(TestPINN))
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)

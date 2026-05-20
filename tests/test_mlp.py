@@ -424,8 +424,8 @@ class TestMLPIntegration(unittest.TestCase):
     """Integration tests for MLP models."""
 
     def test_mlp_with_verticalrt_comparison(self):
-        """Test MLP with a simple comparison to VerticalRTColumnNet."""
-        from rtnn.models.fcn import VerticalRTColumnNet
+        """Test MLP with a simple comparison to PINN."""
+        from rtnn.models.pinn import PINN
 
         batch_size = 16
         feature_channel = 121
@@ -439,7 +439,7 @@ class TestMLPIntegration(unittest.TestCase):
             hidden_sizes=[256, 128],
         )
 
-        vrtn = VerticalRTColumnNet(
+        vrtn = PINN(
             feature_channel=feature_channel,
             hidden=64,
             out_channel=output_channel,

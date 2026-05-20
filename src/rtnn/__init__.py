@@ -29,7 +29,8 @@ from rtnn.evaluater import (
     calc_abs,
 )
 from rtnn.models.rnn import RNN_LSTM, RNN_GRU
-from rtnn.models.fcn import FCN, VerticalRTColumnNet
+from rtnn.models.fcn import FCN
+from rtnn.models.pinn import PINN
 from rtnn.models.mlp import MLP, MLPResidual
 from rtnn.models.transformer import EncoderTorch
 
@@ -50,7 +51,7 @@ __all__ = [
     "RNN_LSTM",
     "RNN_GRU",
     "FCN",
-    "VerticalRTColumnNet",
+    "PINN",
     "MLP",
     "MLPResidual",
     "EncoderTorch",

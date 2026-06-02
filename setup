@@ -22,7 +22,7 @@ DATA_PATH="/net/nfs/ssd1/kardaneh/Data_LSM_1995-2000_Large"                     
 # ======================
 # 1. Model Configuration
 # ======================
-type="lstm" # options: "lstm", "gru", "fullyconnected", "transformer", "encodertorch", "pinn", "mlp", "mlp_residual".
+type="pinn" # options: "lstm", "gru", "fullyconnected", "transformer", "encodertorch", "pinn", "mlp", "mlp_residual".
 hidden_size=256
 
 # NUMBER OF LAYERS
@@ -102,7 +102,7 @@ dropout=0.1
 #batch_size=32      # On LEONARDO
 batch_size=4       # On HAL
 
-num_epochs=100
+num_epochs=10
 learning_rate=0.0001
 loss_type="mae" # options: "mse", "mae", "huber", "smoothl1", etc
 beta=0.25
@@ -234,7 +234,6 @@ cat >> $sbatch_script <<EOF
 #SBATCH --gpus=1
 #SBATCH --mem=48G
 #SBATCH --time=24:00:00
-#SBATCH --nodelist=hal10
 EOF
 
 # Only add ntasks-per-node if not empty

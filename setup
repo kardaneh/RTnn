@@ -104,7 +104,7 @@ batch_size=4       # On HAL
 
 num_epochs=10
 learning_rate=0.0001
-loss_type="mae" # options: "mse", "mae", "huber", "smoothl1", etc
+loss_type="mse" # options: "mse", "mae", "huber", "smoothl1", etc
 beta=0.25
 beta_delta=1.0
 num_workers=$current_workers

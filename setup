@@ -22,7 +22,7 @@ DATA_PATH="/net/nfs/ssd1/kardaneh/Data_LSM_1995-2000_Large"                     
 # ======================
 # 1. Model Configuration
 # ======================
-type="lstm" # options: "lstm", "gru", "fullyconnected", "transformer", "encodertorch", "pinn", "mlp", "mlp_residual".
+type="transformer" # options: "lstm", "gru", "fullyconnected", "transformer", "encodertorch", "pinn", "mlp", "mlp_residual".
 hidden_size=256
 
 # NUMBER OF LAYERS
@@ -102,7 +102,7 @@ dropout=0.1
 #batch_size=32      # On LEONARDO
 batch_size=4       # On HAL
 
-num_epochs=10
+num_epochs=20
 learning_rate=0.0001
 loss_type="mse" # options: "mse", "mae", "huber", "smoothl1", etc
 beta=0.25
@@ -116,7 +116,7 @@ seed=42
 # ======================
 train_data_files=$DATA_PATH
 test_data_files=$DATA_PATH
-train_years="1999-1999"
+train_years="1997-1999"
 test_year="2000"
 norm="log1p_standard"
 dataset_type="LSM"

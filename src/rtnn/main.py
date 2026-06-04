@@ -111,6 +111,8 @@ from rtnn.evaluater import (
     r2_all,
     nmae_all,
     nmse_all,
+    mae_all,
+    mse_all,
 )
 from rtnn.diagnostics import (
     plot_metric_histories,
@@ -1256,8 +1258,14 @@ def main():
         )
 
         # Setup metrics
-        metric_names = ["NMAE", "NMSE", "R2"]
-        metric_funcs = {"NMAE": nmae_all, "NMSE": nmse_all, "R2": r2_all}
+        metric_names = ["NMAE", "NMSE", "R2", "MAE", "MSE"]
+        metric_funcs = {
+            "NMAE": nmae_all,
+            "NMSE": nmse_all,
+            "R2": r2_all,
+            "MAE": mae_all,
+            "MSE": mse_all,
+        }
         output_keys = ["fluxes", "abs12", "abs34"]
 
         train_metrics = {

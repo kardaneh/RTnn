@@ -1015,8 +1015,14 @@ def run_validation(
     ), f"Invalid loss_type (should be one of {valid_loss_types})"
     func = get_loss_function(loss_type, args)
 
-    metric_names = ["NMAE", "NMSE", "R2"]
-    metric_funcs = {"NMAE": nmae_all, "NMSE": nmse_all, "R2": r2_all}
+    metric_names = ["NMAE", "NMSE", "R2", "MAE", "MSE"]
+    metric_funcs = {
+        "NMAE": nmae_all,
+        "NMSE": nmse_all,
+        "R2": r2_all,
+        "MAE": mae_all,
+        "MSE": mse_all,
+    }
     output_keys = ["fluxes", "abs12", "abs34"]
     valid_metrics = {
         f"{k}_{m}": MetricTracker() for k in output_keys for m in metric_names

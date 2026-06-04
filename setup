@@ -127,7 +127,7 @@ dataset_type="LSM"
 save_model="True"
 save_checkpoint_name="model"
 save_per_samples=10000
-load_checkpoint_name="nrm_log1p_standard_lr_0d0001_beta_0d2_epoch0020_model.pth.tar"
+load_checkpoint_name="experiment_best_model.pth.tar"
 
 # ======================
 # 5. Tags

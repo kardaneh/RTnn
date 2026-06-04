@@ -1315,7 +1315,7 @@ def main():
                 index_mapping,
                 device,
                 args,
-                args.num_epochs - 1,
+                best_epoch,
                 logger,
                 paths.results,
                 n_pft=n_pft,

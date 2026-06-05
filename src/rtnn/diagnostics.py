@@ -88,7 +88,6 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib.gridspec as gridspec
 import numpy as np
 import mpltex
-import math
 from matplotlib import rcParams as mpl
 from sklearn.metrics import r2_score
 import matplotlib.ticker as ticker
@@ -879,13 +878,14 @@ def plot_metric_histories(
     ...     logger=logger
     ... )
     """
-    num_metrics = len(train_history)
+    metrics = sorted({key.split("_")[-1] for key in train_history})
+    num_metrics = len(metrics)
     if num_metrics == 0:
         if logger:
             logger.warning("No metrics to plot")
         return
-    cols = 3
-    rows = math.ceil(num_metrics / cols)
+    cols = num_metrics
+    rows = 3  # math.ceil(num_metrics / cols)
 
     fig = Figure(figsize=(5 * cols, 4 * rows))
     fig.set_tight_layout(True)

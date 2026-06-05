@@ -62,23 +62,42 @@ class TestDiagnostics(unittest.TestCase):
         self.tindex_tracker = np.random.randint(0, 100, 1000)
 
         # Create dummy metric histories
+
         self.train_history = {
             "fluxes_NMAE": [0.5, 0.4, 0.3],
             "fluxes_NMSE": [0.3, 0.25, 0.2],
+            "fluxes_MAE": [12.5, 10.2, 8.1],
+            "fluxes_MSE": [220.0, 180.0, 140.0],
             "fluxes_R2": [0.7, 0.8, 0.85],
             "abs12_NMAE": [0.6, 0.5, 0.4],
             "abs12_NMSE": [0.4, 0.35, 0.3],
+            "abs12_MAE": [15.0, 12.0, 9.5],
+            "abs12_MSE": [280.0, 230.0, 190.0],
             "abs12_R2": [0.6, 0.7, 0.75],
+            "abs34_NMAE": [0.55, 0.45, 0.35],
+            "abs34_NMSE": [0.38, 0.32, 0.27],
+            "abs34_MAE": [13.8, 11.1, 8.9],
+            "abs34_MSE": [260.0, 215.0, 175.0],
+            "abs34_R2": [0.65, 0.74, 0.80],
         }
+
         self.valid_history = {
             "fluxes_NMAE": [0.55, 0.45, 0.35],
             "fluxes_NMSE": [0.35, 0.3, 0.25],
+            "fluxes_MAE": [13.8, 11.4, 9.0],
+            "fluxes_MSE": [250.0, 210.0, 170.0],
             "fluxes_R2": [0.65, 0.75, 0.8],
             "abs12_NMAE": [0.65, 0.55, 0.45],
             "abs12_NMSE": [0.45, 0.4, 0.35],
+            "abs12_MAE": [16.8, 13.7, 10.8],
+            "abs12_MSE": [320.0, 270.0, 220.0],
             "abs12_R2": [0.55, 0.65, 0.7],
+            "abs34_NMAE": [0.60, 0.50, 0.40],
+            "abs34_NMSE": [0.42, 0.36, 0.30],
+            "abs34_MAE": [15.2, 12.6, 10.1],
+            "abs34_MSE": [295.0, 245.0, 205.0],
+            "abs34_R2": [0.60, 0.69, 0.76],
         }
-
         # Create dummy logger
         self.logger = Mock()
 

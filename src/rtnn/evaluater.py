@@ -71,14 +71,14 @@ Examples
 Basic usage for model evaluation:
 
 >>> import torch
->>> from rtnn.evaluater import get_loss_function, run_validation
+>>> from rtnn.evaluater import get_loss_function, run_validation_lsm
 >>>
 >>> # Create loss function
 >>> args = argparse.Namespace(loss_type='huber', beta_delta=1.0)
 >>> criterion = get_loss_function('huber', args)
 >>>
 >>> # Evaluate model
->>> valid_loss, metrics = run_validation(
+>>> valid_loss, metrics = run_validation_lsm(
 ...     loader=val_loader,
 ...     model=my_model,
 ...     norm_mapping=norm_stats,
@@ -119,7 +119,7 @@ import numpy as np
 import sys
 from tqdm import tqdm
 import os
-from rtnn.diagnostics import plot_all_diagnostics
+from rtnn.diagnostics import plot_all_diagnostics, plot_cams_diagnostics
 from typing import Optional
 
 sys.path.append("..")
@@ -707,79 +707,82 @@ def unnorm_mpas(pred, targ, norm_mapping, normalization_type, idxmap):
         norm_type = normalization_type.get(var_name, "log1p_minmax")
         norm = norm_mapping[var_name]
 
-        # Get slice for this variable: (batch, 1, n_pft, n_bands, seq)
-        pred_var = pred[:, var_idx : var_idx + 1, :, :, :]
-        targ_var = targ[:, var_idx : var_idx + 1, :, :, :]
+        # Get slice for this variable: (batch, 1,...)
+        var_slice = (slice(None), slice(var_idx, var_idx + 1), ...)
+        pred_var = pred[var_slice]
+        targ_var = targ[var_slice]
 
         if norm_type == "standard":
             mean = norm["vmean"]
             std = norm["vstd"]
-            upred[:, var_idx : var_idx + 1, :, :, :] = pred_var * std + mean
-            utarg[:, var_idx : var_idx + 1, :, :, :] = targ_var * std + mean
+            upred_var = pred_var * std + mean
+            utarg_var = targ_var * std + mean
 
         elif norm_type == "minmax":
             vmin = norm["vmin"]
             vmax = norm["vmax"]
-            upred[:, var_idx : var_idx + 1, :, :, :] = pred_var * (vmax - vmin) + vmin
-            utarg[:, var_idx : var_idx + 1, :, :, :] = targ_var * (vmax - vmin) + vmin
+            upred_var = pred_var * (vmax - vmin) + vmin
+            utarg_var = targ_var * (vmax - vmin) + vmin
 
         elif norm_type == "robust":
             median = norm["median"]
             iqr = norm["iqr"]
-            upred[:, var_idx : var_idx + 1, :, :, :] = pred_var * iqr + median
-            utarg[:, var_idx : var_idx + 1, :, :, :] = targ_var * iqr + median
+            upred_var = pred_var * iqr + median
+            utarg_var = targ_var * iqr + median
 
         elif norm_type == "log1p_minmax":
             log_min = norm["log_min"]
             log_max = norm["log_max"]
             unnorm_pred = pred_var * (log_max - log_min) + log_min
             unnorm_targ = targ_var * (log_max - log_min) + log_min
-            upred[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_pred)
-            utarg[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_targ)
+            upred_var = torch.expm1(unnorm_pred)
+            utarg_var = torch.expm1(unnorm_targ)
 
         elif norm_type == "log1p_standard":
             mean = norm["log_mean"]
             std = norm["log_std"]
             unnorm_pred = pred_var * std + mean
             unnorm_targ = targ_var * std + mean
-            upred[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_pred)
-            utarg[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_targ)
+            upred_var = torch.expm1(unnorm_pred)
+            utarg_var = torch.expm1(unnorm_targ)
 
         elif norm_type == "log1p_robust":
             median = norm["log_median"]
             iqr = norm["log_iqr"]
             unnorm_pred = pred_var * iqr + median
             unnorm_targ = targ_var * iqr + median
-            upred[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_pred)
-            utarg[:, var_idx : var_idx + 1, :, :, :] = torch.expm1(unnorm_targ)
+            upred_var = torch.expm1(unnorm_pred)
+            utarg_var = torch.expm1(unnorm_targ)
 
         elif norm_type == "sqrt_minmax":
             sqrt_min = norm["sqrt_min"]
             sqrt_max = norm["sqrt_max"]
             unnorm_pred = pred_var * (sqrt_max - sqrt_min) + sqrt_min
             unnorm_targ = targ_var * (sqrt_max - sqrt_min) + sqrt_min
-            upred[:, var_idx : var_idx + 1, :, :, :] = unnorm_pred**2
-            utarg[:, var_idx : var_idx + 1, :, :, :] = unnorm_targ**2
+            upred_var = unnorm_pred**2
+            utarg_var = unnorm_targ**2
 
         elif norm_type == "sqrt_standard":
             mean = norm["sqrt_mean"]
             std = norm["sqrt_std"]
             unnorm_pred = pred_var * std + mean
             unnorm_targ = targ_var * std + mean
-            upred[:, var_idx : var_idx + 1, :, :, :] = unnorm_pred**2
-            utarg[:, var_idx : var_idx + 1, :, :, :] = unnorm_targ**2
+            upred_var = unnorm_pred**2
+            utarg_var = unnorm_targ**2
 
         elif norm_type == "sqrt_robust":
             median = norm["sqrt_median"]
             iqr = norm["sqrt_iqr"]
             unnorm_pred = pred_var * iqr + median
             unnorm_targ = targ_var * iqr + median
-            upred[:, var_idx : var_idx + 1, :, :, :] = unnorm_pred**2
-            utarg[:, var_idx : var_idx + 1, :, :, :] = unnorm_targ**2
+            upred_var = unnorm_pred**2
+            utarg_var = unnorm_targ**2
         else:
             raise ValueError(
                 f"Unsupported normalization type '{norm_type}' for variable '{var_name}'"
             )
+        upred[var_slice] = upred_var
+        utarg[var_slice] = utarg_var
 
     return upred, utarg
 
@@ -860,55 +863,114 @@ def calc_abs(pred, targ, p=None):
     return abs12_pred, abs12_targ, abs34_pred, abs34_targ, conservation_penalty
 
 
+def calc_heating_rates(pred, targ, p=None):
+    """
+    Calculate heating rates from flux predictions for CAMS atmospheric data.
+
+    Computes heating rates from the divergence of net flux (downwelling - upwelling).
+
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predicted fluxes. Shape (batch, 2, n_level)
+        Channel order: [rsd, rsu] where:
+        - rsd: downwelling flux at interfaces
+        - rsu: upwelling flux at interfaces
+    targ : torch.Tensor
+        Target fluxes. Same shape as pred.
+    p : torch.Tensor, optional
+        Pressure at interfaces. Shape (n_level,) or (batch, n_level)
+        Pressure should be in Pa. If provided, returns heating rate in K/day.
+        If None, returns negative flux divergence.
+
+    Returns
+    -------
+    tuple
+        (hr_pred, hr_targ, conservation_penalty)
+        - hr_pred: Heating rate predictions. Shape (batch, 1, n_layer)
+        - hr_targ: Heating rate targets. Shape (batch, 1, n_layer)
+        - conservation_penalty: Mean conservation residual (scalar tensor)
+    """
+    # Extract downwelling and upwelling fluxes
+    # pred: (batch, 2, n_level) -> rsd_pred: (batch, 1, n_level), rsu_pred: (batch, 1, n_level)
+    rsd_pred = pred[:, 0:1, :]  # (batch, 1, n_level)
+    rsu_pred = pred[:, 1:2, :]  # (batch, 1, n_level)
+    rsd_targ = targ[:, 0:1, :]  # (batch, 1, n_level)
+    rsu_targ = targ[:, 1:2, :]  # (batch, 1, n_level)
+
+    # Calculate heating rates
+    hr_pred = heating_rate(rsu_pred, rsd_pred, p)  # (batch, 1, n_layer)
+    hr_targ = heating_rate(rsu_targ, rsd_targ, p)  # (batch, 1, n_layer)
+
+    return hr_pred, hr_targ
+
+
 def heating_rate(up, down, p=None):
     """
-    Calculate heating rate from upwelling and downwelling fluxes.
+    Calculate radiative heating rate from upwelling and downwelling fluxes.
 
     Parameters
     ----------
     up : torch.Tensor
-        Upwelling flux. Shape (batch, 1, n_pft, n_bands, seq_length)
+        Upwelling flux at interfaces.
+        Shape: (..., nlev)
+
     down : torch.Tensor
-        Downwelling flux. Same shape as up.
+        Downwelling flux at interfaces.
+        Shape: (..., nlev)
+
     p : torch.Tensor, optional
-        Pressure levels. If provided, computes heating rate in K/day.
-        If None, computes negative flux divergence. Default is None.
+        Pressure at interfaces.
+        Shape: (nlev,) or (..., nlev)
+
+        Pressure should be in Pa.
 
     Returns
     -------
     torch.Tensor
-        Heating rate or flux divergence. Shape (batch, 1, n_pft, n_bands, seq_length-1)
+        Heating rate in K/day if p is provided.
+        Otherwise returns negative flux divergence.
 
-    Notes    -----
-    The calculation involves:
-        1. net = up - down (net flux)
-        2. dnet = net - roll(net, 1) (vertical flux divergence)
-        3. If p is provided, convert to heating rate using:
-           hr = -dnet/dp * (g * 8.64e4) / (cp * 100)
-           where g = 9.8066 m/s², cp ≈ 1004 J/(kg·K)
-           The factor 8.64e4 converts from W/m²/Pa to K/day
+        Shape: (..., nlev-1)
     """
+
+    # Positive upward net flux convention
     net = up - down
-    # Roll along the last dimension (seq_length)
-    dnet = net - torch.roll(net, 1, dims=-1)
 
-    if p is not None:
-        g = 9.8066
-        r = 287.0
-        cp = 7.0 * r / 2.0
-        fac = g * 8.64e4 / (cp * 100)
+    # Vertical flux difference:
+    # F(i+1/2) - F(i-1/2)
+    dF = net - torch.roll(net, shifts=1, dims=-1)
 
-        # p shape: (seq_length,) or (batch, seq_length)
-        # Need to handle broadcasting
-        if p.dim() == 1:
-            p = p.view(1, 1, 1, 1, -1)
-        dp = p - torch.roll(p, 1, dims=-1)
-        return dnet[..., 1:] / dp[..., 1:] * fac
-    else:
-        return -dnet[..., 1:]
+    # Remove artificial wrap-around at the first level
+    dF = dF[..., 1:]
+
+    if p is None:
+        # Negative flux divergence
+        return -dF
+
+    # Constants
+    g = 9.8066  # m s^-2
+    cp = 1004.0  # J kg^-1 K^-1
+
+    # factore:
+    fac = g * 86400.0 / cp
+
+    # Broadcast pressure to flux dimensions
+    if p.ndim == 1:
+        p = p.view(*([1] * (net.ndim - 1)), -1)
+
+    # Pressure thickness of each layer
+    dp = p - torch.roll(p, shifts=1, dims=-1)
+
+    # Remove artificial wrap-around
+    dp = dp[..., 1:]
+
+    # Heating rate [K/day]
+    # Positive = warming
+    return fac * dF / dp
 
 
-def run_validation(
+def run_validation_lsm(
     loader,
     model,
     norm_mapping,
@@ -982,7 +1044,7 @@ def run_validation(
 
     Examples
     --------
-    >>> valid_loss, metrics = run_validation(
+    >>> valid_loss, metrics = run_validation_lsm(
     ...     loader=val_loader,
     ...     model=my_model,
     ...     norm_mapping=norm_stats,
@@ -1196,6 +1258,241 @@ def run_validation(
                 abs34_target=all_abs34_target,
                 n_pft=n_pft,
                 n_bands=n_bands,
+                output_dir=base_dir,
+                prefix=f"validation_epoch{epoch}",
+                logger=logger,
+            )
+
+    return valid_loss.getmean(), {
+        k: (tracker.getsqrtmean() if k.lower().endswith("mse") else tracker.getmean())
+        for k, tracker in valid_metrics.items()
+    }
+
+
+def run_validation_cams(
+    loader,
+    model,
+    norm_mapping,
+    normalization_type,
+    index_mapping,
+    device,
+    args,
+    epoch,
+    logger=None,
+    base_dir="./results",
+    n_fluxes=2,
+    n_level=61,
+):
+    """
+    Evaluate model accuracy on CAMS atmospheric dataset.
+
+    Performs comprehensive evaluation including:
+    - Loss computation for fluxes and heating rates
+    - Metric calculation (NMAE, NMSE, R², MAE, MSE) for fluxes and HR
+    - Optional plotting of predictions vs targets (every 10 epochs)
+    - Energy conservation verification
+
+    Parameters
+    ----------
+    loader : torch.utils.data.DataLoader
+        Data loader for evaluation dataset.
+    model : torch.nn.Module
+        Trained model to evaluate.
+    norm_mapping : dict
+        Normalization statistics for variables.
+    normalization_type : dict
+        Normalization types per variable.
+    index_mapping : dict
+        Mapping from channel indices to variable names (0: rsd, 1: rsu).
+    device : torch.device
+        Device to run evaluation on (cuda or cpu).
+    args : argparse.Namespace
+        Arguments containing loss_type, beta, and num_epochs.
+    epoch : int
+        Current epoch number (for plotting schedule).
+    logger : logging.Logger, optional
+        Logger for informational messages. If None, no logging occurs.
+    base_dir : str, optional
+        Directory to save diagnostic plots. Default is "./results".
+    n_fluxes : int, optional
+        Number of flux variables (2: rsd, rsu). Default is 2.
+    n_level : int, optional
+        Number of vertical levels (61). Default is 61.
+
+    Returns
+    -------
+    tuple
+        (valid_loss, valid_metrics)
+    """
+
+    model.eval()
+
+    valid_loss_types = [
+        "mse",
+        "mae",
+        "nmae",
+        "nmse",
+        "wmse",
+        "logcosh",
+        "smoothl1",
+        "huber",
+    ]
+    loss_type = args.loss_type.lower()
+    assert (
+        loss_type in valid_loss_types
+    ), f"Invalid loss_type (should be one of {valid_loss_types})"
+    func = get_loss_function(loss_type, args)
+
+    metric_names = ["NMAE", "NMSE", "R2", "MAE", "MSE"]
+    metric_funcs = {
+        "NMAE": nmae_all,
+        "NMSE": nmse_all,
+        "R2": r2_all,
+        "MAE": mae_all,
+        "MSE": mse_all,
+    }
+    output_keys = ["fluxes", "HR"]
+    valid_metrics = {
+        f"{k}_{m}": MetricTracker() for k in output_keys for m in metric_names
+    }
+
+    valid_loss = MetricTracker()
+    save_plots = (epoch % 10 == 0) or (epoch == args.num_epochs - 1)
+    if save_plots:
+        if logger:
+            logger.info("Collecting data for final epoch")
+        else:
+            print("Collecting data for final epoch")
+
+        all_predicts_unnorm = []
+        all_targets_unnorm = []
+        all_hr_predict = []
+        all_hr_target = []
+
+    # Progress bar for validation
+    loop = tqdm(
+        enumerate(loader),
+        total=len(loader),
+        desc=f"Validation Epoch {epoch}",
+        leave=False,
+    )
+
+    with torch.no_grad():
+        for batch_idx, (features, targets, pressure) in loop:
+            # Reshape inputs: flatten batch and sites dimensions
+            feature_shape = features.shape
+            target_shape = targets.shape
+            pressure_shape = pressure.shape
+            inner_batch_size = feature_shape[0] * feature_shape[1]  # batch * n_sites
+
+            # Reshape to (inner_batch, n_features, n_layer)
+            features = features.reshape(
+                inner_batch_size, feature_shape[2], feature_shape[3]
+            ).to(device=device)
+
+            # Reshape to (inner_batch, n_fluxes, n_level)
+            targets = targets.reshape(
+                inner_batch_size, target_shape[2], target_shape[3]
+            ).to(device=device)
+
+            # Reshape pressure to (inner_batch, n_level_interior)
+            pressure = pressure.reshape(inner_batch_size, pressure_shape[2]).to(
+                device=device
+            )
+
+            # Forward pass
+            predicts = model(features)  # (inner_batch, n_fluxes, n_level)
+
+            # Denormalize predictions and targets
+            predicts_unnorm, targets_unnorm = unnorm_mpas(
+                predicts,
+                targets,
+                norm_mapping,
+                normalization_type,
+                index_mapping,
+            )
+
+            assert (
+                predicts_unnorm.shape == predicts.shape
+            ), f"Expected predicts_unnorm shape {predicts.shape}, got {predicts_unnorm.shape}"
+            assert (
+                targets_unnorm.shape == targets.shape
+            ), f"Expected targets_unnorm shape {targets.shape}, got {targets_unnorm.shape}"
+
+            # Calculate heating rates
+            hr_predict, hr_target = calc_heating_rates(predicts_unnorm, targets_unnorm)
+
+            if batch_idx == 0:
+                if logger:
+                    logger.info(f"Feature shape: {features.shape}")
+                    logger.info(f"Targets shape: {targets.shape}")
+                    logger.info(f"Heating rate pred shape: {hr_predict.shape}")
+                    logger.info(f"Heating rate target shape: {hr_target.shape}")
+                else:
+                    print(f"Feature shape: {features.shape}")
+                    print(f"Targets shape: {targets.shape}")
+                    print(f"Heating rate pred shape: {hr_predict.shape}")
+                    print(f"Heating rate target shape: {hr_target.shape}")
+
+            if save_plots:
+                all_predicts_unnorm.append(predicts_unnorm.cpu())
+                all_targets_unnorm.append(targets_unnorm.cpu())
+                all_hr_predict.append(hr_predict.cpu())
+                all_hr_target.append(hr_target.cpu())
+
+            # Compute metrics
+            output_dict = {
+                "fluxes": (predicts, targets),
+                "HR": (hr_predict, hr_target),
+            }
+
+            for key in output_keys:
+                pred, tgt = output_dict[key]
+                for metric in metric_names:
+                    metric_key = f"{key}_{metric}"
+                    if metric_key not in valid_metrics:
+                        raise KeyError(
+                            f"Metric key '{metric_key}' not found in valid_metrics"
+                        )
+                    count, value = metric_funcs[metric](pred, tgt)
+                    valid_metrics[metric_key].update(value.item(), count)
+
+            # Compute loss
+            main_count, main_val = predicts.numel(), func(predicts, targets)
+
+            # Heating rate loss (optional, weighted by beta)
+            if args.beta > 0:
+                hr_count, hr_val = hr_predict.numel(), func(hr_predict, hr_target)
+                weighted_loss = (
+                    1.0 - args.beta
+                ) * main_val * main_count + args.beta * (hr_val * hr_count)
+                total_count = (1.0 - args.beta) * main_count + args.beta * hr_count
+                total_loss = weighted_loss / total_count
+            else:
+                total_loss = main_val
+
+            valid_loss.update(total_loss.item(), 1)
+            loop.set_postfix(loss=total_loss.item())
+
+        if save_plots:
+            if logger:
+                logger.info("Generating diagnostic plots for final epoch")
+            else:
+                print("Generating diagnostic plots for final epoch")
+
+            os.makedirs(base_dir, exist_ok=True)
+
+            all_predicts_unnorm = torch.cat(all_predicts_unnorm, dim=0)
+            all_targets_unnorm = torch.cat(all_targets_unnorm, dim=0)
+            all_hr_predict = torch.cat(all_hr_predict, dim=0)
+            all_hr_target = torch.cat(all_hr_target, dim=0)
+
+            # Plot diagnostics for CAMS data
+            plot_cams_diagnostics(
+                all_predicts_unnorm,
+                all_targets_unnorm,
+                hr_predict=all_hr_predict,
+                hr_target=all_hr_target,
                 output_dir=base_dir,
                 prefix=f"validation_epoch{epoch}",
                 logger=logger,

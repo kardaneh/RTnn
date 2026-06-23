@@ -87,6 +87,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib.gridspec as gridspec
 import numpy as np
+import torch
 import mpltex
 from matplotlib import rcParams as mpl
 from sklearn.metrics import r2_score
@@ -306,6 +307,86 @@ def stats(file_list, logger, output_dir, norm_mapping=None, plots=False):
             canvas.print_figure(out_path, bbox_inches="tight")
 
     return norm_mapping
+
+
+def stats_rrtmgp(data, name, output_dir, plots=False):
+    """Compute statistics for a single variable."""
+    if data.size == 0:
+        print(f"{name} is empty, skipping.")
+        return {}
+
+    vmin = float(np.min(data))
+    vmax = float(np.max(data))
+    vmean = float(np.mean(data))
+    vstd = float(np.std(data))
+    q1 = float(np.percentile(data, 25))
+    q3 = float(np.percentile(data, 75))
+    iqr = q3 - q1 if q3 != q1 else 1.0
+    median = float(np.median(data))
+
+    log_data = np.log1p(np.clip(data, a_min=0, a_max=None))
+    log_min = float(log_data.min())
+    log_max = float(log_data.max())
+    log_mean = float(log_data.mean())
+    log_std = float(log_data.std())
+    log_q1 = float(np.percentile(log_data, 25))
+    log_q3 = float(np.percentile(log_data, 75))
+    log_iqr = log_q3 - log_q1 if log_q3 != log_q1 else 1.0
+    log_median = float(np.median(log_data))
+
+    sqrt_data = np.sqrt(np.clip(data, a_min=0, a_max=None))
+    sqrt_min = float(sqrt_data.min())
+    sqrt_max = float(sqrt_data.max())
+    sqrt_mean = float(sqrt_data.mean())
+    sqrt_std = float(sqrt_data.std())
+    sqrt_q1 = float(np.percentile(sqrt_data, 25))
+    sqrt_q3 = float(np.percentile(sqrt_data, 75))
+    sqrt_iqr = sqrt_q3 - sqrt_q1 if sqrt_q3 != sqrt_q1 else 1.0
+    sqrt_median = float(np.median(sqrt_data))
+
+    stats = {
+        "vmin": vmin,
+        "vmax": vmax,
+        "vmean": vmean,
+        "vstd": vstd,
+        "q1": q1,
+        "q3": q3,
+        "iqr": iqr,
+        "median": median,
+        "log_min": log_min,
+        "log_max": log_max,
+        "log_mean": log_mean,
+        "log_std": log_std,
+        "log_q1": log_q1,
+        "log_q3": log_q3,
+        "log_iqr": log_iqr,
+        "log_median": log_median,
+        "sqrt_min": sqrt_min,
+        "sqrt_max": sqrt_max,
+        "sqrt_mean": sqrt_mean,
+        "sqrt_std": sqrt_std,
+        "sqrt_q1": sqrt_q1,
+        "sqrt_q3": sqrt_q3,
+        "sqrt_iqr": sqrt_iqr,
+        "sqrt_median": sqrt_median,
+    }
+
+    if plots:
+        fig = Figure(figsize=(8, 5))
+        canvas = FigureCanvasAgg(fig)
+        ax = fig.add_subplot(111)
+        ax.hist(data, bins=200)
+        ax.set_yscale("log")
+        ax.set_title(f"Histogram of {name}")
+        ax.set_xlabel(name)
+        ax.set_ylabel("Log Count")
+        ax.grid(True)
+        os.makedirs(output_dir, exist_ok=True)
+        out_path = os.path.join(output_dir, f"{name}_histogram.png")
+        canvas.print_figure(out_path, bbox_inches="tight")
+        print(f"Saved: {out_path}")
+
+    return stats
 
 
 def subplots(nrows, ncols, figsize):
@@ -832,6 +913,244 @@ def plot_all_diagnostics(
         )
 
 
+def plot_cams_diagnostics(
+    predictions,
+    targets,
+    hr_predict=None,
+    hr_target=None,
+    output_dir="./results",
+    prefix="validation",
+    logger=None,
+):
+    """
+    Generate diagnostic plots for CAMS atmospheric data.
+
+    Creates two types of plots:
+    1. Hexbin plots showing predicted vs observed (fluxes + HR if available)
+    2. Vertical profile plots for random samples (fluxes + HR if available)
+
+    Parameters
+    ----------
+    predictions : torch.Tensor or np.ndarray
+        Model predictions, shape (batch, n_fluxes, n_level)
+    targets : torch.Tensor or np.ndarray
+        Target values, shape (batch, n_fluxes, n_level)
+    hr_predict : torch.Tensor or np.ndarray, optional
+        Heating rate predictions, shape (batch, 1, n_layer)
+    hr_target : torch.Tensor or np.ndarray, optional
+        Heating rate targets, shape (batch, 1, n_layer)
+    output_dir : str, optional
+        Directory to save plots. Default is "./results".
+    prefix : str, optional
+        Prefix for plot filenames. Default is "validation".
+    logger : logging.Logger, optional
+        Logger for informational messages.
+    """
+    # Convert to numpy if tensors
+    if torch.is_tensor(predictions):
+        pred_np = predictions.cpu().numpy()
+    else:
+        pred_np = predictions
+
+    if torch.is_tensor(targets):
+        targ_np = targets.cpu().numpy()
+    else:
+        targ_np = targets
+
+    # Get dimensions from data
+    batch_size, n_fluxes, n_level = pred_np.shape
+    n_layer = n_level - 1
+    flux_names = (
+        ["rsd", "rsu"] if n_fluxes >= 2 else [f"flux_{i}" for i in range(n_fluxes)]
+    )
+
+    # Check if HR is available
+    has_hr = hr_predict is not None and hr_target is not None
+    if has_hr:
+        if torch.is_tensor(hr_predict):
+            hr_pred_np = hr_predict.cpu().numpy()
+            hr_targ_np = hr_target.cpu().numpy()
+        else:
+            hr_pred_np = hr_predict
+            hr_targ_np = hr_target
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Random sample indices for profiles
+    num_samples = min(10, batch_size)
+    sample_indices = random.sample(range(batch_size), num_samples)
+
+    # ================================================================
+    # 1. HEXBIN PLOTS (fluxes + HR if available)
+    # ================================================================
+    # Determine grid size
+    if has_hr:
+        n_cols = n_fluxes + 1  # fluxes + HR
+        fig, axes = subplots(1, n_cols, figsize=(6 * n_cols, 5))
+    else:
+        fig, axes = subplots(1, n_fluxes, figsize=(6 * n_fluxes, 5))
+
+    if n_cols == 1:
+        axes = [axes]
+    elif isinstance(axes, np.ndarray):
+        axes = axes.flatten().tolist()
+
+    fig.subplots_adjust(wspace=0.3)
+    canvas = FigureCanvasAgg(fig)
+
+    # Plot fluxes
+    for i, name in enumerate(flux_names):
+        ax = axes[i]
+
+        # Flatten all levels and samples
+        pred_flat = pred_np[:, i, :].flatten()
+        targ_flat = targ_np[:, i, :].flatten()
+
+        # Hexbin plot
+        hb = ax.hexbin(
+            targ_flat, pred_flat, gridsize=100, cmap="jet", bins="log", vmin=1, vmax=1e5
+        )
+
+        # Diagonal reference line
+        min_val = min(targ_flat.min(), pred_flat.min())
+        max_val = max(targ_flat.max(), pred_flat.max())
+        ax.plot([min_val, max_val], [min_val, max_val], "r:", linewidth=1.5)
+
+        # R² score
+        r2 = r2_score(targ_flat, pred_flat)
+        ax.text(
+            0.05,
+            0.95,
+            f"$R^2$: {r2:.4f}",
+            transform=ax.transAxes,
+            fontsize=12,
+            verticalalignment="top",
+        )
+
+        ax.set_xlabel(f"Target {name.upper()} (W/m²)")
+        ax.set_ylabel(f"Predicted {name.upper()} (W/m²)")
+        ax.set_title(f"{name.upper()} Flux")
+        ax.grid(True, alpha=0.3)
+
+    # Plot HR if available
+    if has_hr:
+        ax = axes[n_fluxes]
+
+        pred_flat = hr_pred_np.flatten()
+        targ_flat = hr_targ_np.flatten()
+
+        hb = ax.hexbin(
+            targ_flat, pred_flat, gridsize=100, cmap="jet", bins="log", vmin=1, vmax=1e5
+        )
+
+        min_val = min(targ_flat.min(), pred_flat.min())
+        max_val = max(targ_flat.max(), pred_flat.max())
+        ax.plot([min_val, max_val], [min_val, max_val], "r:", linewidth=1.5)
+
+        r2 = r2_score(targ_flat, pred_flat)
+        ax.text(
+            0.05,
+            0.95,
+            f"$R^2$: {r2:.4f}",
+            transform=ax.transAxes,
+            fontsize=12,
+            verticalalignment="top",
+        )
+
+        ax.set_xlabel("Target Flux Divergence (W/m²)")
+        ax.set_ylabel("Target Flux Divergence (W/m²)")
+        ax.set_title("Flux Divergence")
+        ax.grid(True, alpha=0.3)
+
+    # Shared colorbar
+    cbar_ax = fig.add_axes([0.92, 0.15, 0.015, 0.7])
+    fig.colorbar(hb, cax=cbar_ax, label=r"$\log_{10}[Count]$")
+
+    canvas.print_figure(
+        os.path.join(output_dir, f"{prefix}_hexbin.png"), bbox_inches="tight"
+    )
+    if logger:
+        logger.info(f"Saved hexbin plot to {output_dir}")
+
+    # ================================================================
+    # 2. VERTICAL PROFILE PLOTS (fluxes + HR if available)
+    # ================================================================
+    # Determine grid size
+    if has_hr:
+        n_cols = n_fluxes + 1
+        fig, axes = subplots(1, n_cols, figsize=(6 * n_cols, 6))
+    else:
+        fig, axes = subplots(1, n_fluxes, figsize=(6 * n_fluxes, 6))
+
+    if n_cols == 1:
+        axes = [axes]
+    elif isinstance(axes, np.ndarray):
+        axes = axes.flatten().tolist()
+
+    fig.subplots_adjust(wspace=0.3)
+    canvas = FigureCanvasAgg(fig)
+    legend_lines = []
+    legend_labels = []
+    # Plot flux profiles
+    for i, name in enumerate(flux_names):
+        ax = axes[i]
+        linestyles = mpltex.linestyle_generator()
+        for idx in sample_indices:
+            (pred_line,) = ax.plot(
+                pred_np[idx, i, :], range(n_level), label="Predict", **next(linestyles)
+            )
+            (true_line,) = ax.plot(
+                targ_np[idx, i, :], range(n_level), label="True", **next(linestyles)
+            )
+            if i == 0:
+                legend_lines.extend([pred_line, true_line])
+                legend_labels.extend([pred_line.get_label(), true_line.get_label()])
+
+        ax.set_xlabel(f"{name.upper()} (W/m²)")
+        ax.set_ylabel("Level")
+        ax.set_title(f"{name.upper()} Profiles")
+        ax.grid(True, alpha=0.3)
+        ax.invert_yaxis()
+
+    # Plot HR profiles if available
+    if has_hr:
+        ax = axes[n_fluxes]
+        linestyles = mpltex.linestyle_generator()
+        for idx in sample_indices:
+            ax.plot(
+                hr_pred_np[idx, 0, :],
+                range(n_layer),
+                label="Predict",
+                **next(linestyles),
+            )
+            ax.plot(
+                hr_targ_np[idx, 0, :], range(n_layer), label="True", **next(linestyles)
+            )
+
+        ax.set_xlabel("Flux Divergence (W/m²)")
+        ax.set_ylabel("Layer")
+        ax.set_title("Heating Rate Profiles")
+        ax.grid(True, alpha=0.3)
+        ax.invert_yaxis()
+
+    # Add legend
+    fig.legend(
+        handles=legend_lines,
+        labels=legend_labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.15),
+        borderaxespad=0.5,
+        frameon=False,
+        ncol=len(sample_indices),
+    )
+
+    canvas.print_figure(
+        os.path.join(output_dir, f"{prefix}_profiles.png"), bbox_inches="tight"
+    )
+    if logger:
+        logger.info(f"Saved profile plots to {output_dir}")
+
+
 def plot_metric_histories(
     train_history,
     valid_history,
@@ -1041,6 +1360,33 @@ def plot_spatial_temporal_density(
     if len(sindex_tracker) == 0 or len(tindex_tracker) == 0:
         print(f"No data to plot for {mode} mode")
         return None
+
+    if len(sindex_tracker) != len(tindex_tracker):
+        len_s = len(sindex_tracker)
+        len_t = len(tindex_tracker)
+
+        min_len = min(len_s, len_t)
+
+        msg = (
+            f"Length mismatch: sindex_tracker={len_s}, "
+            f"tindex_tracker={len_t}. "
+            f"Randomly sampling the longer tracker to {min_len} samples."
+        )
+
+        if logger:
+            logger.warning(msg)
+        else:
+            print("Warning:", msg)
+
+        if len_s > len_t:
+            # Randomly sample sindex_tracker
+            indices = random.sample(range(len_s), min_len)
+            sindex_tracker = [sindex_tracker[i] for i in indices]
+
+        else:
+            # Randomly sample tindex_tracker
+            indices = random.sample(range(len_t), min_len)
+            tindex_tracker = [tindex_tracker[i] for i in indices]
 
     # Convert to numpy arrays
     sindex_tracker = np.array(sindex_tracker)

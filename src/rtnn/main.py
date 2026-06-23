@@ -93,6 +93,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import xarray as xr
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -100,12 +101,15 @@ from tqdm import tqdm
 # Import local modules
 from rtnn.utils import FileUtils, EasyDict
 from rtnn.dataset import DataPreprocessor
+from rtnn.dataset_atm import RRTMGPDataPreprocessor
 from rtnn.model_loader import load_model
 from rtnn.model_utils import ModelUtils
 from rtnn.evaluater import (
     unnorm_mpas,
     calc_abs,
-    run_validation,
+    calc_heating_rates,
+    run_validation_lsm,
+    run_validation_cams,
     get_loss_function,
     MetricTracker,
     r2_all,
@@ -119,6 +123,7 @@ from rtnn.diagnostics import (
     plot_loss_histories,
     plot_spatial_temporal_density,
     stats,
+    stats_rrtmgp,
 )
 from rtnn.logger import Logger
 from rtnn import __version__, __version_info__, __author__, __license__, __copyright__
@@ -233,7 +238,7 @@ def parse_args():
                 Normalization scheme (e.g., "log1p_standard", "standard",
                 "minmax", "none").
             dataset_type : str
-                Dataset type (e.g., "LSM", "RTM").
+                Dataset type (e.g., "ORC", "CAMS").
 
         **Output configuration**
             root_dir : str
@@ -324,8 +329,8 @@ def parse_args():
     parser.add_argument(
         "--dataset_type",
         type=str,
-        default="LSM",
-        choices=["LSM", "RTM"],
+        default="ORC",
+        choices=["ORC", "CAMS"],
         help="Type of dataset being processed",
     )
 
@@ -430,6 +435,13 @@ def parse_args():
 
     parser.add_argument(
         "--dropout", type=float, default=0.0, help="Dropout rate (None for no dropout)"
+    )
+
+    parser.add_argument(
+        "--sblock_perc",
+        type=float,
+        default=0.5,
+        help="Percentage of sites to use for training",
     )
 
     parser.add_argument(
@@ -666,7 +678,7 @@ def setup_device_and_seed(args, logger):
     return device
 
 
-def get_data_files(args, logger):
+def get_data_files_lsm(args, logger):
     """
     Get training and testing data files based on year specifications.
 
@@ -728,7 +740,47 @@ def get_data_files(args, logger):
     return train_files, test_files
 
 
-def create_normalization_mapping(train_files, paths, logger):
+def get_data_files_rrtmgp(args, logger=None):
+    """
+    Get training and testing data files for RRTMGP data.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments. Expected to contain:
+
+        train_data_files : str
+            Path to training data file
+
+        test_data_files : str
+            Path to test/validation data file
+
+    logger : Logger
+        Logger instance.
+
+    Returns
+    -------
+    tuple
+        (train_file, test_file) lists of file paths.
+    """
+    if logger is not None:
+        logger.start_task("Getting RRTMGP data files")
+
+    # Training file
+    train_file = args.train_data_files
+    if logger is not None:
+        logger.info(f"Training file: {os.path.basename(train_file)}")
+
+    # Test/Validation file
+    test_file = args.test_data_files
+    if logger is not None:
+        logger.info(f"Test file: {os.path.basename(test_file)}")
+        logger.success("Data files retrieved successfully")
+
+    return train_file, test_file
+
+
+def create_normalization_mapping_lsm(train_files, paths, logger):
     """
     Create normalization mapping from training data.
 
@@ -768,7 +820,55 @@ def create_normalization_mapping(train_files, paths, logger):
     return norm_mapping
 
 
-def create_datasets_and_loaders(args, train_files, test_files, norm_mapping, logger):
+def create_normalization_mapping_rrtmgp(
+    file_path, output_dir=None, logger=None, norm_mapping=None, plots=False
+):
+    if norm_mapping is None:
+        norm_mapping = {}
+
+    if logger is not None:
+        logger.info("Starting statistics computation for normalization")
+        logger.info(f"Loading file: {file_path}")
+    else:
+        print(f"Loading file: {file_path}")
+
+    ds = xr.open_dataset(file_path)
+    # Gas features
+    gas_input = ds["rrtmgp_sw_input"].values
+    gas_reshaped = gas_input.reshape(-1, ds.sizes["layer"], ds.sizes["feature"])
+    gas_names = ["tlay", "play", "h2o", "o3", "co2", "n2o", "ch4"]
+
+    for i, name in enumerate(gas_names):
+        data = gas_reshaped[..., i].flatten()
+        norm_mapping[name] = stats_rrtmgp(data, name, output_dir, plots)
+
+    # Cloud variables
+    for name in ["cloud_lwp", "cloud_iwp", "cloud_fraction"]:
+        data = ds[name].values.flatten()
+        norm_mapping[name] = stats_rrtmgp(data, name, output_dir, plots)
+
+    # Auxiliary variables
+    data = ds["mu0"].values.flatten()
+    norm_mapping["mu0"] = stats_rrtmgp(data, "mu0", output_dir, plots)
+    data = ds["sfc_alb"].values.flatten()
+    norm_mapping["sfc_alb"] = stats_rrtmgp(data, "sfc_alb", output_dir, plots)
+
+    # Flux variables
+    for name in ["rsd", "rsu", "rsd_dir", "toa_flux"]:
+        data = ds[name].values.flatten()
+        norm_mapping[name] = stats_rrtmgp(data, name, output_dir, plots)
+
+    ds.close()
+    if logger is not None:
+        logger.info("Statistics computation completed")
+    else:
+        print("Statistics computation completed")
+    return norm_mapping
+
+
+def create_datasets_and_loaders_lsm(
+    args, train_files, test_files, norm_mapping, logger
+):
     """
     Create datasets and data loaders for training and validation.
 
@@ -861,6 +961,130 @@ def create_datasets_and_loaders(args, train_files, test_files, norm_mapping, log
     logger.info(f"Training batches per epoch: {len(train_loader)}")
     logger.info(f"Test batches: {len(test_loader)}")
     logger.success("Data loaders created successfully.")
+
+    return train_loader, test_loader, normalization_type, train_dataset, test_dataset
+
+
+def create_datasets_and_loaders_rrtmgp(
+    args, train_file, test_file, norm_mapping, logger=None, normalization_type=None
+):
+    """
+    Create datasets and data loaders for RRTMGP training and validation.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments. Expected to contain:
+        - batch_size : int
+        - num_workers : int
+        - sblock_perc : float, optional (default: 0.6)
+        - debug : bool, optional (default: False)
+    train_file : list
+        Training file path (should be a single file).
+    test_file : list
+        Test file path (should be a single file).
+    norm_mapping : dict
+        Normalization statistics from stats_rrtmgp function.
+    logger : Logger, optional
+        Logger instance. If None, no logging will be performed.
+    normalization_type : dict, optional
+        Normalization type for each variable. If None, defaults will be used.
+
+    Returns
+    -------
+    tuple
+        (train_loader, test_loader, normalization_type, train_dataset, test_dataset)
+    """
+
+    # Default normalization types for RRTMGP data
+    if normalization_type is None:
+        normalization_type = {
+            # Gas features
+            "tlay": "standard",
+            "play": "log1p_standard",
+            "h2o": "log1p_standard",
+            "o3": "log1p_standard",
+            "co2": "log1p_standard",
+            "n2o": "log1p_standard",
+            "ch4": "log1p_standard",
+            # Cloud properties
+            "cloud_lwp": "standard",
+            "cloud_iwp": "standard",
+            # Auxiliaries
+            "mu0": "minmax",
+            "sfc_alb": "minmax",
+            # Flux targets
+            "rsd": "minmax",
+            "rsu": "minmax",
+        }
+
+    if logger is not None:
+        logger.start_task("Creating datasets and loaders for RRTMGP data")
+        logger.info("Normalization types:")
+        for var, norm in normalization_type.items():
+            logger.info(f"  {var}: '{norm}'")
+
+    # Create training dataset
+    if logger is not None:
+        logger.start_task("Creating training dataset", f"File: {train_file}")
+
+    train_dataset = RRTMGPDataPreprocessor(
+        logger=logger,
+        path=train_file,
+        training=True,
+        norm_mapping=norm_mapping,
+        normalization_type=normalization_type,
+        debug=args.debug,
+        sblock_perc=args.sblock_perc,
+    )
+
+    if logger is not None:
+        logger.success("Training dataset created successfully.")
+
+    # Create test dataset
+    if logger is not None:
+        logger.start_task("Creating test dataset", f"File: {test_file}")
+
+    test_dataset = RRTMGPDataPreprocessor(
+        logger=logger,
+        path=test_file,
+        training=False,  # Use all sites
+        norm_mapping=norm_mapping,
+        normalization_type=normalization_type,
+        debug=args.debug,
+        sblock_perc=1.0,  # 100% of sites
+    )
+
+    if logger is not None:
+        logger.success("Test dataset created successfully.")
+
+    # Create data loaders
+    if logger is not None:
+        logger.start_task("Creating data loaders")
+
+    train_loader = DataLoader(
+        dataset=train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=0,
+        pin_memory=True,
+        drop_last=True,
+    )
+
+    test_loader = DataLoader(
+        dataset=test_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=True,
+    )
+
+    if logger is not None:
+        logger.info(f"Training dataset size: {len(train_dataset)} experiments")
+        logger.info(f"Test dataset size: {len(test_dataset)} experiments")
+        logger.info(f"Training batches per epoch: {len(train_loader)}")
+        logger.info(f"Test batches: {len(test_loader)}")
+        logger.success("Data loaders created successfully.")
 
     return train_loader, test_loader, normalization_type, train_dataset, test_dataset
 
@@ -1023,7 +1247,7 @@ def load_checkpoint_if_requested(args, model, optimizer, paths, device, logger):
     )
 
 
-def train_epoch(
+def train_epoch_lsm(
     model,
     train_loader,
     optimizer,
@@ -1201,6 +1425,175 @@ def train_epoch(
     return train_loss_tracker.getmean(), global_step
 
 
+def train_epoch_cams(
+    model,
+    train_loader,
+    optimizer,
+    loss_func,
+    metric_funcs,
+    metric_names,
+    output_keys,
+    train_metrics,
+    train_loss_tracker,
+    norm_mapping,
+    normalization_type,
+    index_mapping,
+    device,
+    args,
+    epoch,
+    writer,
+    global_step,
+    logger,
+):
+    """
+    Train for one epoch on CAMS atmospheric data.
+
+    Data shapes from dataset (already in B, C, T format):
+    - features: (batch, n_sites, n_features, n_layer) -> flattened to (batch*n_sites, n_features, n_layer)
+    - targets: (batch, n_sites, n_fluxes, n_level) -> flattened to (batch*n_sites, n_fluxes, n_level)
+
+    Model expects: (batch, features, seq) and returns (batch, output_features, seq)
+    """
+    model.train()
+
+    # Reset metrics
+    for meter in train_metrics.values():
+        meter.reset()
+    train_loss_tracker.reset()
+
+    loop = tqdm(
+        enumerate(train_loader),
+        total=len(train_loader),
+        desc=f"Epoch {epoch}",
+        leave=False,
+    )
+
+    for batch_idx, (features, targets, pressure) in loop:
+        if epoch == 0 and batch_idx == 0:
+            logger.info("First batch shapes (CAMS):")
+            logger.info(
+                f"  Feature shape: {features.shape}"
+            )  # (batch, n_sites, n_features, n_layer)
+            logger.info(
+                f"  Targets shape: {targets.shape}"
+            )  # (batch, n_sites, n_fluxes, n_level)
+            logger.info(
+                f"  Pressure shape: {pressure.shape}"
+            )  # (batch, n_sites, n_layer -1)
+
+        # Reshape inputs: flatten batch and sites dimensions
+        feature_shape = features.shape
+        target_shape = targets.shape
+        pressure_shape = pressure.shape
+        inner_batch_size = feature_shape[0] * feature_shape[1]  # batch * n_sites
+
+        # Reshape to (inner_batch, n_features, n_layer)
+        features = features.reshape(
+            inner_batch_size, feature_shape[2], feature_shape[3]
+        ).to(device=device)
+
+        # Reshape to (inner_batch, n_fluxes, n_level)
+        targets = targets.reshape(
+            inner_batch_size, target_shape[2], target_shape[3]
+        ).to(device=device)
+
+        # Reshape pressure to (inner_batch, n_level_interior)
+        # pressure has shape (batch, n_sites, 59) -> (inner_batch, 59)
+        pressure = pressure.reshape(inner_batch_size, pressure_shape[2]).to(
+            device=device
+        )
+
+        # Forward pass
+        # Model expects: (inner_batch, n_features, n_layer)
+        # Model returns: (inner_batch, n_fluxes, n_level)
+        predicts = model(features)  # (inner_batch, n_fluxes, n_level)
+
+        # Denormalize predictions and targets
+        predicts_unnorm, targets_unnorm = unnorm_mpas(
+            predicts,
+            targets,
+            norm_mapping,
+            normalization_type,
+            index_mapping,
+        )
+
+        assert (
+            predicts_unnorm.shape == predicts.shape
+        ), f"Expected predicts_unnorm shape {predicts.shape}, got {predicts_unnorm.shape}"
+        assert (
+            targets_unnorm.shape == targets.shape
+        ), f"Expected targets_unnorm shape {targets.shape}, got {targets_unnorm.shape}"
+
+        # Calculate heating rates (HR) from fluxes
+        # predicts_unnorm: (inner_batch, n_fluxes, n_level) -> [rsd, rsu]
+        # pressure: (inner_batch, n_level_interior) -> (inner_batch, 59)
+        hr_predict, hr_target = calc_heating_rates(predicts_unnorm, targets_unnorm)
+
+        if epoch == 0 and batch_idx == 0:
+            logger.info(
+                f"Heating rate shapes: pred={hr_predict.shape}, target={hr_target.shape}"
+            )
+
+        # Compute metrics
+        output_dict = {
+            "fluxes": (predicts, targets),
+            "HR": (hr_predict, hr_target),
+        }
+
+        for key in output_keys:
+            pred, tgt = output_dict[key]
+            for metric in metric_names:
+                metric_key = f"{key}_{metric}"
+                if metric_key not in train_metrics:
+                    logger.error(
+                        f"Metric key '{metric_key}' not found in train_metrics"
+                    )
+                    raise KeyError(
+                        f"Metric key '{metric_key}' not found in train_metrics"
+                    )
+                count, value = metric_funcs[metric](pred, tgt)
+                train_metrics[metric_key].update(value.item(), count)
+
+        # Compute loss
+        # Main loss: flux predictions
+        main_count, main_val = predicts.numel(), loss_func(predicts, targets)
+
+        # Heating rate loss (optional, weighted by beta)
+        if args.beta > 0:
+            hr_count, hr_val = hr_predict.numel(), loss_func(hr_predict, hr_target)
+            weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (
+                hr_val * hr_count
+            )
+            total_count = (1.0 - args.beta) * main_count + args.beta * hr_count
+            total_loss = weighted_loss / total_count
+        else:
+            total_loss = main_val
+
+        # Backward pass
+        optimizer.zero_grad()
+        total_loss.backward()
+
+        # Gradient clipping (optional)
+        if hasattr(args, "grad_clip"):
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
+
+        optimizer.step()
+
+        # Update trackers
+        train_loss_tracker.update(total_loss.item(), 1)
+
+        # Update progress bar
+        loop.set_postfix(loss=total_loss.item())
+
+        # TensorBoard logging
+        writer.add_scalar(
+            "train/total_loss", total_loss.item(), global_step=global_step
+        )
+        global_step += args.batch_size
+
+    return train_loss_tracker.getmean(), global_step
+
+
 def main():
     """
     Main entry point for training the RTnn model.
@@ -1219,59 +1612,21 @@ def main():
     # Log configuration
     log_configuration(args, paths, logger)
 
-    n_pft = 15
-    n_bands = 2
-    n_chans = 4
+    # Setup metrics
+    metric_names = ["NMAE", "NMSE", "R2", "MAE", "MSE"]
+    metric_funcs = {
+        "NMAE": nmae_all,
+        "NMSE": nmse_all,
+        "R2": r2_all,
+        "MAE": mae_all,
+        "MSE": mse_all,
+    }
 
-    try:
-        # Setup device and seed
-        device = setup_device_and_seed(args, logger)
-
-        # Get data files
-        train_files, test_files = get_data_files(args, logger)
-
-        if not train_files:
-            raise ValueError("No training files found")
-        if not test_files and not args.run_type == "inference":
-            logger.warning("No test files found, but continuing with training only")
-        if args.run_type == "inference" and not test_files:
-            raise ValueError("Inference mode requires test files, but none were found")
-
-        # Compute normalization statistics
-        norm_mapping = create_normalization_mapping(train_files, paths, logger)
-
-        # Create datasets and loaders
-        train_loader, test_loader, normalization_type, train_dataset, test_dataset = (
-            create_datasets_and_loaders(
-                args, train_files, test_files, norm_mapping, logger
-            )
-        )
-
-        # Initialize model
-        model = initialize_model(args, device, logger)
-
-        # Setup loss function and optimizer
-        loss_func = get_loss_function(args.loss_type, args, logger=logger)
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, factor=0.5, patience=5
-        )
-
-        # Setup metrics
-        metric_names = ["NMAE", "NMSE", "R2", "MAE", "MSE"]
-        metric_funcs = {
-            "NMAE": nmae_all,
-            "NMSE": nmse_all,
-            "R2": r2_all,
-            "MAE": mae_all,
-            "MSE": mse_all,
-        }
+    if args.dataset_type == "ORC":
+        n_pft = 15
+        n_bands = 2
+        n_chans = 4
         output_keys = ["fluxes", "abs12", "abs34"]
-
-        train_metrics = {
-            f"{k}_{m}": MetricTracker() for k in output_keys for m in metric_names
-        }
-        train_loss_tracker = MetricTracker()
 
         # Index mapping for output variables
         index_mapping = {
@@ -1280,9 +1635,83 @@ def main():
             2: "isotrop_alb",
             3: "isotrop_tran",
         }
-        logger.info("Index mapping initialized.")
-        for idx, var in index_mapping.items():
-            logger.info(f"  {idx} -> '{var}'")
+
+        # Get data files
+        train_files, test_files = get_data_files_lsm(args, logger)
+
+    elif args.dataset_type == "CAMS":
+        n_pft = None
+        n_bands = None
+        n_chans = None
+        output_keys = ["fluxes", "HR"]
+
+        # Index mapping for output variables
+        index_mapping = {
+            0: "rsd",
+            1: "rsu",
+        }
+
+        # Get data files
+        train_files, test_files = get_data_files_rrtmgp(args, logger)
+
+    else:
+        raise ValueError(f"Dataset_type of {args.dataset_type} is not implimented yet!")
+
+    if not train_files:
+        raise ValueError("No training files found")
+    if not test_files and not args.run_type == "inference":
+        logger.warning("No test files found, but continuing with training only")
+    if args.run_type == "inference" and not test_files:
+        raise ValueError("Inference mode requires test files, but none were found")
+
+    logger.info("Index mapping:")
+    for idx, var in index_mapping.items():
+        logger.info(f"  {idx} -> '{var}'")
+
+    train_metrics = {
+        f"{k}_{m}": MetricTracker() for k in output_keys for m in metric_names
+    }
+    train_loss_tracker = MetricTracker()
+
+    # Setup device and seed
+    device = setup_device_and_seed(args, logger)
+
+    # Compute normalization statistics
+    if args.dataset_type == "ORC":
+        norm_mapping = create_normalization_mapping_lsm(train_files, paths, logger)
+        # Create datasets and loaders
+        train_loader, test_loader, normalization_type, train_dataset, test_dataset = (
+            create_datasets_and_loaders_lsm(
+                args, train_files, test_files, norm_mapping, logger
+            )
+        )
+    elif args.dataset_type == "CAMS":
+        norm_mapping = create_normalization_mapping_rrtmgp(
+            test_files, output_dir=paths.stats, logger=logger
+        )
+        train_loader, test_loader, normalization_type, train_dataset, test_dataset = (
+            create_datasets_and_loaders_rrtmgp(
+                args=args,
+                train_file=train_files,
+                test_file=test_files,
+                norm_mapping=norm_mapping,
+                logger=logger,
+            )
+        )
+    else:
+        raise ValueError(f"Dataset_type of {args.dataset_type} is not implimented yet!")
+
+    # Initialize model
+    model = initialize_model(args, device, logger)
+
+    # Setup loss function and optimizer
+    loss_func = get_loss_function(args.loss_type, args, logger=logger)
+    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, factor=0.5, patience=5
+    )
+
+    try:
         # Load checkpoint if requested
         (
             start_epoch,
@@ -1307,21 +1736,39 @@ def main():
 
             logger.start_task("Running inference", "Evaluating model on test data")
 
-            valid_loss, valid_metrics = run_validation(
-                test_loader,
-                model,
-                norm_mapping,
-                normalization_type,
-                index_mapping,
-                device,
-                args,
-                best_epoch,
-                logger,
-                paths.results,
-                n_pft=n_pft,
-                n_bands=n_bands,
-                n_chans=n_chans,
-            )
+            if args.dataset_type == "ORC":
+                valid_loss, valid_metrics = run_validation_lsm(
+                    test_loader,
+                    model,
+                    norm_mapping,
+                    normalization_type,
+                    index_mapping,
+                    device,
+                    args,
+                    best_epoch,
+                    logger,
+                    paths.results,
+                    n_pft=n_pft,
+                    n_bands=n_bands,
+                    n_chans=n_chans,
+                )
+            elif args.dataset_type == "CAMS":
+                valid_loss, valid_metrics = run_validation_cams(
+                    test_loader,
+                    model,
+                    norm_mapping,
+                    normalization_type,
+                    index_mapping,
+                    device,
+                    args,
+                    best_epoch,
+                    logger,
+                    paths.results,
+                )
+            else:
+                raise ValueError(
+                    f"Dataset_type of {args.dataset_type} is not implimented yet!"
+                )
 
             logger.info("Inference results:")
             logger.info(f"  Validation loss: {valid_loss:.6e}")
@@ -1364,49 +1811,93 @@ def main():
             epoch_start_time = time.time()
 
             # Train for one epoch
-            avg_train_loss, global_step = train_epoch(
-                model,
-                train_loader,
-                optimizer,
-                loss_func,
-                metric_funcs,
-                metric_names,
-                output_keys,
-                train_metrics,
-                train_loss_tracker,
-                norm_mapping,
-                normalization_type,
-                index_mapping,
-                device,
-                args,
-                epoch,
-                writer,
-                global_step,
-                logger,
-                n_pft=n_pft,
-                n_bands=n_bands,
-                n_chans=n_chans,
-            )
-
-            train_loss_history[epoch] = avg_train_loss
-
-            # Validation
-            if test_loader and len(test_loader) > 0:
-                valid_loss, valid_metrics = run_validation(
-                    test_loader,
+            if args.dataset_type == "ORC":
+                avg_train_loss, global_step = train_epoch_lsm(
                     model,
+                    train_loader,
+                    optimizer,
+                    loss_func,
+                    metric_funcs,
+                    metric_names,
+                    output_keys,
+                    train_metrics,
+                    train_loss_tracker,
                     norm_mapping,
                     normalization_type,
                     index_mapping,
                     device,
                     args,
                     epoch,
+                    writer,
+                    global_step,
                     logger,
-                    paths.results,
                     n_pft=n_pft,
                     n_bands=n_bands,
                     n_chans=n_chans,
                 )
+            elif args.dataset_type == "CAMS":
+                avg_train_loss, global_step = train_epoch_cams(
+                    model,
+                    train_loader,
+                    optimizer,
+                    loss_func,
+                    metric_funcs,
+                    metric_names,
+                    output_keys,
+                    train_metrics,
+                    train_loss_tracker,
+                    norm_mapping,
+                    normalization_type,
+                    index_mapping,
+                    device,
+                    args,
+                    epoch,
+                    writer,
+                    global_step,
+                    logger,
+                )
+            else:
+                raise ValueError(
+                    f"Dataset_type of {args.dataset_type} is not implimented yet!"
+                )
+            train_loss_history[epoch] = avg_train_loss
+
+            # Validation
+            if test_loader and len(test_loader) > 0:
+                if args.dataset_type == "ORC":
+                    valid_loss, valid_metrics = run_validation_lsm(
+                        test_loader,
+                        model,
+                        norm_mapping,
+                        normalization_type,
+                        index_mapping,
+                        device,
+                        args,
+                        epoch,
+                        logger,
+                        paths.results,
+                        n_pft=n_pft,
+                        n_bands=n_bands,
+                        n_chans=n_chans,
+                    )
+                elif args.dataset_type == "CAMS":
+                    valid_loss, valid_metrics = run_validation_cams(
+                        test_loader,
+                        model,
+                        norm_mapping,
+                        normalization_type,
+                        index_mapping,
+                        device,
+                        args,
+                        epoch,
+                        logger,
+                        paths.results,
+                    )
+                else:
+                    raise ValueError(
+                        f"Dataset_type of {args.dataset_type} is not implimented yet!"
+                    )
+
                 valid_loss_history[epoch] = valid_loss
 
                 # Log metrics

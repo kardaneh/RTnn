@@ -23,7 +23,8 @@ from rtnn.logger import Logger
 from rtnn.dataset import DataPreprocessor
 from rtnn.model_utils import ModelUtils
 from rtnn.evaluater import (
-    run_validation,
+    run_validation_lsm,
+    run_validation_cams,
     get_loss_function,
     unnorm_mpas,
     calc_abs,
@@ -44,7 +45,8 @@ __all__ = [
     "Logger",
     "DataPreprocessor",
     "ModelUtils",
-    "run_validation",
+    "run_validation_lsm",
+    "run_validation_cams",
     "get_loss_function",
     "unnorm_mpas",
     "calc_abs",

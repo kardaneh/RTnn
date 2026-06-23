@@ -20,6 +20,14 @@ rtnn.dataset module
    :undoc-members:
    :show-inheritance:
 
+rtnn.dataset_atm module
+-----------------------
+
+.. automodule:: rtnn.dataset_atm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rtnn.diagnostics module
 -----------------------
 

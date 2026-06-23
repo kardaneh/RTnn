@@ -6,6 +6,14 @@ This section describes the training configuration, data preparation pipeline, an
 Data Preparation
 ----------------
 
+RTnn processes NetCDF files containing climate data for two different applications:
+
+1. **Vegetation Canopy (LSM)**: Radiative transfer through vegetation canopies
+2. **Atmospheric (CAMS)**: Radiative transfer through atmospheric columns
+
+Vegetation Canopy (LSM) Data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 RTnn processes NetCDF files containing LSM data with the naming convention:
 `rtnetcdf_{processor_rank:03d}_{year}.nc`
 
@@ -99,6 +107,109 @@ For each layer, the outputs satisfy energy conservation:
    \text{albedo} + \text{transmittance} + \text{absorption} = 1
 
 This constraint is enforced as a soft penalty during training.
+
+Atmospheric (CAMS) Data
+~~~~~~~~~~~~~~~~~~~~~~~
+
+RTnn processes CAMS atmospheric data from RRTMGP (Rapid Radiative Transfer Model for General Circulation Models) calculations. The data has the following structure:
+
+**Data Dimensions:**
+
+.. list-table:: CAMS Data Dimensions
+   :header-rows: 1
+   :widths: 20 20 60
+
+   * - Dimension
+     - Size
+     - Description
+   * - expt
+     - 64
+     - Experiment index (different solar geometry realizations)
+   * - site
+     - 5120
+     - Atmospheric column (ICON grid points)
+   * - layer
+     - 60
+     - Atmospheric layers (between level interfaces)
+   * - level
+     - 61
+     - Level interfaces (layer boundaries)
+   * - gpt
+     - 224
+     - RRTMGP spectral g-points
+   * - feature
+     - 7
+     - Gas optics input features
+
+**Input Features (11 per layer):**
+
+For each atmospheric layer (60 layers), the model receives 11 features:
+
+.. list-table:: CAMS Input Features
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Feature Group
+     - Count
+     - Description
+   * - Gas Variables
+     - 7
+     - T (temperature), P (pressure), H₂O, O₃, CO₂, N₂O, CH₄
+   * - Cloud Properties
+     - 2
+     - LWP (liquid water path), IWP (ice water path)
+   * - Auxiliary
+     - 2
+     - μ₀ (cosine solar zenith angle), surface albedo (broadband)
+   * - **Total**
+     - **11**
+     -
+
+**Output Targets:**
+
+The model predicts upwelling and downwelling shortwave fluxes at each level:
+
+.. list-table:: CAMS Output Targets
+   :header-rows: 1
+   :widths: 30 50
+
+   * - Variable
+     - Description
+   * - rsd
+     - Downwelling shortwave flux (W/m²) at each level
+   * - rsu
+     - Upwelling shortwave flux (W/m²) at each level
+
+**Heating Rate Calculation:**
+
+Heating rates are derived from flux divergence:
+
+.. math::
+
+   \text{HR}_i = -\frac{g}{c_p} \frac{F_{i+1/2} - F_{i-1/2}}{p_{i+1/2} - p_{i-1/2}}
+
+Where:
+
+- :math:`F = F_{\downarrow} - F_{\uparrow}` (net flux)
+- :math:`g = 9.8066` m/s² (gravity)
+- :math:`c_p = 1004.0` J/kg/K (specific heat at constant pressure)
+- :math:`p` is pressure at layer interfaces (Pa)
+
+**Data Files:**
+
+The dataset expects the following file structure:
+
+.. code-block:: bash
+
+   RADSCHEME_data_g224_CAMS_YYYY.nc         # Single year files
+   RADSCHEME_data_g224_CAMS_YYYY-YYYY.nc    # Multi-year files
+
+**Training/Validation Split:**
+
+A common split is:
+
+- **Training**: 2009-2013, 2016-2018 (years with no gaps)
+- **Validation**: 2014-2015 (held out for evaluation)
 
 Hyperparameters
 ---------------

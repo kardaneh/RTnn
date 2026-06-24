@@ -1,5 +1,5 @@
-Benchmark
-=========
+Land surface model benchmark
+============================
 
 This section documents the experimental results comparing different neural network architectures for radiative transfer modeling in the RTnn framework.
 

@@ -49,7 +49,13 @@ Performance
    neural_architectures
    training_strategy
    inference_modes
-   experiments
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Benchmark
+
+   lsm_benchmark
+   atm_benchmark
 
 .. toctree::
    :maxdepth: 2

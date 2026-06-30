@@ -21,15 +21,15 @@ class TestEncoderTorch(unittest.TestCase):
     """Unit tests for EncoderTorch (PyTorch-based implementation)."""
 
     def setUp(self):
-        self.batch_size = 32
-        self.feature_channel = 121
-        self.output_channel = 120
-        self.embed_size = 256
-        self.num_layers = 3
-        self.heads = 4
-        self.forward_expansion = 4
-        self.seq_length = 10
-        self.dropout = 0.2
+        self.batch_size = 4
+        self.feature_channel = 5
+        self.output_channel = 4
+        self.embed_size = 32
+        self.num_layers = 2
+        self.heads = 2
+        self.forward_expansion = 2
+        self.seq_length = 60
+        self.dropout = 0.1
 
         self.encoder = EncoderTorch(
             feature_channel=self.feature_channel,

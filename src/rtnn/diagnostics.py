@@ -334,16 +334,6 @@ def stats_rrtmgp(data, name, output_dir, plots=False):
     log_iqr = log_q3 - log_q1 if log_q3 != log_q1 else 1.0
     log_median = float(np.median(log_data))
 
-    sqrt_data = np.sqrt(np.clip(data, a_min=0, a_max=None))
-    sqrt_min = float(sqrt_data.min())
-    sqrt_max = float(sqrt_data.max())
-    sqrt_mean = float(sqrt_data.mean())
-    sqrt_std = float(sqrt_data.std())
-    sqrt_q1 = float(np.percentile(sqrt_data, 25))
-    sqrt_q3 = float(np.percentile(sqrt_data, 75))
-    sqrt_iqr = sqrt_q3 - sqrt_q1 if sqrt_q3 != sqrt_q1 else 1.0
-    sqrt_median = float(np.median(sqrt_data))
-
     stats = {
         "vmin": vmin,
         "vmax": vmax,
@@ -361,14 +351,6 @@ def stats_rrtmgp(data, name, output_dir, plots=False):
         "log_q3": log_q3,
         "log_iqr": log_iqr,
         "log_median": log_median,
-        "sqrt_min": sqrt_min,
-        "sqrt_max": sqrt_max,
-        "sqrt_mean": sqrt_mean,
-        "sqrt_std": sqrt_std,
-        "sqrt_q1": sqrt_q1,
-        "sqrt_q3": sqrt_q3,
-        "sqrt_iqr": sqrt_iqr,
-        "sqrt_median": sqrt_median,
     }
 
     if plots:
@@ -1142,6 +1124,284 @@ def plot_cams_diagnostics(
         borderaxespad=0.5,
         frameon=False,
         ncol=len(sample_indices),
+    )
+
+    canvas.print_figure(
+        os.path.join(output_dir, f"{prefix}_profiles.png"), bbox_inches="tight"
+    )
+    if logger:
+        logger.info(f"Saved profile plots to {output_dir}")
+
+
+def plot_reftrans_diagnostics(
+    predictions,
+    targets,
+    abs12_predict=None,
+    abs12_target=None,
+    abs34_predict=None,
+    abs34_target=None,
+    output_dir="./results",
+    prefix="validation",
+    logger=None,
+):
+    """
+    Generate diagnostic plots for REFTRANS data.
+
+    Parameters
+    ----------
+    predictions : torch.Tensor
+        Model predictions, shape (batch, 4, n_layer)
+        Channels: [rdif, tdif, rdir, tdir]
+    targets : torch.Tensor
+        Target values, shape (batch, 4, n_layer)
+    abs12_predict : torch.Tensor, optional
+        Diffuse absorption predictions, shape (batch, 1, n_layer)
+    abs12_target : torch.Tensor, optional
+        Diffuse absorption targets, shape (batch, 1, n_layer)
+    abs34_predict : torch.Tensor, optional
+        Direct absorption predictions, shape (batch, 1, n_layer)
+    abs34_target : torch.Tensor, optional
+        Direct absorption targets, shape (batch, 1, n_layer)
+    output_dir : str, optional
+        Directory to save plots
+    prefix : str, optional
+        Prefix for plot filenames
+    logger : logging.Logger, optional
+        Logger for informational messages
+    """
+    # Convert to numpy
+    pred_np = predictions.cpu().numpy()
+    targ_np = targets.cpu().numpy()
+
+    n_samples = pred_np.shape[0]
+    n_layer = pred_np.shape[2]
+
+    flux_names = ["Rdif", "Tdif", "Rdir", "Tdir"]
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Random sample indices for profiles
+    num_samples = min(10, n_samples)
+    sample_indices = random.sample(range(n_samples), num_samples)
+
+    # ================================================================
+    # 1. HEXBIN PLOTS for fluxes and absorption
+    # ================================================================
+    # Determine grid size: 2 columns
+    has_abs = abs12_predict is not None and abs12_target is not None
+
+    if has_abs:
+        # 3 rows x 2 columns = 6 panels (4 fluxes + 2 absorption)
+        n_rows, n_cols = 3, 2
+        fig, axes = subplots(n_rows, n_cols, figsize=(12, 15))
+    else:
+        # 2 rows x 2 columns = 4 panels (4 fluxes)
+        n_rows, n_cols = 2, 2
+        fig, axes = subplots(n_rows, n_cols, figsize=(12, 10))
+
+    fig.subplots_adjust(hspace=0.3, wspace=0.3)
+    canvas = FigureCanvasAgg(fig)
+
+    # Flatten axes for easier indexing
+    axes_flat = axes.flatten().tolist()
+
+    # Plot flux hexbins (4 panels)
+    for i, name in enumerate(flux_names):
+        ax = axes_flat[i]
+        pred_flat = pred_np[:, i, :].flatten()
+        targ_flat = targ_np[:, i, :].flatten()
+
+        hb = ax.hexbin(
+            targ_flat, pred_flat, gridsize=100, cmap="jet", bins="log", vmin=1, vmax=1e6
+        )
+
+        min_val = min(targ_flat.min(), pred_flat.min())
+        max_val = max(targ_flat.max(), pred_flat.max())
+        ax.plot([min_val, max_val], [min_val, max_val], "r:", linewidth=1.5)
+
+        r2 = r2_score(targ_flat, pred_flat)
+        ax.text(
+            0.05,
+            0.95,
+            f"$R^2$: {r2:.4f}",
+            transform=ax.transAxes,
+            fontsize=12,
+            verticalalignment="top",
+        )
+
+        ax.set_xlabel(f"Target {name}")
+        ax.set_ylabel(f"Predicted {name}")
+        ax.set_title(f"{name}")
+        ax.grid(True, alpha=0.3)
+
+    # Plot absorption hexbins if available (panels 4 and 5)
+    if has_abs:
+        # abs12 (diffuse) - panel index 4
+        ax = axes_flat[4]
+        pred_flat = abs12_predict.cpu().numpy().flatten()
+        targ_flat = abs12_target.cpu().numpy().flatten()
+
+        hb = ax.hexbin(
+            targ_flat, pred_flat, gridsize=100, cmap="jet", bins="log", vmin=1, vmax=1e6
+        )
+
+        min_val = min(targ_flat.min(), pred_flat.min())
+        max_val = max(targ_flat.max(), pred_flat.max())
+        ax.plot([min_val, max_val], [min_val, max_val], "r:", linewidth=1.5)
+
+        r2 = r2_score(targ_flat, pred_flat)
+        ax.text(
+            0.05,
+            0.95,
+            f"$R^2$: {r2:.4f}",
+            transform=ax.transAxes,
+            fontsize=12,
+            verticalalignment="top",
+        )
+
+        ax.set_xlabel("Target Abs_diffuse")
+        ax.set_ylabel("Predicted Abs_diffuse")
+        ax.set_title("Abs_diffuse")
+        ax.grid(True, alpha=0.3)
+
+        # abs34 (direct) - panel index 5
+        ax = axes_flat[5]
+        pred_flat = abs34_predict.cpu().numpy().flatten()
+        targ_flat = abs34_target.cpu().numpy().flatten()
+
+        hb = ax.hexbin(
+            targ_flat, pred_flat, gridsize=100, cmap="jet", bins="log", vmin=1, vmax=1e6
+        )
+
+        min_val = min(targ_flat.min(), pred_flat.min())
+        max_val = max(targ_flat.max(), pred_flat.max())
+        ax.plot([min_val, max_val], [min_val, max_val], "r:", linewidth=1.5)
+
+        r2 = r2_score(targ_flat, pred_flat)
+        ax.text(
+            0.05,
+            0.95,
+            f"$R^2$: {r2:.4f}",
+            transform=ax.transAxes,
+            fontsize=12,
+            verticalalignment="top",
+        )
+
+        ax.set_xlabel("Target Abs_direct")
+        ax.set_ylabel("Predicted Abs_direct")
+        ax.set_title("Abs_direct")
+        ax.grid(True, alpha=0.3)
+
+    # Shared colorbar
+    cbar_ax = fig.add_axes([0.92, 0.15, 0.015, 0.7])
+    fig.colorbar(hb, cax=cbar_ax, label=r"$\log_{10}[Count]$")
+
+    canvas.print_figure(
+        os.path.join(output_dir, f"{prefix}_hexbin.png"), bbox_inches="tight"
+    )
+    if logger:
+        logger.info(f"Saved hexbin plot to {output_dir}")
+
+    # ================================================================
+    # 2. VERTICAL PROFILE PLOTS (using mpltex linestyle generator)
+    # ================================================================
+    # Same layout: 2 columns
+    if has_abs:
+        n_rows, n_cols = 3, 2
+        fig, axes = subplots(n_rows, n_cols, figsize=(12, 15))
+    else:
+        n_rows, n_cols = 2, 2
+        fig, axes = subplots(n_rows, n_cols, figsize=(12, 10))
+
+    fig.subplots_adjust(hspace=0.3, wspace=0.3)
+    canvas = FigureCanvasAgg(fig)
+    axes_flat = axes.flatten().tolist()
+
+    legend_lines = []
+    legend_labels = []
+
+    # Plot flux profiles (4 panels)
+    for i, name in enumerate(flux_names):
+        ax = axes_flat[i]
+        linestyles = mpltex.linestyle_generator()
+        for idx in sample_indices:
+            (pred_line,) = ax.plot(
+                pred_np[idx, i, :], range(n_layer), label="Predict", **next(linestyles)
+            )
+            (true_line,) = ax.plot(
+                targ_np[idx, i, :], range(n_layer), label="True", **next(linestyles)
+            )
+            if i == 0:
+                legend_lines.extend([pred_line, true_line])
+                legend_labels.extend([pred_line.get_label(), true_line.get_label()])
+
+        ax.set_xlabel(f"{name}")
+        ax.set_ylabel("Layer")
+        ax.set_title(f"{name} Profiles")
+        ax.grid(True, alpha=0.3)
+        ax.invert_yaxis()
+
+    # Plot absorption profiles if available (panels 4 and 5)
+    if has_abs:
+        # abs12 (diffuse) - panel index 4
+        ax = axes_flat[4]
+        abs12_pred_np = abs12_predict.cpu().numpy()
+        abs12_targ_np = abs12_target.cpu().numpy()
+        linestyles = mpltex.linestyle_generator()
+        for idx in sample_indices:
+            ax.plot(
+                abs12_pred_np[idx, 0, :],
+                range(n_layer - 1),
+                label="Predict",
+                **next(linestyles),
+            )
+            ax.plot(
+                abs12_targ_np[idx, 0, :],
+                range(n_layer - 1),
+                label="True",
+                **next(linestyles),
+            )
+
+        ax.set_xlabel("Abs_diffuse")
+        ax.set_ylabel("Layer")
+        ax.set_title("Abs_diffuse Profiles")
+        ax.grid(True, alpha=0.3)
+        ax.invert_yaxis()
+
+        # abs34 (direct) - panel index 5
+        ax = axes_flat[5]
+        abs34_pred_np = abs34_predict.cpu().numpy()
+        abs34_targ_np = abs34_target.cpu().numpy()
+        linestyles = mpltex.linestyle_generator()
+        for idx in sample_indices:
+            ax.plot(
+                abs34_pred_np[idx, 0, :],
+                range(n_layer - 1),
+                label="Predict",
+                **next(linestyles),
+            )
+            ax.plot(
+                abs34_targ_np[idx, 0, :],
+                range(n_layer - 1),
+                label="True",
+                **next(linestyles),
+            )
+
+        ax.set_xlabel("Abs_direct")
+        ax.set_ylabel("Layer")
+        ax.set_title("Abs_direct Profiles")
+        ax.grid(True, alpha=0.3)
+        ax.invert_yaxis()
+
+    # Add legend at bottom center
+    fig.legend(
+        handles=legend_lines,
+        labels=legend_labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.05),
+        borderaxespad=0.5,
+        frameon=False,
+        ncol=len(sample_indices) * 2,  # 2 lines per sample (pred + true)
     )
 
     canvas.print_figure(

@@ -4,28 +4,30 @@
 # 0. Machine + Runtime
 # ======================
 #Machine="LEONARDO"   # on LEONARDO
-Machine="LEONARDO"         # on HAL
+Machine="LEONARDO"    # on HAL
 
 current_ntasks=1      # Better to keep zero
 
-current_cpus=16        # On LEONARDO
-#current_cpus=4          # On HAL
+current_cpus=16       # On LEONARDO
+#current_cpus=4       # On HAL
 
-current_workers=16      # On LEONARDO
-#current_workers=4        # On HAL
+current_workers=1     # On LEONARDO
+#current_workers=4    # On HAL
 
-debug="Flase"         # True or False
+debug="False"         # True or False
 
 #DATA_PATH="/leonardo_work/EUHPC_D27_095/Data_LSM_1995-2000_Large"                           # Path to the dataset on LEONARDO
 DATA_PATH="/net/nfs/ssd1/kardaneh/Data_LSM_1995-2000_Large"                                  # Path to the dataset on HAL
 CAMS_TRAIN_DATA_PATH="/leonardo_work/EUHPC_D27_095/CAMS/RADSCHEME_data_g224_CAMS_2009-2018_sans_2014-2015.nc"      # Path to the dataset on LEONARDO
 CAMS_Test_DATA_PATH="/leonardo_work/EUHPC_D27_095/CAMS/RADSCHEME_data_g224_CAMS_2014.nc"                           # Path to the dataset on LEONARDO
+REFTRANS_TRAIN="/leonardo_work/EUHPC_D27_095/CAMS/REFTRANS_data_g224_CAMS_2009-2018_sans_2014-2015_RND.nc"
+REFTRANS_TEST="/leonardo_work/EUHPC_D27_095/CAMS/REFTRANS_data_g224_CAMS_2014_RND.nc"
 
 # ======================
 # 1. Model Configuration
 # ======================
-type="encodertorch" # options: "lstm", "gru", "fcn", "transformer", "encodertorch", "pinn", "mlp", "mlp_residual".
-hidden_size=256
+type="fcn" # options: "lstm", "gru", "fcn", "transformer", "encodertorch", "pinn", "mlp", "mlp_residual".
+hidden_size=32
 
 # NUMBER OF LAYERS
 # ----------------
@@ -38,11 +40,11 @@ hidden_size=256
 #           but with dropout, 2-3 is often sufficient for this problem size
 #
 # Recommended range: 2-4
-num_layers=3
+num_layers=2
 
-output_channel=2
+output_channel=4
 seq_length=60
-feature_channel=11
+feature_channel=5
 
 # EMBEDDING SIZE
 # ---------------
@@ -56,7 +58,7 @@ feature_channel=11
 # For 256: embed_size / 64 = 4 heads (nice round number)
 #
 # Recommended range: 256-512 (256 is conservative, good starting point)
-embed_size=256 #256
+embed_size=32 #256
 
 # NUMBER OF ATTENTION HEADS
 # -------------------------
@@ -84,7 +86,7 @@ nhead=4
 #
 # Larger expansion = more capacity but more parameters
 # Recommended range: 2-4 (2 is conservative, 4 is aggressive)
-forward_expansion=4
+forward_expansion=2
 
 # DROPOUT RATE
 # ------------
@@ -97,7 +99,7 @@ forward_expansion=4
 # Recommended range: 0.2-0.4
 dropout=0.1
 
-sblock_perc=0.1
+sblock_perc=0.01
 
 # ======================
 # 2. Training Configuration
@@ -106,8 +108,8 @@ sblock_perc=0.1
 batch_size=4      # On LEONARDO
 #batch_size=4       # On HAL
 
-num_epochs=300
-learning_rate=0.0001
+num_epochs=500
+learning_rate=0.001
 loss_type="huber" # options: "mse", "mae", "huber", "smoothl1", etc
 beta=0.001
 beta_delta=1.0
@@ -118,12 +120,12 @@ seed=42
 # ======================
 # 3. Data Configuration
 # ======================
-train_data_files=$CAMS_TRAIN_DATA_PATH
-test_data_files=$CAMS_Test_DATA_PATH
+train_data_files=$REFTRANS_TRAIN #CAMS_TRAIN_DATA_PATH
+test_data_files=$REFTRANS_TEST #CAMS_Test_DATA_PATH
 train_years="2009-2018"
 test_year="2014"
 norm="minmax"
-dataset_type="CAMS"
+dataset_type="CAMS_REFTRANS"
 
 # ======================
 # 4. Output Configuration
@@ -179,7 +181,7 @@ sub_folder="${sub_folder}_beta_${beta_str}_seed_${seed}"
 prefix="$tag"
 
 # ======================
-# Generate SBATCH Script Only (removed run script)
+# Generate SBATCH Script
 # ======================
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 JOB_DIR="$PROJECT_ROOT/slurm/${main_folder}/${sub_folder}"
@@ -213,9 +215,9 @@ if [ "$Machine" == "LEONARDO" ]; then
 cat >> $sbatch_script <<EOF
 #SBATCH -A EUHPC_D36_053
 #SBATCH -p boost_usr_prod
-#SBATCH --time=$([ "$debug" == "True" ] && echo "00:30:00" || echo "3:00:00")
+#SBATCH --time=$([ "$debug" == "True" ] && echo "00:30:00" || echo "12:00:00")
 #SBATCH -N 1
-#SBATCH --gpus-per-node=1
+#SBATCH --gpus-per-node=4
 #SBATCH --mem-per-gpu=64G
 EOF
 

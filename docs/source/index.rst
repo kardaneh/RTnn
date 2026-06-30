@@ -56,6 +56,7 @@ Performance
 
    lsm_benchmark
    atm_benchmark
+   ref_trans_benchmark
 
 .. toctree::
    :maxdepth: 2

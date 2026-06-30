@@ -25,6 +25,7 @@ from rtnn.model_utils import ModelUtils
 from rtnn.evaluater import (
     run_validation_lsm,
     run_validation_cams,
+    run_validation_reftrans,
     get_loss_function,
     unnorm_mpas,
     calc_abs,
@@ -47,6 +48,7 @@ __all__ = [
     "ModelUtils",
     "run_validation_lsm",
     "run_validation_cams",
+    "run_validation_reftrans",
     "get_loss_function",
     "unnorm_mpas",
     "calc_abs",

@@ -1,5 +1,5 @@
-Atmosphere model benchmark
-==========================
+Atmosphere entire radiation scheme benchmark
+============================================
 
 This section documents the experimental results comparing different neural network architectures for radiative transfer modeling in the RTnn framework, using the CAMS (Copernicus Atmosphere Monitoring Service) dataset. All models were trained with identical hyperparameters where applicable.
 

@@ -97,11 +97,13 @@ import xarray as xr
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+import random
 
 # Import local modules
 from rtnn.utils import FileUtils, EasyDict
 from rtnn.dataset import DataPreprocessor
 from rtnn.dataset_atm import RRTMGPDataPreprocessor
+from rtnn.dataset_reftrans import REFTRANSDataPreprocessor
 from rtnn.model_loader import load_model
 from rtnn.model_utils import ModelUtils
 from rtnn.evaluater import (
@@ -110,6 +112,7 @@ from rtnn.evaluater import (
     calc_heating_rates,
     run_validation_lsm,
     run_validation_cams,
+    run_validation_reftrans,
     get_loss_function,
     MetricTracker,
     r2_all,
@@ -238,7 +241,7 @@ def parse_args():
                 Normalization scheme (e.g., "log1p_standard", "standard",
                 "minmax", "none").
             dataset_type : str
-                Dataset type (e.g., "ORC", "CAMS").
+                Dataset type (e.g., "ORC", "CAMS_RADSCHEME").
 
         **Output configuration**
             root_dir : str
@@ -330,7 +333,7 @@ def parse_args():
         "--dataset_type",
         type=str,
         default="ORC",
-        choices=["ORC", "CAMS"],
+        choices=["ORC", "CAMS_RADSCHEME", "CAMS_REFTRANS"],
         help="Type of dataset being processed",
     )
 
@@ -866,6 +869,124 @@ def create_normalization_mapping_rrtmgp(
     return norm_mapping
 
 
+def create_normalization_mapping_reftrans(
+    file_path,
+    output_dir,
+    logger=None,
+    norm_mapping=None,
+    plots=False,
+    sample_percentage=0.1,
+):
+    """
+    Create normalization mapping for REFTRANS data using a random subset of sites.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to NetCDF file
+    output_dir : str
+        Directory to save plots
+    logger : Logger, optional
+        Logger instance
+    norm_mapping : dict, optional
+        Dictionary to update with statistics
+    plots : bool, optional
+        Whether to generate histogram plots
+    sample_percentage : float, optional
+        Percentage of sites to use for computing statistics (default: 0.1 = 10%)
+
+    Returns
+    -------
+    dict
+        Normalization mapping dictionary
+    """
+    if norm_mapping is None:
+        norm_mapping = {}
+
+    if logger is not None:
+        logger.info("Starting statistics computation for REFTRANS normalization")
+        logger.info(f"Loading file: {file_path}")
+        logger.info(f"Using {sample_percentage*100:.1f}% of sites for statistics")
+    else:
+        print(f"Loading file: {file_path}")
+        print(f"Using {sample_percentage*100:.1f}% of sites for statistics")
+
+    ds = xr.open_dataset(file_path)
+
+    # Get dimensions
+    n_layer = ds.sizes["layer"]
+    n_gpt = ds.sizes["gpt"]
+    n_site = ds.sizes["site"]
+
+    # Randomly select sites
+    n_sites_used = max(1, int(n_site * sample_percentage))
+    selected_sites = sorted(random.sample(range(n_site), n_sites_used))
+
+    if logger is not None:
+        logger.info(
+            f"Selected {len(selected_sites)} sites out of {n_site} for norm mapping"
+        )
+    else:
+        print(f"Selected {len(selected_sites)} sites out of {n_site} for norm mapping")
+
+    # Input features: tau, ssa, g, mu0 - using only selected sites
+    input_names = ["tau_sw", "ssa_sw", "g_sw", "mu0"]
+    for name in input_names:
+        if name in ds.variables:
+            # Extract only selected sites
+            data = (
+                ds[name].values[0, selected_sites, :, :].flatten()
+                if "layer" in ds[name].dims
+                else ds[name].values[0, selected_sites].flatten()
+            )
+            norm_mapping[name] = stats_rrtmgp(data, name, output_dir, plots)
+            del data
+
+    # Compute tnoscat using only selected sites
+    if logger is not None:
+        logger.info("Computing tnoscat statistics...")
+    else:
+        print("Computing tnoscat statistics...")
+
+    # Get tau: (expt, site, layer, gpt) -> only selected sites
+    tau = ds["tau_sw"].values[0, selected_sites, :, :]  # (n_sites_used, 60, 224)
+
+    # Get mu0: (expt, site) -> only selected sites
+    mu0 = ds["mu0"].values[0, selected_sites]  # (n_sites_used,)
+
+    # Expand mu0 to match tau shape: (n_sites_used, 60, 224)
+    mu0_expanded = np.tile(mu0[:, np.newaxis, np.newaxis], (1, n_layer, n_gpt))
+
+    # Safe division
+    mu0_safe = np.where(mu0_expanded > 1e-8, mu0_expanded, 1e-8)
+
+    # Compute tnoscat: exp(-tau / mu0)
+    tnoscat = np.exp(-tau / mu0_safe)
+
+    # Flatten and compute statistics
+    tnoscat_data = tnoscat.flatten()
+    norm_mapping["tnoscat"] = stats_rrtmgp(tnoscat_data, "tnoscat", output_dir, plots)
+
+    del tnoscat_data, tnoscat, mu0_expanded, mu0_safe
+
+    # Output targets - using only selected sites
+    output_names = ["rdif", "tdif", "rdir", "tdir"]
+    for name in output_names:
+        if name in ds.variables:
+            data = ds[name].values[0, selected_sites, :, :].flatten()
+            norm_mapping[name] = stats_rrtmgp(data, name, output_dir, plots)
+            del data
+
+    ds.close()
+
+    if logger is not None:
+        logger.info("Statistics computation completed")
+    else:
+        print("Statistics computation completed")
+
+    return norm_mapping
+
+
 def create_datasets_and_loaders_lsm(
     args, train_files, test_files, norm_mapping, logger
 ):
@@ -1067,6 +1188,118 @@ def create_datasets_and_loaders_rrtmgp(
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=0,
+        pin_memory=True,
+        drop_last=True,
+    )
+
+    test_loader = DataLoader(
+        dataset=test_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=True,
+    )
+
+    if logger is not None:
+        logger.info(f"Training dataset size: {len(train_dataset)} experiments")
+        logger.info(f"Test dataset size: {len(test_dataset)} experiments")
+        logger.info(f"Training batches per epoch: {len(train_loader)}")
+        logger.info(f"Test batches: {len(test_loader)}")
+        logger.success("Data loaders created successfully.")
+
+    return train_loader, test_loader, normalization_type, train_dataset, test_dataset
+
+
+def create_datasets_and_loaders_reftrans(
+    args, train_file, test_file, norm_mapping, logger=None, normalization_type=None
+):
+    """
+    Create datasets and data loaders for REFTRANS training and validation.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments.
+    train_file : str
+        Training file path.
+    test_file : str
+        Test file path.
+    norm_mapping : dict
+        Normalization statistics.
+    logger : Logger, optional
+        Logger instance.
+    normalization_type : dict, optional
+        Normalization type for each variable.
+
+    Returns
+    -------
+    tuple
+        (train_loader, test_loader, normalization_type, train_dataset, test_dataset)
+    """
+
+    # Default normalization types for REFTRANS data
+    if normalization_type is None:
+        normalization_type = {
+            # Input features (5 features)
+            "tau_sw": "log1p_standard",  # tau is positive and skewed
+            "ssa_sw": "log1p_standard",  # ssa is in [0,1]
+            "g_sw": "log1p_standard",  # g is in [0,0.5]
+            "mu0": "log1p_standard",  # mu0 is in [0,1]
+            "tnoscat": "minmax",  # tnoscat is in [0,1]
+            # Output targets
+            "rdif": "log1p_standard",  # reflectance in [0,1]
+            "tdif": "log1p_standard",  # transmittance in [0,1]
+            "rdir": "log1p_standard",  # reflectance in [0,1]
+            "tdir": "log1p_standard",  # transmittance in [0,1]
+        }
+
+    if logger is not None:
+        logger.start_task("Creating datasets and loaders for REFTRANS data")
+        logger.info("Normalization types:")
+        for var, norm in normalization_type.items():
+            logger.info(f"  {var}: '{norm}'")
+
+    # Create training dataset
+    if logger is not None:
+        logger.start_task("Creating training dataset", f"File: {train_file}")
+
+    train_dataset = REFTRANSDataPreprocessor(
+        logger=logger,
+        path=train_file,
+        training=True,
+        norm_mapping=norm_mapping,
+        normalization_type=normalization_type,
+        debug=args.debug,
+    )
+
+    if logger is not None:
+        logger.success("Training dataset created successfully.")
+
+    # Create test dataset
+    if logger is not None:
+        logger.start_task("Creating test dataset", f"File: {test_file}")
+
+    test_dataset = REFTRANSDataPreprocessor(
+        logger=logger,
+        path=test_file,
+        training=False,
+        norm_mapping=norm_mapping,
+        normalization_type=normalization_type,
+        debug=args.debug,
+    )
+
+    if logger is not None:
+        logger.success("Test dataset created successfully.")
+
+    # Create data loaders
+    if logger is not None:
+        logger.start_task("Creating data loaders")
+
+    train_loader = DataLoader(
+        dataset=train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
         pin_memory=True,
         drop_last=True,
     )
@@ -1425,6 +1658,193 @@ def train_epoch_lsm(
     return train_loss_tracker.getmean(), global_step
 
 
+def train_epoch_reftrans(
+    model,
+    train_loader,
+    optimizer,
+    loss_func,
+    metric_funcs,
+    metric_names,
+    output_keys,
+    train_metrics,
+    train_loss_tracker,
+    norm_mapping,
+    normalization_type,
+    index_mapping,
+    device,
+    args,
+    epoch,
+    writer,
+    global_step,
+    logger,
+):
+    """
+    Train for one epoch on REFTRANS data.
+
+    Data format: (B, C, T) where C=4
+    Channels: [rdif, tdif, rdir, tdir]
+    - abs12: diffuse absorption (channels 0,1)
+    - abs34: direct absorption (channels 2,3)
+
+    Returns
+    -------
+    tuple
+        (average_train_loss, updated_global_step)
+    """
+
+    model.train()
+
+    # Reset metrics
+    for meter in train_metrics.values():
+        meter.reset()
+    train_loss_tracker.reset()
+
+    loop = tqdm(
+        enumerate(train_loader),
+        total=len(train_loader),
+        desc=f"Epoch {epoch}",
+        leave=False,
+    )
+
+    for batch_idx, (features, targets) in loop:
+        if epoch == 0 and batch_idx == 0:
+            logger.info("First batch shapes (REFTRANS):")
+            logger.info(
+                f"  Feature shape: {features.shape}"
+            )  # (batch, n_samples, n_features, n_layer)
+            logger.info(
+                f"  Targets shape: {targets.shape}"
+            )  # (batch, n_samples, 4, n_layer)
+
+        # Reshape inputs: flatten batch and sample dimensions
+        feature_shape = features.shape
+        target_shape = targets.shape
+        inner_batch_size = feature_shape[0] * feature_shape[1]  # batch * n_samples
+
+        # Reshape to (inner_batch, n_features, n_layer)
+        features = features.reshape(
+            inner_batch_size, feature_shape[2], feature_shape[3]
+        ).to(device=device)
+
+        # Reshape to (inner_batch, n_outputs, n_layer)
+        targets = targets.reshape(
+            inner_batch_size, target_shape[2], target_shape[3]
+        ).to(device=device)
+
+        # Forward pass
+        # Model expects: (inner_batch, n_features, n_layer)
+        # Model returns: (inner_batch, n_outputs, n_layer)
+        predicts = model(features)  # (inner_batch, 4, n_layer)
+
+        # Denormalize predictions and targets using unnorm_mpas
+        # Since data is in (B, C, T) format with C=4
+        predicts_unnorm, targets_unnorm = unnorm_mpas(
+            predicts,
+            targets,
+            norm_mapping,
+            normalization_type,
+            index_mapping,
+        )
+
+        assert (
+            predicts_unnorm.shape == predicts.shape
+        ), f"Expected predicts_unnorm shape {predicts.shape}, got {predicts_unnorm.shape}"
+        assert (
+            targets_unnorm.shape == targets.shape
+        ), f"Expected targets_unnorm shape {targets.shape}, got {targets_unnorm.shape}"
+
+        # Calculate absorption using existing calc_abs
+        # channels 0,1 -> abs12 (diffuse: rdif, tdif)
+        # channels 2,3 -> abs34 (direct: rdir, tdir)
+        (
+            abs12_predict,
+            abs12_target,
+            abs34_predict,
+            abs34_target,
+            conservation_penalty,
+        ) = calc_abs(predicts_unnorm, targets_unnorm)
+
+        if epoch == 0 and batch_idx == 0:
+            logger.info(f"Conservation penalty: {conservation_penalty.item():.6f}")
+            logger.info(f"  abs12_predict shape: {abs12_predict.shape}")
+            logger.info(f"  abs12_target shape: {abs12_target.shape}")
+            logger.info(f"  abs34_predict shape: {abs34_predict.shape}")
+            logger.info(f"  abs34_target shape: {abs34_target.shape}")
+
+        # Compute metrics
+        output_dict = {
+            "fluxes": (predicts, targets),
+            "abs12": (abs12_predict, abs12_target),
+            "abs34": (abs34_predict, abs34_target),
+        }
+
+        for key in output_keys:
+            pred, tgt = output_dict[key]
+            for metric in metric_names:
+                metric_key = f"{key}_{metric}"
+                if metric_key not in train_metrics:
+                    logger.error(
+                        f"Metric key '{metric_key}' not found in train_metrics"
+                    )
+                    raise KeyError(
+                        f"Metric key '{metric_key}' not found in train_metrics"
+                    )
+                count, value = metric_funcs[metric](pred, tgt)
+                train_metrics[metric_key].update(value.item(), count)
+
+        # Compute loss
+        # Main loss: flux predictions
+        main_count, main_val = predicts.numel(), loss_func(predicts, targets)
+
+        if args.beta > 0:
+            # Absorption losses
+            abs12_count, abs12_val = (
+                abs12_predict.numel(),
+                loss_func(abs12_predict, abs12_target),
+            )
+            abs34_count, abs34_val = (
+                abs34_predict.numel(),
+                loss_func(abs34_predict, abs34_target),
+            )
+
+            weighted_loss = (1.0 - args.beta) * main_val * main_count + args.beta * (
+                abs12_val * abs12_count + abs34_val * abs34_count
+            )
+
+            total_count = (1.0 - args.beta) * main_count + args.beta * (
+                abs12_count + abs34_count
+            )
+
+            total_loss = weighted_loss / total_count
+
+        else:
+            total_loss = main_val
+
+        # Backward pass
+        optimizer.zero_grad()
+        total_loss.backward()
+
+        # Gradient clipping (optional)
+        if hasattr(args, "grad_clip"):
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
+
+        optimizer.step()
+
+        # Update trackers
+        train_loss_tracker.update(total_loss.item(), 1)
+
+        # Update progress bar
+        loop.set_postfix(loss=total_loss.item())
+
+        # TensorBoard logging
+        writer.add_scalar(
+            "train/total_loss", total_loss.item(), global_step=global_step
+        )
+        global_step += args.batch_size
+
+    return train_loss_tracker.getmean(), global_step
+
+
 def train_epoch_cams(
     model,
     train_loader,
@@ -1639,7 +2059,7 @@ def main():
         # Get data files
         train_files, test_files = get_data_files_lsm(args, logger)
 
-    elif args.dataset_type == "CAMS":
+    elif args.dataset_type == "CAMS_RADSCHEME":
         n_pft = None
         n_bands = None
         n_chans = None
@@ -1649,6 +2069,23 @@ def main():
         index_mapping = {
             0: "rsd",
             1: "rsu",
+        }
+
+        # Get data files
+        train_files, test_files = get_data_files_rrtmgp(args, logger)
+
+    elif args.dataset_type == "CAMS_REFTRANS":
+        n_pft = None
+        n_bands = None
+        n_chans = None
+        output_keys = ["fluxes", "abs12", "abs34"]
+
+        # Index mapping for output variables
+        index_mapping = {
+            0: "rdif",
+            1: "tdif",
+            2: "rdir",
+            3: "tdir",
         }
 
         # Get data files
@@ -1685,12 +2122,25 @@ def main():
                 args, train_files, test_files, norm_mapping, logger
             )
         )
-    elif args.dataset_type == "CAMS":
+    elif args.dataset_type == "CAMS_RADSCHEME":
         norm_mapping = create_normalization_mapping_rrtmgp(
             test_files, output_dir=paths.stats, logger=logger
         )
         train_loader, test_loader, normalization_type, train_dataset, test_dataset = (
             create_datasets_and_loaders_rrtmgp(
+                args=args,
+                train_file=train_files,
+                test_file=test_files,
+                norm_mapping=norm_mapping,
+                logger=logger,
+            )
+        )
+    elif args.dataset_type == "CAMS_REFTRANS":
+        norm_mapping = create_normalization_mapping_reftrans(
+            test_files, output_dir=paths.stats, logger=logger
+        )
+        train_loader, test_loader, normalization_type, train_dataset, test_dataset = (
+            create_datasets_and_loaders_reftrans(
                 args=args,
                 train_file=train_files,
                 test_file=test_files,
@@ -1752,8 +2202,21 @@ def main():
                     n_bands=n_bands,
                     n_chans=n_chans,
                 )
-            elif args.dataset_type == "CAMS":
+            elif args.dataset_type == "CAMS_RADSCHEME":
                 valid_loss, valid_metrics = run_validation_cams(
+                    test_loader,
+                    model,
+                    norm_mapping,
+                    normalization_type,
+                    index_mapping,
+                    device,
+                    args,
+                    best_epoch,
+                    logger,
+                    paths.results,
+                )
+            elif args.dataset_type == "CAMS_REFTRANS":
+                valid_loss, valid_metrics = run_validation_reftrans(
                     test_loader,
                     model,
                     norm_mapping,
@@ -1835,8 +2298,30 @@ def main():
                     n_bands=n_bands,
                     n_chans=n_chans,
                 )
-            elif args.dataset_type == "CAMS":
+            elif args.dataset_type == "CAMS_RADSCHEME":
                 avg_train_loss, global_step = train_epoch_cams(
+                    model,
+                    train_loader,
+                    optimizer,
+                    loss_func,
+                    metric_funcs,
+                    metric_names,
+                    output_keys,
+                    train_metrics,
+                    train_loss_tracker,
+                    norm_mapping,
+                    normalization_type,
+                    index_mapping,
+                    device,
+                    args,
+                    epoch,
+                    writer,
+                    global_step,
+                    logger,
+                )
+
+            elif args.dataset_type == "CAMS_REFTRANS":
+                avg_train_loss, global_step = train_epoch_reftrans(
                     model,
                     train_loader,
                     optimizer,
@@ -1880,8 +2365,21 @@ def main():
                         n_bands=n_bands,
                         n_chans=n_chans,
                     )
-                elif args.dataset_type == "CAMS":
+                elif args.dataset_type == "CAMS_RADSCHEME":
                     valid_loss, valid_metrics = run_validation_cams(
+                        test_loader,
+                        model,
+                        norm_mapping,
+                        normalization_type,
+                        index_mapping,
+                        device,
+                        args,
+                        epoch,
+                        logger,
+                        paths.results,
+                    )
+                elif args.dataset_type == "CAMS_REFTRANS":
+                    valid_loss, valid_metrics = run_validation_reftrans(
                         test_loader,
                         model,
                         norm_mapping,

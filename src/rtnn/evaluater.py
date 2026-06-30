@@ -119,7 +119,11 @@ import numpy as np
 import sys
 from tqdm import tqdm
 import os
-from rtnn.diagnostics import plot_all_diagnostics, plot_cams_diagnostics
+from rtnn.diagnostics import (
+    plot_all_diagnostics,
+    plot_cams_diagnostics,
+    plot_reftrans_diagnostics,
+)
 from typing import Optional
 
 sys.path.append("..")
@@ -830,8 +834,8 @@ def calc_abs(pred, targ, p=None):
     Parameters
     ----------
     pred : torch.Tensor
-        Predicted fluxes. Shape (batch, 4, n_pft, n_bands, seq_length)
-        Channel order: [collim_alb, collim_tran, isotrop_alb, isotrop_tran]
+        Predicted fluxes. Shape (batch, 4, ...)
+        Channel order: [flux1_alb, flux2_tran, flux3_alb, flux4_tran]
     targ : torch.Tensor
         Target fluxes. Same shape as pred.
     p : torch.Tensor, optional
@@ -843,20 +847,20 @@ def calc_abs(pred, targ, p=None):
     tuple
         (abs12_pred, abs12_targ, abs34_pred, abs34_targ, conservation_penalty)
     """
-    # Collimated (channels 0 and 1)
-    abs12_pred = heating_rate(pred[:, 0:1, :, :, :], pred[:, 1:2, :, :, :], p)
-    abs12_targ = heating_rate(targ[:, 0:1, :, :, :], targ[:, 1:2, :, :, :], p)
+    #  (channels 0 and 1)
+    abs12_pred = heating_rate(pred[:, 0:1, ...], pred[:, 1:2, ...], p)
+    abs12_targ = heating_rate(targ[:, 0:1, ...], targ[:, 1:2, ...], p)
 
-    # Isotropic (channels 2 and 3)
-    abs34_pred = heating_rate(pred[:, 2:3, :, :, :], pred[:, 3:4, :, :, :], p)
-    abs34_targ = heating_rate(targ[:, 2:3, :, :, :], targ[:, 3:4, :, :, :], p)
+    #  (channels 2 and 3)
+    abs34_pred = heating_rate(pred[:, 2:3, ...], pred[:, 3:4, ...], p)
+    abs34_targ = heating_rate(targ[:, 2:3, ...], targ[:, 3:4, ...], p)
 
     # Conservation penalty
     collim_resid = conservation_residual(
-        pred[:, 0:1, :, :, :], pred[:, 1:2, :, :, :], abs12_pred
+        pred[:, 0:1, ...], pred[:, 1:2, ...], abs12_pred
     )
     isotrop_resid = conservation_residual(
-        pred[:, 2:3, :, :, :], pred[:, 3:4, :, :, :], abs34_pred
+        pred[:, 2:3, ...], pred[:, 3:4, ...], abs34_pred
     )
     conservation_penalty = (collim_resid + isotrop_resid).mean()
 
@@ -1493,6 +1497,261 @@ def run_validation_cams(
                 all_targets_unnorm,
                 hr_predict=all_hr_predict,
                 hr_target=all_hr_target,
+                output_dir=base_dir,
+                prefix=f"validation_epoch{epoch}",
+                logger=logger,
+            )
+
+    return valid_loss.getmean(), {
+        k: (tracker.getsqrtmean() if k.lower().endswith("mse") else tracker.getmean())
+        for k, tracker in valid_metrics.items()
+    }
+
+
+def run_validation_reftrans(
+    loader,
+    model,
+    norm_mapping,
+    normalization_type,
+    index_mapping,
+    device,
+    args,
+    epoch,
+    logger=None,
+    base_dir="./results",
+):
+    """
+    Evaluate model accuracy on REFTRANS dataset.
+
+    Performs comprehensive evaluation including:
+    - Loss computation for main fluxes and absorption rates
+    - Metric calculation (NMAE, NMSE, R²) for fluxes and absorption
+    - Optional plotting of predictions vs targets (every 10 epochs)
+    - Energy conservation verification
+
+    Parameters
+    ----------
+    loader : torch.utils.data.DataLoader
+        Data loader for evaluation dataset.
+    model : torch.nn.Module
+        Trained model to evaluate.
+    norm_mapping : dict
+        Normalization statistics for variables.
+    normalization_type : dict
+        Normalization types per variable.
+    index_mapping : dict
+        Mapping from channel indices to variable names.
+        For REFTRANS: {0: "rdif", 1: "tdif", 2: "rdir", 3: "tdir"}
+    device : torch.device
+        Device to run evaluation on (cuda or cpu).
+    args : argparse.Namespace
+        Arguments containing loss_type, beta, and num_epochs.
+    epoch : int
+        Current epoch number (for plotting schedule).
+    logger : logging.Logger, optional
+        Logger for informational messages. If None, no logging occurs.
+    base_dir : str, optional
+        Directory to save diagnostic plots. Default is "./results".
+
+    Returns
+    -------
+    tuple
+        (valid_loss, valid_metrics)
+    """
+    model.eval()
+
+    valid_loss_types = [
+        "mse",
+        "mae",
+        "nmae",
+        "nmse",
+        "wmse",
+        "logcosh",
+        "smoothl1",
+        "huber",
+    ]
+    loss_type = args.loss_type.lower()
+    assert (
+        loss_type in valid_loss_types
+    ), f"Invalid loss_type (should be one of {valid_loss_types})"
+    func = get_loss_function(loss_type, args)
+
+    metric_names = ["NMAE", "NMSE", "R2", "MAE", "MSE"]
+    metric_funcs = {
+        "NMAE": nmae_all,
+        "NMSE": nmse_all,
+        "R2": r2_all,
+        "MAE": mae_all,
+        "MSE": mse_all,
+    }
+    output_keys = ["fluxes", "abs12", "abs34"]
+    valid_metrics = {
+        f"{k}_{m}": MetricTracker() for k in output_keys for m in metric_names
+    }
+
+    valid_loss = MetricTracker()
+    save_plots = (epoch % 10 == 0) or (epoch == args.num_epochs - 1)
+    if save_plots:
+        if logger:
+            logger.info("Collecting data for final epoch")
+        else:
+            print("Collecting data for final epoch")
+
+        all_predicts_unnorm = []
+        all_targets_unnorm = []
+        all_abs12_predict = []
+        all_abs12_target = []
+        all_abs34_predict = []
+        all_abs34_target = []
+
+    # Progress bar for validation
+    loop = tqdm(
+        enumerate(loader),
+        total=len(loader),
+        desc=f"Validation Epoch {epoch}",
+        leave=False,
+    )
+
+    with torch.no_grad():
+        for batch_idx, (features, targets) in loop:
+            feature_shape = features.shape
+            target_shape = targets.shape
+            inner_batch_size = feature_shape[0] * feature_shape[1]  # batch * n_samples
+
+            # Reshape to (inner_batch, n_features, n_layer)
+            features = features.reshape(
+                inner_batch_size, feature_shape[2], feature_shape[3]
+            ).to(device=device)
+
+            # Reshape to (inner_batch, n_outputs, n_layer)
+            targets = targets.reshape(
+                inner_batch_size, target_shape[2], target_shape[3]
+            ).to(device=device)
+
+            # Forward pass
+            predicts = model(features)  # (inner_batch, 4, n_layer)
+
+            # Denormalize predictions and targets
+            predicts_unnorm, targets_unnorm = unnorm_mpas(
+                predicts,
+                targets,
+                norm_mapping,
+                normalization_type,
+                index_mapping,
+            )
+
+            assert (
+                predicts_unnorm.shape == predicts.shape
+            ), f"Expected predicts_unnorm shape {predicts.shape}, got {predicts_unnorm.shape}"
+            assert (
+                targets_unnorm.shape == targets.shape
+            ), f"Expected targets_unnorm shape {targets.shape}, got {targets_unnorm.shape}"
+
+            # Calculate absorption using calc_abs
+            # channels 0,1 -> abs12 (diffuse: rdif, tdif)
+            # channels 2,3 -> abs34 (direct: rdir, tdir)
+            (
+                abs12_predict,
+                abs12_target,
+                abs34_predict,
+                abs34_target,
+                conservation_penalty,
+            ) = calc_abs(predicts_unnorm, targets_unnorm)
+
+            if batch_idx == 0:
+                if logger:
+                    logger.info(f"Feature shape: {features.shape}")
+                    logger.info(f"Targets shape: {targets.shape}")
+                    logger.info(f"abs12_predict shape: {abs12_predict.shape}")
+                    logger.info(f"abs12_target shape: {abs12_target.shape}")
+                    logger.info(f"abs34_predict shape: {abs34_predict.shape}")
+                    logger.info(f"abs34_target shape: {abs34_target.shape}")
+                    logger.info(
+                        f"Conservation penalty: {conservation_penalty.item():.6f}"
+                    )
+                else:
+                    print(f"Feature shape: {features.shape}")
+                    print(f"Targets shape: {targets.shape}")
+                    print(f"Conservation penalty: {conservation_penalty.item():.6f}")
+
+            if save_plots:
+                all_predicts_unnorm.append(predicts_unnorm.cpu())
+                all_targets_unnorm.append(targets_unnorm.cpu())
+                all_abs12_predict.append(abs12_predict.cpu())
+                all_abs12_target.append(abs12_target.cpu())
+                all_abs34_predict.append(abs34_predict.cpu())
+                all_abs34_target.append(abs34_target.cpu())
+
+            # Compute metrics
+            output_dict = {
+                "fluxes": (predicts, targets),
+                "abs12": (abs12_predict, abs12_target),
+                "abs34": (abs34_predict, abs34_target),
+            }
+
+            for key in output_keys:
+                pred, tgt = output_dict[key]
+                for metric in metric_names:
+                    metric_key = f"{key}_{metric}"
+                    if metric_key not in valid_metrics:
+                        raise KeyError(
+                            f"Metric key '{metric_key}' not found in valid_metrics"
+                        )
+                    count, value = metric_funcs[metric](pred, tgt)
+                    valid_metrics[metric_key].update(value.item(), count)
+
+            # Compute loss
+            main_count, main_val = predicts.numel(), func(predicts, targets)
+
+            if args.beta > 0:
+                abs12_count, abs12_val = (
+                    abs12_predict.numel(),
+                    func(abs12_predict, abs12_target),
+                )
+                abs34_count, abs34_val = (
+                    abs34_predict.numel(),
+                    func(abs34_predict, abs34_target),
+                )
+
+                weighted_loss = (
+                    1.0 - args.beta
+                ) * main_val * main_count + args.beta * (
+                    abs12_val * abs12_count + abs34_val * abs34_count
+                )
+
+                total_count = (1.0 - args.beta) * main_count + args.beta * (
+                    abs12_count + abs34_count
+                )
+                total_loss = weighted_loss / total_count
+            else:
+                total_loss = main_val
+
+            valid_loss.update(total_loss.item(), 1)
+            loop.set_postfix(loss=total_loss.item())
+
+        if save_plots:
+            if logger:
+                logger.info("Generating diagnostic plots for final epoch")
+            else:
+                print("Generating diagnostic plots for final epoch")
+
+            os.makedirs(base_dir, exist_ok=True)
+
+            all_predicts_unnorm = torch.cat(all_predicts_unnorm, dim=0)
+            all_targets_unnorm = torch.cat(all_targets_unnorm, dim=0)
+            all_abs12_predict = torch.cat(all_abs12_predict, dim=0)
+            all_abs12_target = torch.cat(all_abs12_target, dim=0)
+            all_abs34_predict = torch.cat(all_abs34_predict, dim=0)
+            all_abs34_target = torch.cat(all_abs34_target, dim=0)
+
+            # REFTRANS diagnostic plots
+            plot_reftrans_diagnostics(
+                all_predicts_unnorm,
+                all_targets_unnorm,
+                abs12_predict=all_abs12_predict,
+                abs12_target=all_abs12_target,
+                abs34_predict=all_abs34_predict,
+                abs34_target=all_abs34_target,
                 output_dir=base_dir,
                 prefix=f"validation_epoch{epoch}",
                 logger=logger,

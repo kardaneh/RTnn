@@ -1,0 +1,554 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rtnn.dataset_atm &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../inference_modes.html">Inference Modes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Benchmark</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../lsm_benchmark.html">Land surface model benchmark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../atm_benchmark.html">Atmosphere entire radiation scheme benchmark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ref_trans_benchmark.html">RTE reflectance-transmittance per g-point benchmark</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rtnn.dataset_atm</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rtnn.dataset_atm</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2026 IPSL / CNRS / Sorbonne University</span>
+<span class="c1"># Authors: Kazem Ardaneh</span>
+<span class="c1">#</span>
+<span class="c1"># This work is licensed under the Creative Commons</span>
+<span class="c1"># Attribution-NonCommercial-ShareAlike 4.0 International License.</span>
+<span class="c1"># To view a copy of this license, visit</span>
+<span class="c1"># http://creativecommons.org/licenses/by-nc-sa/4.0/</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+
+
+<div class="viewcode-block" id="RRTMGPDataPreprocessor">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.dataset_atm.RRTMGPDataPreprocessor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RRTMGPDataPreprocessor</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset class for preprocessing RRTMGP radiative transfer data.</span>
+
+<span class="sd">    Prepares data in RNN-style format (sequential per layer) which can be:</span>
+<span class="sd">    - Used directly with RNN models (keeps sequence dimension)</span>
+<span class="sd">    - Flattened for FNN models using .view(batch, -1)</span>
+
+<span class="sd">    For each experiment (expt), returns ALL sites (5120 atmospheric columns).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str</span>
+<span class="sd">        Path to NetCDF file</span>
+<span class="sd">    training : bool</span>
+<span class="sd">        If True, enable data augmentation (random sampling of sites)</span>
+<span class="sd">    norm_mapping : Dict, optional</span>
+<span class="sd">        Normalization statistics for each variable</span>
+<span class="sd">    normalization_type : Dict, optional</span>
+<span class="sd">        Normalization method for each variable</span>
+<span class="sd">    debug : bool, optional</span>
+<span class="sd">        self.logger.info debug information</span>
+<span class="sd">    sblock_perc : float, optional</span>
+<span class="sd">        Percentage of sites to use for training (default: 0.6)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RRTMGPDataPreprocessor.__init__">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.dataset_atm.RRTMGPDataPreprocessor.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">logger</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">norm_mapping</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">normalization_type</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">sblock_perc</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="o">=</span> <span class="n">training</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_mapping</span> <span class="o">=</span> <span class="n">norm_mapping</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalization_type</span> <span class="o">=</span> <span class="n">normalization_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sblock_perc</span> <span class="o">=</span> <span class="n">sblock_perc</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+        <span class="c1"># Load the dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading dataset: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="c1"># Get dimensions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_expt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;expt&quot;</span><span class="p">]</span>  <span class="c1"># 64</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_site</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;site&quot;</span><span class="p">]</span>  <span class="c1"># 5120</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;layer&quot;</span><span class="p">]</span>  <span class="c1"># 60</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_level</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">]</span>  <span class="c1"># 61</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_gpt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;gpt&quot;</span><span class="p">]</span>  <span class="c1"># 224</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_feature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;feature&quot;</span><span class="p">]</span>  <span class="c1"># 7</span>
+
+        <span class="c1"># Total number of experiments (time steps)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_experiments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_expt</span>
+
+        <span class="c1"># Determine number of sites to use based on training mode</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="c1"># Training: use percentage of sites (data augmentation)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_sites_used</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sblock_perc</span><span class="p">))</span>
+            <span class="c1"># Initialize tracking for random site mapping</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_expt_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_site_mapping</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Validation/Testing: use all sites</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_sites_used</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_site</span>
+
+        <span class="c1"># Data dimensions for RNN-style preparation</span>
+        <span class="c1"># Features per layer: 11 variables (T, P, H2O, O3, CO2, N2O, CH4, LWP, IWP, mu0, broadband albedo)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_features_per_layer</span> <span class="o">=</span> <span class="mi">11</span>
+        <span class="c1"># Auxiliary features: 2 (mu0, broadband albedo)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_aux_features</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="c1"># Outputs: 2 fluxes (rsd, rsu) at each of 61 levels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_output_fluxes</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="c1"># Pre-load data references for faster access</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rrtmgp_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;rrtmgp_sw_input&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cloud_lwp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;cloud_lwp&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cloud_iwp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;cloud_iwp&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mu0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;mu0&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sfc_alb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;sfc_alb&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rsd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;rsd&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rsu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;rsu&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Variable names for normalization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gas_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tlay&quot;</span><span class="p">,</span> <span class="s2">&quot;play&quot;</span><span class="p">,</span> <span class="s2">&quot;h2o&quot;</span><span class="p">,</span> <span class="s2">&quot;o3&quot;</span><span class="p">,</span> <span class="s2">&quot;co2&quot;</span><span class="p">,</span> <span class="s2">&quot;n2o&quot;</span><span class="p">,</span> <span class="s2">&quot;ch4&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cloud_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;cloud_lwp&quot;</span><span class="p">,</span> <span class="s2">&quot;cloud_iwp&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mu0&quot;</span><span class="p">,</span> <span class="s2">&quot;sfc_alb&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flux_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;rsd&quot;</span><span class="p">,</span> <span class="s2">&quot;rsu&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas_vars</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cloud_vars</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_vars</span>
+        <span class="c1"># [&#39;tlay&#39;, &#39;play&#39;, &#39;h2o&#39;, &#39;o3&#39;, &#39;co2&#39;, &#39;n2o&#39;, &#39;ch4&#39;, &#39;cloud_lwp&#39;, &#39;cloud_iwp&#39;, &#39;mu0&#39;, &#39;sfc_alb&#39;]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger_info</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sindex_tracker</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Will store spatial indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tindex_tracker</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Will store temporal indices</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_random_site_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a random site mapping for training.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        List[int]</span>
+<span class="sd">            List of randomly selected site indices (size = n_sites_used)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_sites_used</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_logger_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Print dataset information.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;RRTMGP DataPreprocessor&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Training mode: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total experiments (expt): </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_experiments</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total sites per experiment: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Sites used per experiment: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_sites_used</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sblock_perc</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Dimensions: expt=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_expt</span><span class="si">}</span><span class="s2">, site=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="si">}</span><span class="s2">, layer=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layer</span><span class="si">}</span><span class="s2">, level=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_level</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Features per layer: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_features_per_layer</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Auxiliary features: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_aux_features</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Outputs: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_output_fluxes</span><span class="si">}</span><span class="s2"> fluxes × </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_level</span><span class="si">}</span><span class="s2"> levels = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_output_fluxes</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">n_level</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RRTMGPDataPreprocessor.normalize">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.dataset_atm.RRTMGPDataPreprocessor.normalize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">var_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normalize data using stored statistics.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : np.ndarray</span>
+<span class="sd">            Input data to normalize</span>
+<span class="sd">        var_name : str</span>
+<span class="sd">            Variable name for lookup</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray</span>
+<span class="sd">            Normalized data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_mapping</span> <span class="ow">or</span> <span class="n">var_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_mapping</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+
+        <span class="n">norm_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalization_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">var_name</span><span class="p">,</span> <span class="s2">&quot;log1p_minmax&quot;</span>
+        <span class="p">)</span>  <span class="c1"># Default normalization type</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_mapping</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;minmax&quot;</span><span class="p">:</span>
+            <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vmin&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vmax&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span><span class="p">:</span>
+            <span class="n">mean</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vmean&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vstd&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">std</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;robust&quot;</span><span class="p">:</span>
+            <span class="n">median</span><span class="p">,</span> <span class="n">iqr</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;median&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;iqr&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">iqr</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_standard&quot;</span><span class="p">:</span>
+            <span class="n">data_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">mean</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_mean&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_std&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data_log</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">std</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_minmax&quot;</span><span class="p">:</span>
+            <span class="n">data_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_min&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_max&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data_log</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;log1p_robust&quot;</span><span class="p">:</span>
+            <span class="n">data_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">median</span><span class="p">,</span> <span class="n">iqr</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_median&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;log_iqr&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data_log</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">iqr</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_standard&quot;</span><span class="p">:</span>
+            <span class="n">data_sqrt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">mean</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_mean&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_std&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data_sqrt</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">std</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_minmax&quot;</span><span class="p">:</span>
+            <span class="n">data_sqrt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_min&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_max&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data_sqrt</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;sqrt_robust&quot;</span><span class="p">:</span>
+            <span class="n">data_sqrt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">median</span><span class="p">,</span> <span class="n">iqr</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_median&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;sqrt_iqr&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">data_sqrt</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">iqr</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_pressure_levels</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">expt_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract pressure at level interfaces by averaging adjacent layer pressures.</span>
+
+<span class="sd">        For 60 layers (0-59), we get 59 interior levels (1-59).</span>
+<span class="sd">        Level 0 (TOA) and Level 60 (Surface) are not available from averaging.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expt_idx : int</span>
+<span class="sd">            Experiment index</span>
+<span class="sd">        site_indices : List[int]</span>
+<span class="sd">            List of site indices to extract</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray</span>
+<span class="sd">            Pressure at level interfaces (interior levels 1-59).</span>
+<span class="sd">            Shape: (n_sites, n_level-2) = (n_sites, 59)</span>
+<span class="sd">            In Pa.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Pressure at layer centers (feature index 1 = play)</span>
+        <span class="c1"># Shape: (n_sites, n_layer) = (n_sites, 60)</span>
+        <span class="n">p_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrtmgp_input</span><span class="p">[</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="c1"># Average adjacent layers to get pressure at interfaces</span>
+        <span class="c1"># pres_lev[i] = (p_layer[i] + p_layer[i+1]) / 2</span>
+        <span class="c1"># This gives levels 1 through 59 (59 levels)</span>
+        <span class="n">p_level</span> <span class="o">=</span> <span class="p">(</span><span class="n">p_layer</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">p_layer</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span>  <span class="c1"># (n_sites, 59)</span>
+
+        <span class="k">return</span> <span class="n">p_level</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_per_layer_features</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">expt_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract per-layer features for multiple sites.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expt_idx : int</span>
+<span class="sd">            Experiment index</span>
+<span class="sd">        site_indices : List[int]</span>
+<span class="sd">            List of site indices to extract</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray</span>
+<span class="sd">            Shape: (n_sites, n_layer, n_features_per_layer) -&gt; (n_sites_used, 60, 11)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Gas features: (n_sites, layer, 7)</span>
+        <span class="n">gas_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrtmgp_input</span><span class="p">[</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (n_sites, 60, 7)</span>
+
+        <span class="c1"># Cloud features: (n_sites, layer, 2)</span>
+        <span class="n">lwp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cloud_lwp</span><span class="p">[</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (n_sites, 60)</span>
+        <span class="n">iwp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cloud_iwp</span><span class="p">[</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (n_sites, 60)</span>
+        <span class="n">cloud_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">lwp</span><span class="p">,</span> <span class="n">iwp</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (n_sites, 60, 2)</span>
+
+        <span class="c1"># mu0: (n_sites,) -&gt; tile to (n_sites, n_layer, 1)</span>
+        <span class="n">mu0_vals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu0</span><span class="p">[</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (n_sites,)</span>
+        <span class="n">mu0_tiled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+            <span class="n">mu0_vals</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_layer</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># (n_sites, 60, 1)</span>
+
+        <span class="c1"># Surface albedo: use first g-point (broadband), tile to (n_sites, n_layer, 1)</span>
+        <span class="n">albedo_spectral</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sfc_alb</span><span class="p">[</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (n_sites, 224)</span>
+        <span class="n">albedo_broadband</span> <span class="o">=</span> <span class="n">albedo_spectral</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># (n_sites,) - first g-point</span>
+        <span class="n">albedo_tiled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+            <span class="n">albedo_broadband</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_layer</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># (n_sites, 60, 1)</span>
+
+        <span class="c1"># Combine: (n_sites, 60, 11) - [gas(7), cloud(2), mu0(1), albedo(1)]</span>
+        <span class="n">layer_features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">gas_data</span><span class="p">,</span>  <span class="c1"># (n_sites, 60, 7)</span>
+                <span class="n">cloud_data</span><span class="p">,</span>  <span class="c1"># (n_sites, 60, 2)</span>
+                <span class="n">mu0_tiled</span><span class="p">,</span>  <span class="c1"># (n_sites, 60, 1)</span>
+                <span class="n">albedo_tiled</span><span class="p">,</span>  <span class="c1"># (n_sites, 60, 1)</span>
+            <span class="p">],</span>
+            <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">layer_features</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expt_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract target fluxes for multiple sites.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expt_idx : int</span>
+<span class="sd">            Experiment index</span>
+<span class="sd">        site_indices : List[int]</span>
+<span class="sd">            List of site indices to extract</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray</span>
+<span class="sd">            Shape: (n_sites, n_level, n_output_fluxes) -&gt; (n_sites_used, 61, 2)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rsd_profile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rsd</span><span class="p">[</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (n_sites, 61)</span>
+        <span class="n">rsu_profile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rsu</span><span class="p">[</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (n_sites, 61)</span>
+
+        <span class="c1"># rsd: remove level 0,</span>
+        <span class="n">rsd_selection</span> <span class="o">=</span> <span class="n">rsd_profile</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>  <span class="c1"># (n_sites, 60)</span>
+        <span class="c1"># rsu: remove last level,</span>
+        <span class="n">rsu_selection</span> <span class="o">=</span> <span class="n">rsu_profile</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># (n_sites, 60)</span>
+
+        <span class="c1"># Stack along last dimension: (n_sites, 61, 2)</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">rsd_selection</span><span class="p">,</span> <span class="n">rsu_selection</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">targets</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return number of experiments (time steps).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_experiments</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get all sites for a specific experiment.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        idx : int</span>
+<span class="sd">            Experiment index (0 to n_experiments-1)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]</span>
+<span class="sd">            - layer_features: (n_sites, n_layer, n_features_per_layer) -&gt; (n_sites_used, 60, 9)</span>
+<span class="sd">            - aux_features: (n_sites, n_aux_features) -&gt; (n_sites_used, 2)</span>
+<span class="sd">            - targets: (n_sites, n_level, n_output_fluxes) -&gt; (n_sites_used, 61, 2)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">expt_idx</span> <span class="o">=</span> <span class="n">idx</span>
+
+        <span class="c1"># Determine site indices based on training mode</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="c1"># For training: regenerate site mapping when experiment changes</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_expt_idx</span> <span class="o">!=</span> <span class="n">expt_idx</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_site_mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_random_site_mapping</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_expt_idx</span> <span class="o">=</span> <span class="n">expt_idx</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;New site mapping for expt </span><span class="si">{</span><span class="n">expt_idx</span><span class="si">}</span><span class="s2">: first 5 sites = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_site_mapping</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="n">site_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_site_mapping</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># For validation/testing: use all sites</span>
+            <span class="n">site_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sindex_tracker</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">site_indices</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tindex_tracker</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expt_idx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Experiment </span><span class="si">{</span><span class="n">expt_idx</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Number of sites: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">site_indices</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Extract data for all selected sites</span>
+        <span class="n">layer_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_per_layer_features</span><span class="p">(</span>
+            <span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span>
+        <span class="p">)</span>  <span class="c1"># (n_sites, 60, 11)</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_targets</span><span class="p">(</span><span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span><span class="p">)</span>  <span class="c1"># (n_sites, 60, 2)</span>
+        <span class="n">p_level</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pressure_levels</span><span class="p">(</span>
+            <span class="n">expt_idx</span><span class="p">,</span> <span class="n">site_indices</span>
+        <span class="p">)</span>  <span class="c1"># (n_sites, 59) - Pa</span>
+
+        <span class="c1"># Normalize features: each of the 11 features separately</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">):</span>
+            <span class="n">layer_features</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">layer_features</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">i</span><span class="p">],</span> <span class="n">var_name</span><span class="p">)</span>
+
+        <span class="c1"># Normalize targets: rsd and rsu separately</span>
+        <span class="n">targets</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;rsd&quot;</span><span class="p">)</span>
+        <span class="n">targets</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;rsu&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Convert to tensors</span>
+        <span class="n">layer_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">layer_features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">targets_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">p_level_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">p_level</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># (n_sites, 59)</span>
+
+        <span class="c1"># Permute dimensions: (batch, seq, features) -&gt; (batch, features, seq)</span>
+        <span class="n">layer_tensor</span> <span class="o">=</span> <span class="n">layer_tensor</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (n_sites, 11, 60)</span>
+        <span class="n">targets_tensor</span> <span class="o">=</span> <span class="n">targets_tensor</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (n_sites, 2, 60)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;  Layer features shape: </span><span class="si">{</span><span class="n">layer_tensor</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>  <span class="c1"># (n_sites, 11, 60)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;  Targets shape: </span><span class="si">{</span><span class="n">targets_tensor</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>  <span class="c1"># (n_sites, 2, 60)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;  Pressure levels shape: </span><span class="si">{</span><span class="n">p_level_tensor</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>  <span class="c1"># (n_sites, 59)</span>
+
+        <span class="k">return</span> <span class="n">layer_tensor</span><span class="p">,</span> <span class="n">targets_tensor</span><span class="p">,</span> <span class="n">p_level_tensor</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, K. Ardaneh / CNRS / IPSL / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

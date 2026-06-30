@@ -1,0 +1,517 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rtnn.models.mlp &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../inference_modes.html">Inference Modes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Benchmark</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lsm_benchmark.html">Land surface model benchmark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../atm_benchmark.html">Atmosphere entire radiation scheme benchmark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ref_trans_benchmark.html">RTE reflectance-transmittance per g-point benchmark</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rtnn.models.mlp</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rtnn.models.mlp</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2026 IPSL / CNRS / Sorbonne University</span>
+<span class="c1"># Authors: Kazem Ardaneh</span>
+<span class="c1">#</span>
+<span class="c1"># This work is licensed under the Creative Commons</span>
+<span class="c1"># Attribution-NonCommercial-ShareAlike 4.0 International License.</span>
+<span class="c1"># To view a copy of this license, visit</span>
+<span class="c1"># http://creativecommons.org/licenses/by-nc-sa/4.0/</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Multi-layer perceptron architectures for structured and sequence-based modeling.</span>
+
+<span class="sd">This module provides flexible and extensible implementations of multi-layer</span>
+<span class="sd">perceptrons (MLPs) tailored for tasks such as radiative transfer emulation</span>
+<span class="sd">and other scientific machine learning applications involving structured inputs.</span>
+
+<span class="sd">The module includes:</span>
+
+<span class="sd">- MLPBlock: A configurable fully connected block with optional normalization,</span>
+<span class="sd">  activation, and dropout.</span>
+<span class="sd">- MLP: A flexible MLP architecture supporting positional embeddings,</span>
+<span class="sd">  residual connections, and customizable depth.</span>
+<span class="sd">- MLPResidual: A residual MLP with skip connections across all hidden layers</span>
+<span class="sd">  for improved gradient flow and training stability.</span>
+
+<span class="sd">Features</span>
+<span class="sd">--------</span>
+<span class="sd">- Configurable hidden layer sizes and depth</span>
+<span class="sd">- Support for multiple normalization strategies (batch norm, layer norm)</span>
+<span class="sd">- Choice of activation functions (ReLU, GELU, SiLU)</span>
+<span class="sd">- Optional dropout for regularization</span>
+<span class="sd">- Residual connections for improved optimization</span>
+<span class="sd">- Learnable positional embeddings for sequence-aware modeling</span>
+<span class="sd">- Designed for flattened sequence inputs and structured data</span>
+
+<span class="sd">Notes</span>
+<span class="sd">-----</span>
+<span class="sd">- Inputs are expected in the shape (batch_size, feature_channel, seq_length)</span>
+<span class="sd">  and are internally flattened before processing.</span>
+<span class="sd">- Positional embeddings, when enabled, are concatenated to the input features</span>
+<span class="sd">  before passing through the network.</span>
+<span class="sd">- Residual connections in ``MLP`` are applied globally, while ``MLPResidual``</span>
+<span class="sd">  applies residual connections at every hidden layer.</span>
+<span class="sd">- Layer normalization is applied to outputs for improved numerical stability.</span>
+
+<span class="sd">Dependencies</span>
+<span class="sd">------------</span>
+<span class="sd">- torch</span>
+<span class="sd">- torch.nn</span>
+<span class="sd">- typing</span>
+
+<span class="sd">Examples</span>
+<span class="sd">--------</span>
+<span class="sd">Basic MLP usage:</span>
+
+<span class="sd">&gt;&gt;&gt; model = MLP(</span>
+<span class="sd">...     feature_channel=6,</span>
+<span class="sd">...     output_channel=4,</span>
+<span class="sd">...     seq_length=10,</span>
+<span class="sd">...     hidden_sizes=[512, 256, 128]</span>
+<span class="sd">... )</span>
+<span class="sd">&gt;&gt;&gt; x = torch.randn(32, 6, 10)</span>
+<span class="sd">&gt;&gt;&gt; y = model(x)</span>
+
+<span class="sd">Using MLP with positional embeddings and residuals:</span>
+
+<span class="sd">&gt;&gt;&gt; model = MLP(</span>
+<span class="sd">...     feature_channel=6,</span>
+<span class="sd">...     output_channel=4,</span>
+<span class="sd">...     seq_length=10,</span>
+<span class="sd">...     use_positional_embedding=True,</span>
+<span class="sd">...     use_residual=True</span>
+<span class="sd">... )</span>
+
+<span class="sd">Using MLPResidual:</span>
+
+<span class="sd">&gt;&gt;&gt; model = MLPResidual(</span>
+<span class="sd">...     feature_channel=6,</span>
+<span class="sd">...     output_channel=4,</span>
+<span class="sd">...     seq_length=10,</span>
+<span class="sd">...     hidden_size=256,</span>
+<span class="sd">...     num_layers=4</span>
+<span class="sd">... )</span>
+<span class="sd">&gt;&gt;&gt; x = torch.randn(16, 6, 10)</span>
+<span class="sd">&gt;&gt;&gt; y = model(x)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+
+
+<div class="viewcode-block" id="MLPBlock">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLPBlock">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MLPBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A single MLP block with linear layer, normalization, activation, and dropout.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    in_features : int</span>
+<span class="sd">        Number of input features.</span>
+<span class="sd">    out_features : int</span>
+<span class="sd">        Number of output features.</span>
+<span class="sd">    dropout : float, optional</span>
+<span class="sd">        Dropout rate. Default is 0.1.</span>
+<span class="sd">    use_batch_norm : bool, optional</span>
+<span class="sd">        Whether to use batch normalization. Default is True.</span>
+<span class="sd">    use_layer_norm : bool, optional</span>
+<span class="sd">        Whether to use layer normalization. Default is False.</span>
+<span class="sd">    activation : str, optional</span>
+<span class="sd">        Activation function (&#39;relu&#39;, &#39;gelu&#39;, &#39;silu&#39;). Default is &#39;relu&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MLPBlock.__init__">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLPBlock.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">out_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">use_batch_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_layer_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">activation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="p">,</span> <span class="n">out_features</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_batch_norm</span> <span class="o">=</span> <span class="n">use_batch_norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_layer_norm</span> <span class="o">=</span> <span class="n">use_layer_norm</span>
+
+        <span class="k">if</span> <span class="n">use_batch_norm</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">out_features</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">use_layer_norm</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ln</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">out_features</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;relu&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">act</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;gelu&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">act</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;silu&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">act</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">act</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MLPBlock.forward">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLPBlock.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass.&quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_batch_norm</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_layer_norm</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ln</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MLP">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLP">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MLP</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Multi-Layer Perceptron for radiative transfer emulation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    feature_channel : int</span>
+<span class="sd">        Number of input features per time step.</span>
+<span class="sd">    output_channel : int</span>
+<span class="sd">        Number of output channels.</span>
+<span class="sd">    seq_length : int</span>
+<span class="sd">        Length of the input sequence.</span>
+<span class="sd">    hidden_sizes : List[int], optional</span>
+<span class="sd">        List of hidden layer sizes. Default is [512, 256, 128].</span>
+<span class="sd">    dropout : float, optional</span>
+<span class="sd">        Dropout rate. Default is 0.1.</span>
+<span class="sd">    use_batch_norm : bool, optional</span>
+<span class="sd">        Whether to use batch normalization. Default is True.</span>
+<span class="sd">    use_layer_norm : bool, optional</span>
+<span class="sd">        Whether to use layer normalization. Default is False.</span>
+<span class="sd">    use_residual : bool, optional</span>
+<span class="sd">        Whether to use residual connections. Default is False.</span>
+<span class="sd">    activation : str, optional</span>
+<span class="sd">        Activation function (&#39;relu&#39;, &#39;gelu&#39;, &#39;silu&#39;). Default is &#39;relu&#39;.</span>
+<span class="sd">    use_positional_embedding : bool, optional</span>
+<span class="sd">        Whether to add positional embeddings. Default is True.</span>
+<span class="sd">    positional_embed_dim : int, optional</span>
+<span class="sd">        Dimension of positional embeddings. Default is 16.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MLP.__init__">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLP.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">feature_channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">output_channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">seq_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">hidden_sizes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">use_batch_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_layer_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_residual</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">activation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+        <span class="n">use_positional_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">positional_embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">hidden_sizes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hidden_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_channel</span> <span class="o">=</span> <span class="n">feature_channel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_channel</span> <span class="o">=</span> <span class="n">output_channel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span> <span class="o">=</span> <span class="n">seq_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_sizes</span> <span class="o">=</span> <span class="n">hidden_sizes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_residual</span> <span class="o">=</span> <span class="n">use_residual</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_positional_embedding</span> <span class="o">=</span> <span class="n">use_positional_embedding</span>
+
+        <span class="n">input_size</span> <span class="o">=</span> <span class="n">feature_channel</span> <span class="o">*</span> <span class="n">seq_length</span>
+
+        <span class="k">if</span> <span class="n">use_positional_embedding</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">positional_embed</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">seq_length</span><span class="p">,</span> <span class="n">positional_embed_dim</span><span class="p">)</span>
+            <span class="n">input_size</span> <span class="o">+=</span> <span class="n">positional_embed_dim</span> <span class="o">*</span> <span class="n">seq_length</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">positional_embed</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="n">prev_size</span> <span class="o">=</span> <span class="n">input_size</span>
+
+        <span class="k">for</span> <span class="n">hidden_size</span> <span class="ow">in</span> <span class="n">hidden_sizes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">MLPBlock</span><span class="p">(</span>
+                    <span class="n">prev_size</span><span class="p">,</span>
+                    <span class="n">hidden_size</span><span class="p">,</span>
+                    <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
+                    <span class="n">use_batch_norm</span><span class="o">=</span><span class="n">use_batch_norm</span><span class="p">,</span>
+                    <span class="n">use_layer_norm</span><span class="o">=</span><span class="n">use_layer_norm</span><span class="p">,</span>
+                    <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">prev_size</span> <span class="o">=</span> <span class="n">hidden_size</span>
+
+        <span class="n">output_size</span> <span class="o">=</span> <span class="n">output_channel</span> <span class="o">*</span> <span class="n">seq_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final_norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">output_size</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_residual</span> <span class="ow">and</span> <span class="n">input_size</span> <span class="o">!=</span> <span class="n">hidden_sizes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residual_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_sizes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residual_proj</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_positional_embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add positional embeddings to the flattened input.&quot;&quot;&quot;</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">x_reshaped</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">pos_embed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">positional_embed</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="n">pos_embed</span> <span class="o">=</span> <span class="n">pos_embed</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">x_combined</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">x_reshaped</span><span class="p">,</span> <span class="n">pos_embed</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x_combined</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MLP.forward">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLP.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass.&quot;&quot;&quot;</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_positional_embedding</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">positional_embed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_positional_embedding</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_residual</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_proj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">residual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_proj</span><span class="p">(</span><span class="n">residual</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_residual</span> <span class="ow">and</span> <span class="n">residual</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">residual</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_channel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MLPResidual">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLPResidual">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MLPResidual</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MLP with residual connections between all layers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    feature_channel : int</span>
+<span class="sd">        Number of input features.</span>
+<span class="sd">    output_channel : int</span>
+<span class="sd">        Number of output channels.</span>
+<span class="sd">    seq_length : int</span>
+<span class="sd">        Sequence length.</span>
+<span class="sd">    hidden_size : int</span>
+<span class="sd">        Size of hidden layers.</span>
+<span class="sd">    num_layers : int</span>
+<span class="sd">        Number of hidden layers.</span>
+<span class="sd">    dropout : float, optional</span>
+<span class="sd">        Dropout rate. Default is 0.1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MLPResidual.__init__">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLPResidual.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">feature_channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">output_channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">seq_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">hidden_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_channel</span> <span class="o">=</span> <span class="n">feature_channel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_channel</span> <span class="o">=</span> <span class="n">output_channel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span> <span class="o">=</span> <span class="n">seq_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">hidden_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
+
+        <span class="n">input_size</span> <span class="o">=</span> <span class="n">feature_channel</span> <span class="o">*</span> <span class="n">seq_length</span>
+        <span class="n">output_size</span> <span class="o">=</span> <span class="n">output_channel</span> <span class="o">*</span> <span class="n">seq_length</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_act</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">output_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MLPResidual.forward">
+<a class="viewcode-back" href="../../../api/rtnn.models.html#rtnn.models.mlp.MLPResidual.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass with residual connections.&quot;&quot;&quot;</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_act</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_channel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, K. Ardaneh / CNRS / IPSL / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

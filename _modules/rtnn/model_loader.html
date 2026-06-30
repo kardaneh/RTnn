@@ -1,0 +1,318 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rtnn.model_loader &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../inference_modes.html">Inference Modes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Benchmark</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../lsm_benchmark.html">Land surface model benchmark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../atm_benchmark.html">Atmosphere entire radiation scheme benchmark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ref_trans_benchmark.html">RTE reflectance-transmittance per g-point benchmark</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rtnn.model_loader</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rtnn.model_loader</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2026 IPSL / CNRS / Sorbonne University</span>
+<span class="c1"># Authors: Kazem Ardaneh</span>
+<span class="c1">#</span>
+<span class="c1"># This work is licensed under the Creative Commons</span>
+<span class="c1"># Attribution-NonCommercial-ShareAlike 4.0 International License.</span>
+<span class="c1"># To view a copy of this license, visit</span>
+<span class="c1"># http://creativecommons.org/licenses/by-nc-sa/4.0/</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">rtnn.model_loader - Model Factory for Radiative Transfer Neural Networks</span>
+
+<span class="sd">This module provides a factory function `load_model()` that instantiates</span>
+<span class="sd">various neural network architectures for radiative transfer calculations</span>
+<span class="sd">in climate modeling. It serves as the central point for model creation</span>
+<span class="sd">across the RTnn framework.</span>
+
+<span class="sd">Module Overview</span>
+<span class="sd">---------------</span>
+<span class="sd">The model loader module implements a factory pattern to abstract away the</span>
+<span class="sd">details of model instantiation. Based on a configuration object (typically</span>
+<span class="sd">from command-line arguments), it returns an initialized PyTorch model ready</span>
+<span class="sd">for training or inference.</span>
+
+<span class="sd">Supported Model Architectures</span>
+<span class="sd">-----------------------------</span>
+<span class="sd">1. **Recurrent Neural Networks (RNN)**</span>
+
+<span class="sd">   - LSTM (Long Short-Term Memory): Bidirectional LSTM with Conv1d projection</span>
+<span class="sd">   - GRU (Gated Recurrent Unit): Bidirectional GRU with Conv1d projection</span>
+<span class="sd">   - Best for: Sequential data with temporal dependencies</span>
+
+<span class="sd">2. **Transformer Models**</span>
+
+<span class="sd">   - EncoderTorch: PyTorch-native transformer encoder</span>
+<span class="sd">   - Features: Multi-head self-attention, positional embeddings</span>
+<span class="sd">   - Best for: Long-range dependencies and parallel processing</span>
+
+<span class="sd">3. **Fully Connected Networks (FCN)**</span>
+
+<span class="sd">   - Standard FCN: Multi-layer perceptron with configurable depth</span>
+<span class="sd">   - PINN: Physics-Informed Neural Network with two-stream architecture for vertical profiles</span>
+<span class="sd">   - Best for: Non-sequential, feature-based inputs</span>
+
+<span class="sd">4. **Multi-Layer Perceptrons (MLP)**</span>
+
+<span class="sd">   - MLP: Standard MLP with batch/layer normalization options</span>
+<span class="sd">   - MLPResidual: MLP with residual connections between layers</span>
+<span class="sd">   - Features: Positional embeddings, dropout, multiple activation functions</span>
+<span class="sd">   - Best for: Flexible architecture with skip connections</span>
+
+<span class="sd">Architecture Details</span>
+<span class="sd">--------------------</span>
+<span class="sd">All models are designed to handle the specific requirements of radiative</span>
+<span class="sd">transfer problems:</span>
+<span class="sd">- Input shape: (batch, seq_len, feature_channel)</span>
+<span class="sd">- Output shape: (batch, seq_len, output_channel)</span>
+<span class="sd">- Physical constraints: Conservation of energy, positive outputs</span>
+
+<span class="sd">The models output four channels corresponding to:</span>
+<span class="sd">- collim_alb (collimated albedo)</span>
+<span class="sd">- collim_tran (collimated transmittance)</span>
+<span class="sd">- isotrop_alb (isotropic albedo)</span>
+<span class="sd">- isotrop_tran (isotropic transmittance)</span>
+
+<span class="sd">Data Flow</span>
+<span class="sd">---------</span>
+<span class="sd">1. Parse configuration (args)</span>
+<span class="sd">2. Determine model type from args.type</span>
+<span class="sd">3. Extract model-specific parameters</span>
+<span class="sd">4. Instantiate appropriate model class</span>
+<span class="sd">5. Return initialized model</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.models.rnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">RNN_LSTM</span><span class="p">,</span> <span class="n">RNN_GRU</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.models.transformer</span><span class="w"> </span><span class="kn">import</span> <span class="n">EncoderTorch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.models.fcn</span><span class="w"> </span><span class="kn">import</span> <span class="n">FCN</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.models.pinn</span><span class="w"> </span><span class="kn">import</span> <span class="n">PINN</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rtnn.models.mlp</span><span class="w"> </span><span class="kn">import</span> <span class="n">MLP</span><span class="p">,</span> <span class="n">MLPResidual</span>
+
+
+<div class="viewcode-block" id="load_model">
+<a class="viewcode-back" href="../../api/rtnn.html#rtnn.model_loader.load_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_model</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function to instantiate a neural network model from configuration.</span>
+
+<span class="sd">    This function builds and returns a PyTorch model based on the value of</span>
+<span class="sd">    ``args.type``. It supports multiple architectures including recurrent,</span>
+<span class="sd">    convolutional, transformer-based, and fully connected models.</span>
+
+<span class="sd">    Supported model families</span>
+<span class="sd">    ------------------------</span>
+<span class="sd">    - LSTM / GRU: Bidirectional recurrent models with Conv1d projection head</span>
+<span class="sd">    - Transformer: PyTorch Transformer encoder with positional embeddings</span>
+<span class="sd">    - FCN / FullyConnected: Fully connected feedforward network for sequences</span>
+<span class="sd">    - VRT / VerticalRT: Physics-inspired vertical column model</span>
+<span class="sd">    - MLP: Flexible multilayer perceptron with optional embeddings and residuals</span>
+<span class="sd">    - MLPResidual: Deep residual MLP with layer-wise skip connections</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.nn.Module</span>
+<span class="sd">        Instantiated PyTorch model corresponding to the requested architecture.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If ``args.type`` does not match any supported model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_type</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">model_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;lstm&quot;</span><span class="p">,</span> <span class="s2">&quot;gru&quot;</span><span class="p">]:</span>
+        <span class="n">model_class</span> <span class="o">=</span> <span class="n">RNN_LSTM</span> <span class="k">if</span> <span class="n">model_type</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span> <span class="k">else</span> <span class="n">RNN_GRU</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model_class</span><span class="p">(</span>
+            <span class="n">feature_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">feature_channel</span><span class="p">,</span>
+            <span class="n">output_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output_channel</span><span class="p">,</span>
+            <span class="n">hidden_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
+            <span class="n">num_layers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">model_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;encodertorch&quot;</span><span class="p">,</span> <span class="s2">&quot;transformer&quot;</span><span class="p">]:</span>
+        <span class="c1"># New EncoderTorch implementation (PyTorch native transformer)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">EncoderTorch</span><span class="p">(</span>
+            <span class="n">feature_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">feature_channel</span><span class="p">,</span>
+            <span class="n">output_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output_channel</span><span class="p">,</span>
+            <span class="n">embed_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">embed_size</span><span class="p">,</span>
+            <span class="n">num_layers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span>
+            <span class="n">heads</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">nhead</span><span class="p">,</span>
+            <span class="n">forward_expansion</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">forward_expansion</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">forward_expansion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># Default expansion factor</span>
+            <span class="n">seq_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span>
+            <span class="n">dropout</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">model_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;pinn&quot;</span><span class="p">]:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">PINN</span><span class="p">(</span>
+            <span class="n">feature_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">feature_channel</span><span class="p">,</span>
+            <span class="n">hidden</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
+            <span class="n">out_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output_channel</span><span class="p">,</span>
+            <span class="n">n_layers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">model_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;fcn&quot;</span><span class="p">,</span> <span class="s2">&quot;fullyconnected&quot;</span><span class="p">]:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">FCN</span><span class="p">(</span>
+            <span class="n">feature_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">feature_channel</span><span class="p">,</span>
+            <span class="n">output_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output_channel</span><span class="p">,</span>
+            <span class="n">num_layers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span>
+            <span class="n">hidden_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
+            <span class="n">seq_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span>
+            <span class="n">dim_expand</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">model_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mlp&quot;</span><span class="p">]:</span>
+        <span class="c1"># Standard MLP with configurable hidden layers</span>
+        <span class="n">hidden_sizes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;hidden_sizes&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hidden_sizes</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">hidden_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hidden_sizes</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">MLP</span><span class="p">(</span>
+            <span class="n">feature_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">feature_channel</span><span class="p">,</span>
+            <span class="n">output_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output_channel</span><span class="p">,</span>
+            <span class="n">seq_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span>
+            <span class="n">hidden_sizes</span><span class="o">=</span><span class="n">hidden_sizes</span><span class="p">,</span>
+            <span class="n">dropout</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;dropout&quot;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span>
+            <span class="n">use_batch_norm</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_batch_norm&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="n">use_layer_norm</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_layer_norm&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="n">use_residual</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_residual&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="n">activation</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;activation&quot;</span><span class="p">,</span> <span class="s2">&quot;relu&quot;</span><span class="p">),</span>
+            <span class="n">use_positional_embedding</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_positional_embedding&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="n">positional_embed_dim</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;positional_embed_dim&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">model_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mlp_residual&quot;</span><span class="p">]:</span>
+        <span class="c1"># MLP with residual connections between layers</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">MLPResidual</span><span class="p">(</span>
+            <span class="n">feature_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">feature_channel</span><span class="p">,</span>
+            <span class="n">output_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output_channel</span><span class="p">,</span>
+            <span class="n">seq_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span>
+            <span class="n">hidden_size</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;hidden_size&quot;</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
+            <span class="n">num_layers</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;num_layers&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+            <span class="n">dropout</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;dropout&quot;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model type &#39;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">&#39; is not implemented.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, K. Ardaneh / CNRS / IPSL / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

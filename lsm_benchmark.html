@@ -1,0 +1,510 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Land surface model benchmark &mdash; RTnn 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Atmosphere entire radiation scheme benchmark" href="atm_benchmark.html" />
+    <link rel="prev" title="Inference Modes" href="inference_modes.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            RTnn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="neural_architectures.html">Neural Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training_strategy.html">Training Strategy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference_modes.html">Inference Modes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Benchmark</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Land surface model benchmark</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#model-performance-comparison">Model Performance Comparison</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#experiment-configuration">Experiment Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-architectures">Model Architectures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#performance-metrics">Performance Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantitative-comparison-fluxes">Quantitative Comparison - Fluxes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantitative-comparison-absorption-channels-1-2">Quantitative Comparison - Absorption (Channels 1-2)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantitative-comparison-absorption-channels-3-4">Quantitative Comparison - Absorption (Channels 3-4)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#training-performance-comparison">Training Performance Comparison</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-findings">Key Findings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#recommendations">Recommendations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#diagnostic-visualizations">Diagnostic Visualizations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#aggregated-results-all-pfts-combined">Aggregated Results (All PFTs Combined)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#per-pft-results-example-pft-11">Per-PFT Results: Example PFT 11</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#vis-band-results-for-pft-11">VIS Band Results for PFT 11</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nir-band-results-for-pft-11">NIR Band Results for PFT 11</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="atm_benchmark.html">Atmosphere entire radiation scheme benchmark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ref_trans_benchmark.html">RTE reflectance-transmittance per g-point benchmark</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">RTnn API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="project_structure.html">Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing_philosophy.html">Testing Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pre_push_workflow.html">Pre-Push Workflow</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">RTnn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Land surface model benchmark</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/lsm_benchmark.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="inference_modes.html" class="btn btn-neutral float-left" title="Inference Modes" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="atm_benchmark.html" class="btn btn-neutral float-right" title="Atmosphere entire radiation scheme benchmark" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="land-surface-model-benchmark">
+<h1>Land surface model benchmark<a class="headerlink" href="#land-surface-model-benchmark" title="Link to this heading"></a></h1>
+<p>This section documents the experimental results comparing different neural network architectures for radiative transfer modeling in the RTnn framework.</p>
+<section id="model-performance-comparison">
+<h2>Model Performance Comparison<a class="headerlink" href="#model-performance-comparison" title="Link to this heading"></a></h2>
+<p>This presents a comprehensive comparison of five different neural network architectures trained on the LSM (Land Surface Model) dataset for radiative transfer modeling. All models were trained with identical hyperparameters where applicable to ensure fair comparison.</p>
+<section id="experiment-configuration">
+<h3>Experiment Configuration<a class="headerlink" href="#experiment-configuration" title="Link to this heading"></a></h3>
+<p>All models were trained with the following common configuration:</p>
+<ul class="simple">
+<li><p><strong>Dataset</strong>: LSM (Land Surface Model) data from 1995-2000</p></li>
+<li><p><strong>Training years</strong>: 1995-1999</p></li>
+<li><p><strong>Testing year</strong>: 2000</p></li>
+<li><p><strong>Input features</strong>: 121 channels</p></li>
+<li><p><strong>Output channels</strong>: 120</p></li>
+<li><p><strong>Sequence length</strong>: 10 vertical layers</p></li>
+<li><p><strong>Normalization</strong>: log1p + standard scaling</p></li>
+<li><p><strong>Loss function</strong>: Huber loss (β=0.5, δ=1.0)</p></li>
+<li><p><strong>Learning rate</strong>: 0.0001</p></li>
+<li><p><strong>Batch size</strong>: 4</p></li>
+<li><p><strong>Epochs</strong>: 100</p></li>
+<li><p><strong>Hidden size</strong>: 256</p></li>
+<li><p><strong>Number of layers</strong>: 3</p></li>
+<li><p><strong>Dropout</strong>: 0.1</p></li>
+</ul>
+</section>
+<section id="model-architectures">
+<h3>Model Architectures<a class="headerlink" href="#model-architectures" title="Link to this heading"></a></h3>
+<p>Five different architectures were evaluated:</p>
+<ol class="arabic simple">
+<li><p><strong>LSTM</strong> (Long Short-Term Memory)</p>
+<ul class="simple">
+<li><p>Traditional recurrent architecture</p></li>
+<li><p>Model identifier: <cite>lstm_h256_l3_d0d1</cite></p></li>
+</ul>
+</li>
+<li><p><strong>GRU</strong> (Gated Recurrent Unit)</p>
+<ul class="simple">
+<li><p>Simplified recurrent architecture</p></li>
+<li><p>Model identifier: <cite>gru_h256_l3_d0d1</cite></p></li>
+</ul>
+</li>
+<li><p><strong>Transformer Encoder</strong></p>
+<ul class="simple">
+<li><p>Attention-based architecture with 4 heads</p></li>
+<li><p>Embedding size: 256</p></li>
+<li><p>Forward expansion factor: 4</p></li>
+<li><p>Model identifier: <cite>transformer_e256_h4_l3_fe4_d0d1</cite></p></li>
+</ul>
+</li>
+<li><p><strong>FCN</strong> (Fully Connected Network)</p>
+<ul class="simple">
+<li><p>Baseline dense architecture</p></li>
+<li><p>Model identifier: <cite>fcn_h256_l3_d0d1</cite></p></li>
+</ul>
+</li>
+<li><p><strong>PINN</strong> (Physics-Informed Neural Network)</p>
+<ul class="simple">
+<li><p>Hybrid architecture incorporating physical constraints</p></li>
+<li><p>Model identifier: <cite>pinn</cite></p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="performance-metrics">
+<h3>Performance Metrics<a class="headerlink" href="#performance-metrics" title="Link to this heading"></a></h3>
+<p>The following metrics were used for evaluation (validation set):</p>
+<ul class="simple">
+<li><p><strong>Loss</strong>: Huber loss value</p></li>
+<li><p><strong>NMAE</strong>: Normalized Mean Absolute Error (normalized by target range)</p></li>
+<li><p><strong>NMSE</strong>: Normalized Mean Squared Error (normalized by target variance)</p></li>
+<li><p><strong>R²</strong>: Coefficient of determination</p></li>
+<li><p><strong>Runtime</strong>: Training time per epoch (in seconds)</p></li>
+</ul>
+</section>
+<section id="quantitative-comparison-fluxes">
+<h3>Quantitative Comparison - Fluxes<a class="headerlink" href="#quantitative-comparison-fluxes" title="Link to this heading"></a></h3>
+<table class="docutils align-center" id="id1">
+<caption><span class="caption-text">Performance comparison for flux predictions (validation set)</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 21.1%" />
+<col style="width: 15.8%" />
+<col style="width: 15.8%" />
+<col style="width: 15.8%" />
+<col style="width: 15.8%" />
+<col style="width: 15.8%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Loss ↓</p></th>
+<th class="head"><p>NMAE ↓</p></th>
+<th class="head"><p>NMSE ↓</p></th>
+<th class="head"><p>R² ↑</p></th>
+<th class="head"><p>Runtime (s/epoch)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LSTM</p></td>
+<td><p>2.350e-06</p></td>
+<td><p>8.176e-04</p></td>
+<td><p>1.872e-03</p></td>
+<td><p>0.999996</p></td>
+<td><p>268.3</p></td>
+</tr>
+<tr class="row-odd"><td><p>GRU</p></td>
+<td><p>2.327e-06</p></td>
+<td><p>8.771e-04</p></td>
+<td><p>1.884e-03</p></td>
+<td><p>0.999996</p></td>
+<td><p>266.5</p></td>
+</tr>
+<tr class="row-even"><td><p>Transformer</p></td>
+<td><p>4.603e-05</p></td>
+<td><p>4.200e-03</p></td>
+<td><p>8.227e-03</p></td>
+<td><p>0.999925</p></td>
+<td><p>486.8</p></td>
+</tr>
+<tr class="row-odd"><td><p>FCN</p></td>
+<td><p>6.724e-04</p></td>
+<td><p>2.036e-02</p></td>
+<td><p>3.213e-02</p></td>
+<td><p>0.998865</p></td>
+<td><p>228.9</p></td>
+</tr>
+<tr class="row-even"><td><p>PINN</p></td>
+<td><p>1.394e-04</p></td>
+<td><p>8.829e-03</p></td>
+<td><p>1.426e-02</p></td>
+<td><p>0.999775</p></td>
+<td><p>1158.1</p></td>
+</tr>
+</tbody>
+</table>
+<p><em>Note: ↓ indicates lower is better, ↑ indicates higher is better</em></p>
+</section>
+<section id="quantitative-comparison-absorption-channels-1-2">
+<h3>Quantitative Comparison - Absorption (Channels 1-2)<a class="headerlink" href="#quantitative-comparison-absorption-channels-1-2" title="Link to this heading"></a></h3>
+<table class="docutils align-center" id="id2">
+<caption><span class="caption-text">Performance comparison for absorption predictions (channels 1-2, validation set)</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 29.4%" />
+<col style="width: 23.5%" />
+<col style="width: 23.5%" />
+<col style="width: 23.5%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>NMAE ↓</p></th>
+<th class="head"><p>NMSE ↓</p></th>
+<th class="head"><p>R² ↑</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LSTM</p></td>
+<td><p>1.650e-02</p></td>
+<td><p>9.628e-03</p></td>
+<td><p>0.999903</p></td>
+</tr>
+<tr class="row-odd"><td><p>GRU</p></td>
+<td><p>1.474e-02</p></td>
+<td><p>9.406e-03</p></td>
+<td><p>0.999908</p></td>
+</tr>
+<tr class="row-even"><td><p>Transformer</p></td>
+<td><p>6.382e-02</p></td>
+<td><p>4.634e-02</p></td>
+<td><p>0.997756</p></td>
+</tr>
+<tr class="row-odd"><td><p>FCN</p></td>
+<td><p>2.843e-01</p></td>
+<td><p>2.099e-01</p></td>
+<td><p>0.953906</p></td>
+</tr>
+<tr class="row-even"><td><p>PINN</p></td>
+<td><p>1.002e-01</p></td>
+<td><p>5.670e-02</p></td>
+<td><p>0.996629</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="quantitative-comparison-absorption-channels-3-4">
+<h3>Quantitative Comparison - Absorption (Channels 3-4)<a class="headerlink" href="#quantitative-comparison-absorption-channels-3-4" title="Link to this heading"></a></h3>
+<table class="docutils align-center" id="id3">
+<caption><span class="caption-text">Performance comparison for absorption predictions (channels 3-4, validation set)</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 29.4%" />
+<col style="width: 23.5%" />
+<col style="width: 23.5%" />
+<col style="width: 23.5%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>NMAE ↓</p></th>
+<th class="head"><p>NMSE ↓</p></th>
+<th class="head"><p>R² ↑</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LSTM</p></td>
+<td><p>1.692e-02</p></td>
+<td><p>9.453e-03</p></td>
+<td><p>0.999905</p></td>
+</tr>
+<tr class="row-odd"><td><p>GRU</p></td>
+<td><p>1.485e-02</p></td>
+<td><p>9.126e-03</p></td>
+<td><p>0.999911</p></td>
+</tr>
+<tr class="row-even"><td><p>Transformer</p></td>
+<td><p>6.942e-02</p></td>
+<td><p>5.052e-02</p></td>
+<td><p>0.997266</p></td>
+</tr>
+<tr class="row-odd"><td><p>FCN</p></td>
+<td><p>1.949e-01</p></td>
+<td><p>1.605e-01</p></td>
+<td><p>0.972430</p></td>
+</tr>
+<tr class="row-even"><td><p>PINN</p></td>
+<td><p>1.074e-01</p></td>
+<td><p>6.612e-02</p></td>
+<td><p>0.995321</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="training-performance-comparison">
+<h3>Training Performance Comparison<a class="headerlink" href="#training-performance-comparison" title="Link to this heading"></a></h3>
+<table class="docutils align-center" id="id4">
+<caption><span class="caption-text">Training vs Validation metrics (fluxes)</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 35.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Train Loss</p></th>
+<th class="head"><p>Valid Loss</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LSTM</p></td>
+<td><p>7.149e-07</p></td>
+<td><p>2.350e-06</p></td>
+</tr>
+<tr class="row-odd"><td><p>GRU</p></td>
+<td><p>7.683e-07</p></td>
+<td><p>2.327e-06</p></td>
+</tr>
+<tr class="row-even"><td><p>Transformer</p></td>
+<td><p>1.117e-04</p></td>
+<td><p>4.603e-05</p></td>
+</tr>
+<tr class="row-odd"><td><p>FCN</p></td>
+<td><p>5.403e-04</p></td>
+<td><p>6.724e-04</p></td>
+</tr>
+<tr class="row-even"><td><p>PINN</p></td>
+<td><p>5.878e-05</p></td>
+<td><p>1.394e-04</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="key-findings">
+<h3>Key Findings<a class="headerlink" href="#key-findings" title="Link to this heading"></a></h3>
+<p><strong>Best Overall Performance for Fluxes</strong>: The <strong>LSTM</strong> and <strong>GRU</strong> models achieve the highest R² scores (0.999996) and lowest errors for flux predictions across the 10 vertical layers, demonstrating excellent capability in capturing radiative transfer processes.</p>
+<p><strong>Best Performance for Absorption</strong>: The <strong>GRU</strong> model shows marginally better performance for absorption predictions, achieving the highest R² values (0.999911 for channels 3-4) and lowest NMAE values.</p>
+<p><strong>Runtime Efficiency</strong>: The <strong>FCN</strong> model is the fastest (228.9 s/epoch) but at the cost of significantly lower accuracy. The <strong>PINN</strong> model is the slowest (1158.1 s/epoch).</p>
+<p><strong>Generalization Gap</strong>: LSTM and GRU show excellent generalization with minimal gap between training and validation, while Transformer shows the largest gap.</p>
+</section>
+<section id="recommendations">
+<h3>Recommendations<a class="headerlink" href="#recommendations" title="Link to this heading"></a></h3>
+<p>Based on the comparison results across 10 vertical layers:</p>
+<ol class="arabic simple">
+<li><p><strong>For maximum accuracy</strong>: Use <strong>LSTM</strong> or <strong>GRU</strong> models</p></li>
+<li><p><strong>For balanced performance</strong>: Use <strong>GRU</strong></p></li>
+<li><p><strong>For real-time applications</strong>: Use <strong>FCN</strong> as a lightweight baseline</p></li>
+<li><p><strong>For physics-constrained applications</strong>: Use <strong>PINN</strong></p></li>
+</ol>
+</section>
+</section>
+<section id="diagnostic-visualizations">
+<h2>Diagnostic Visualizations<a class="headerlink" href="#diagnostic-visualizations" title="Link to this heading"></a></h2>
+<p>This section presents diagnostic plots generated at epoch 99 for the LSTM model, showing prediction quality across different Plant Functional Types (PFTs) and spectral bands.</p>
+<section id="aggregated-results-all-pfts-combined">
+<h3>Aggregated Results (All PFTs Combined)<a class="headerlink" href="#aggregated-results-all-pfts-combined" title="Link to this heading"></a></h3>
+<p>The following figure shows the density scatter plots (hexbin) for all PFTs combined, comparing predicted vs observed values for all four flux components and absorption channels. The diagonal red dashed line represents perfect prediction (y=x), and the R² score is displayed in each panel.</p>
+<figure class="align-center" id="id5" style="width: 90%">
+<img alt="_images/validation_epoch99_aggregated.png" src="_images/validation_epoch99_aggregated.png" />
+<figcaption>
+<p><span class="caption-text"><strong>Figure 1:</strong> Aggregated validation results for LSTM model at epoch 99.
+Top row: Direct flux upwelling (left) and downwelling (right).
+Middle row: Diffusion flux upwelling (left) and downwelling (right).
+Bottom row: Absorption for direct (left) and diffusion (right) channels.
+The color scale represents the logarithm of point density.</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The aggregated results demonstrate excellent agreement between predictions and observations, with R² values exceeding 0.9999 for all flux components and above 0.9999 for absorption channels.</p>
+</section>
+<section id="per-pft-results-example-pft-11">
+<h3>Per-PFT Results: Example PFT 11<a class="headerlink" href="#per-pft-results-example-pft-11" title="Link to this heading"></a></h3>
+<p>Plant Functional Type 11 shows representative performance across the model. The following figures show both hexbin density plots and line plots for the VIS (Visible) and NIR (Near-Infrared) bands.</p>
+<section id="vis-band-results-for-pft-11">
+<h4>VIS Band Results for PFT 11<a class="headerlink" href="#vis-band-results-for-pft-11" title="Link to this heading"></a></h4>
+<figure class="align-center" id="id6" style="width: 90%">
+<img alt="_images/validation_epoch99_pft11_VIS_hexbin.png" src="_images/validation_epoch99_pft11_VIS_hexbin.png" />
+<figcaption>
+<p><span class="caption-text"><strong>Figure 2:</strong> Hexbin validation results for PFT 11, VIS band.
+Shows excellent prediction accuracy for this plant functional type
+in the visible spectral band.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id7" style="width: 90%">
+<img alt="_images/validation_epoch99_pft11_VIS_lines.png" src="_images/validation_epoch99_pft11_VIS_lines.png" />
+<figcaption>
+<p><span class="caption-text"><strong>Figure 3:</strong> Line plot validation results for PFT 11, VIS band.
+The figure shows predictions (solid lines) vs targets (dashed lines)
+across 10 vertical layers for 10 randomly selected samples.
+Top panels: Direct flux upwelling (left) and downwelling (right).
+Middle panels: Diffusion flux upwelling (left) and downwelling (right).
+Bottom panels: Absorption for direct (left) and diffusion (right) channels.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="nir-band-results-for-pft-11">
+<h4>NIR Band Results for PFT 11<a class="headerlink" href="#nir-band-results-for-pft-11" title="Link to this heading"></a></h4>
+<figure class="align-center" id="id8" style="width: 90%">
+<img alt="_images/validation_epoch99_pft11_NIR_hexbin.png" src="_images/validation_epoch99_pft11_NIR_hexbin.png" />
+<figcaption>
+<p><span class="caption-text"><strong>Figure 4:</strong> Hexbin validation results for PFT 11, NIR band.
+Demonstrates consistent performance across the near-infrared
+spectral band.</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id9" style="width: 90%">
+<img alt="_images/validation_epoch99_pft11_NIR_lines.png" src="_images/validation_epoch99_pft11_NIR_lines.png" />
+<figcaption>
+<p><span class="caption-text"><strong>Figure 5:</strong> Line plot validation results for PFT 11, NIR band.
+The figure shows predictions vs targets across vertical layers,
+demonstrating accurate capture of vertical profiles for both
+fluxes and absorption in the NIR band.</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="inference_modes.html" class="btn btn-neutral float-left" title="Inference Modes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="atm_benchmark.html" class="btn btn-neutral float-right" title="Atmosphere entire radiation scheme benchmark" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, K. Ardaneh / CNRS / IPSL / Sorbonne University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
